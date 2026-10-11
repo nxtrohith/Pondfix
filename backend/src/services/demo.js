@@ -29,5 +29,5 @@ export async function demoMeasurement(deps, raw) {
   if (doValue !== undefined) values.push({ parameter: 'dissolved_oxygen', value: doValue, unit: 'mg/L' });
   if (d.ph !== undefined) values.push({ parameter: 'ph', value: d.ph, unit: 'pH' });
   if (d.temperature !== undefined) values.push({ parameter: 'temperature', value: d.temperature, unit: 'C' });
-  return ingestMeasurement(deps, { pondId: d.pondId, source: 'simulated', recordedAt: d.recordedAt, values }, { extraMeta: { simulated: true, scenario: d.scenario ?? null, note: 'Explicit demo input, not a real pond reading.' } });
+  return ingestMeasurement(deps, { pondId: d.pondId, source: 'simulated', recordedAt: d.recordedAt, values }, { strictValues: true, extraMeta: { simulated: true, scenario: d.scenario ?? null, note: 'Explicit demo input, not a real pond reading.' } });
 }

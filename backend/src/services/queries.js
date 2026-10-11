@@ -3,7 +3,7 @@ import { parse, queryDate, PARAMETERS, SOURCES } from '../utils/params.js';
 import { decodeCursor, encodeCursor, parseObjectId } from '../utils/http.js';
 import { validationError, notFound } from '../utils/errors.js';
 import { serializeMeasurement } from './ingestion.js';
-import { classify, dataState, pondRiskStatus } from './risk.js';
+import { getActiveRules, classify, dataState, pondOverallStatus, RULE_PARAMETERS } from './risk.js';
 
 const limitSchema = (max, def = 100) => z.coerce.number().int().min(1).max(max).default(def);
 
@@ -65,14 +65,16 @@ export async function pondSummary(db, config, pond, now) {
     parameters[p] = { ...l, ageMinutes: st.ageMinutes, dataState: st.state, risk: st.state === 'STALE' ? 'STALE' : cls.status };
   }
   const open = await db.collection('alerts').aggregate([{ $match: { pondId: pond._id, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } } }, { $group: { _id: '$severity', n: { $sum: 1 } } }]).toArray();
+  const openItems = await db.collection('alerts').find({ pondId: pond._id, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }, { projection: { origin: 1, parameter: 1, severity: 1, status: 1, triggerValue: 1, threshold: 1 } }).sort({ createdAt: -1 }).limit(50).toArray();
   const latestPred = await db.collection('predictions').find({ pondId: pond._id }).sort({ generatedAt: -1 }).limit(1).next();
   return {
     pond: serializePond(pond),
-    riskStatus: pondRiskStatus(latest.dissolved_oxygen, now, config.staleAfterMinutes),
-    riskBasis: ['dissolved_oxygen'], // the only parameter with project risk rules
+    riskStatus: pondOverallStatus(latest, now, config.staleAfterMinutes),
+    riskBasis: RULE_PARAMETERS.filter((p) => getActiveRules().rules[p].enabled), // parameters with an enabled risk rule
     staleAfterMinutes: config.staleAfterMinutes,
     parameters,
-    openAlerts: Object.fromEntries(open.map((o) => [o._id, o.n])),
+    openAlerts: Object.fromEntries(open.map((o) => [o._id, o.n])), // all origins, by severity
+    openAlertItems: openItems.map((a) => ({ id: a._id, origin: a.origin, parameter: a.parameter, severity: a.severity, status: a.status, direction: alertDirection(a) })), // observed and forecast alerts stay distinguishable
     latestPredictionGeneratedAt: latestPred?.generatedAt ?? null,
   };
 }
@@ -92,16 +94,21 @@ export async function listPredictions(db, config, pondId, rawQuery) {
 export async function listAlerts(db, config, rawQuery, pondId) {
   const q = parse(z.object({
     status: z.enum(['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED', 'OPEN', 'ALL']).default('OPEN'), origin: z.enum(['observed', 'predicted']).optional(),
+    parameter: z.enum(PARAMETERS).optional(), severity: z.enum(['WARNING', 'CRITICAL']).optional(),
     pondId: z.string().optional(), limit: limitSchema(config.maxPageSize, 50), cursor: z.string().max(200).optional(),
   }).strict(), rawQuery);
   const filter = {};
   if (pondId) filter.pondId = pondId; else if (q.pondId) filter.pondId = parseObjectId(q.pondId, 'pondId');
   if (q.status === 'OPEN') filter.status = { $in: ['ACTIVE', 'ACKNOWLEDGED'] }; else if (q.status !== 'ALL') filter.status = q.status;
   if (q.origin) filter.origin = q.origin;
+  if (q.parameter) filter.parameter = q.parameter;
+  if (q.severity) filter.severity = q.severity;
   if (q.cursor) { const c = decodeCursor(q.cursor); filter.$and = [{ $or: [{ createdAt: { $lt: c.date } }, { createdAt: c.date, _id: { $lt: c.id } }] }]; }
   const rows = await db.collection('alerts').find(filter).sort({ createdAt: -1, _id: -1 }).limit(q.limit + 1).toArray();
   const page = rows.slice(0, q.limit);
   return { items: page.map(serializeAlert), count: page.length, nextCursor: rows.length > q.limit ? encodeCursor(page.at(-1).createdAt, page.at(-1)._id) : null };
 }
 
-export function serializeAlert({ _id, openKey, fixtureTag, ...a }) { return { id: _id, ...a }; }
+/** Which side of its limit an alert fired on, from the stored trigger value and the limit it crossed (no extra stored field needed). */
+export const alertDirection = (a) => (typeof a.triggerValue === 'number' && typeof a.threshold === 'number' ? (a.triggerValue > a.threshold ? 'high' : 'low') : undefined);
+export function serializeAlert({ _id, openKey, fixtureTag, ...a }) { return { id: _id, ...a, direction: alertDirection(a) }; }

@@ -11,7 +11,7 @@ const UNITS = {
 // Physically impossible bounds only (same as the database validator). Preferred operating ranges are risk rules, not validation.
 export const BOUNDS = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60], water_level: [0, 50] };
 
-const value = z.object({
+export const valueInput = z.object({
   parameter: z.enum(PARAMETERS),
   value: z.number({ invalid_type_error: 'value must be a number' }).finite(),
   unit: z.string().trim().min(1).optional(),
@@ -28,7 +28,7 @@ export const measurementInput = z.object({
   pondId: z.string(),
   recordedAt: isoDateTime.optional(),
   source: z.enum(['live', 'simulated']).default('live'),
-  values: z.array(value).min(1).max(4),
+  values: z.array(valueInput).min(1).max(4),
   idempotencyKey: z.string().trim().min(1).max(100).regex(/^[\w.:-]+$/, 'letters, digits and . _ : - only').optional(),
 }).strict().superRefine((m, ctx) => {
   const seen = new Set();

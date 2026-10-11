@@ -2,17 +2,32 @@
 //   validate -> resolve pond -> persist -> risk -> alert lifecycle -> optional inference -> structured response
 import { ObjectId } from 'mongodb';
 import { parse } from '../utils/params.js';
-import { measurementInput } from '../validators/measurement.js';
+import { measurementInput, valueInput } from '../validators/measurement.js';
 import { parseObjectId } from '../utils/http.js';
 import { validationError, notFound } from '../utils/errors.js';
-import { classify } from './risk.js';
-import { applyCondition } from './alerts.js';
+import { classify, observedMessage } from './risk.js';
+import { applyReading } from './alerts.js';
 import { runInference } from './inference.js';
 
-const LABEL = { dissolved_oxygen: 'Dissolved oxygen', ph: 'pH', temperature: 'Temperature', water_level: 'Water level' };
+/**
+ * A reading may carry several parameters. Values that fail validation (impossible range, wrong unit, unknown parameter) are set
+ * aside and reported in `rejectedValues`, so one bad sensor channel cannot block the valid ones. If NO value is valid, the request
+ * is rejected as a whole by the normal validator (422).
+ */
+function splitValues(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.values) || raw.values.length < 2) return { raw, rejected: [] };
+  const good = []; const rejected = [];
+  raw.values.forEach((v, index) => {
+    const r = valueInput.safeParse(v);
+    if (r.success) good.push(v);
+    else rejected.push({ index, parameter: typeof v?.parameter === 'string' ? v.parameter : null, reason: r.error.issues[0]?.message ?? 'invalid value' });
+  });
+  return good.length && rejected.length ? { raw: { ...raw, values: good }, rejected } : { raw, rejected: [] };
+}
 
-export async function ingestMeasurement({ db, ml, config, now = () => new Date() }, rawInput, { extraMeta } = {}) {
-  const input = parse(measurementInput, rawInput);
+export async function ingestMeasurement({ db, ml, config, now = () => new Date() }, rawInput, { extraMeta, strictValues = false } = {}) {
+  const { raw: cleaned, rejected } = strictValues ? { raw: rawInput, rejected: [] } : splitValues(rawInput);
+  const input = parse(measurementInput, cleaned);
   const pondId = parseObjectId(input.pondId, 'pondId');
   const receivedAt = now();
   const recordedAt = input.recordedAt ? new Date(input.recordedAt) : receivedAt;
@@ -33,22 +48,28 @@ export async function ingestMeasurement({ db, ml, config, now = () => new Date()
     duplicate = true;
   }
 
-  // Only the newest reading of a pond+source drives alert state, so late/out-of-order data cannot resurrect or resolve alerts.
+  // Late/out-of-order data must not resurrect or resolve alerts: a parameter's alert state is driven only by the newest reading
+  // of that parameter for this pond + source (ties broken by insertion order).
+  const newerExists = (parameter) => db.collection('measurements').findOne({
+    pondId, source: measurement.source, 'values.parameter': parameter,
+    $or: [{ recordedAt: { $gt: measurement.recordedAt } }, { recordedAt: measurement.recordedAt, _id: { $gt: measurement._id } }],
+  }, { projection: { _id: 1 } });
   const newest = await db.collection('measurements').find({ pondId, source: measurement.source }).sort({ recordedAt: -1, _id: -1 }).limit(1).next();
   const isNewest = String(newest._id) === String(measurement._id);
 
-  const risk = {}; const alertResults = [];
+  const risk = {}; const alertResults = []; let alertStateUpdated = false;
   for (const v of measurement.values) {
     const cls = classify(v.parameter, v.value);
-    risk[v.parameter] = { value: v.value, unit: v.unit, status: cls.status, ...(cls.threshold !== null && cls.threshold !== undefined ? { threshold: cls.threshold } : {}), ...(cls.status === 'UNKNOWN' ? { note: cls.reason } : {}) };
-    if (!isNewest || cls.status === 'UNKNOWN') continue;
-    const r = await applyCondition(db, {
+    risk[v.parameter] = { value: v.value, unit: v.unit, status: cls.status, ...(cls.direction ? { direction: cls.direction } : {}), ...(cls.threshold !== null && cls.threshold !== undefined ? { threshold: cls.threshold } : {}), ...(cls.status === 'UNKNOWN' ? { note: cls.reason } : {}) };
+    if (cls.status === 'UNKNOWN' || await newerExists(v.parameter)) continue;
+    alertStateUpdated = true;
+    const results = await applyReading(db, {
       pondId, origin: 'observed', parameter: v.parameter, dataSource: measurement.source, cls, triggerValue: v.value,
       at: measurement.recordedAt, now: receivedAt,
-      message: `${LABEL[v.parameter] ?? v.parameter} ${v.value} ${v.unit} is below the ${cls.status} threshold of ${cls.threshold} ${v.unit}`,
+      message: cls.status === 'NORMAL' ? '' : observedMessage(v.parameter, v.value, cls),
       extra: { triggerMeasurementId: measurement._id },
     });
-    alertResults.push({ parameter: v.parameter, ...r });
+    for (const r of results) alertResults.push({ parameter: v.parameter, ...r });
   }
 
   // Optional ML: skipped for duplicates and out-of-order data; never throws.
@@ -60,7 +81,7 @@ export async function ingestMeasurement({ db, ml, config, now = () => new Date()
     status: duplicate ? 200 : 201,
     body: {
       duplicate, measurement: serializeMeasurement(measurement), risk,
-      alerts: alertResults, alertStateUpdated: isNewest,
+      alerts: alertResults, alertStateUpdated, ...(rejected.length ? { rejectedValues: rejected } : {}),
       inference, ...(extraMeta ? { demo: extraMeta } : {}),
     },
   };

@@ -81,21 +81,21 @@ export function validateRange(fromIso: string | null, toIso: string | null, span
 
 export type Risk = 'NORMAL' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
 const RANK: Record<Risk, number> = { UNKNOWN: 0, NORMAL: 1, WARNING: 2, CRITICAL: 3 };
-export interface AlertEvent { t: number; origin: 'observed' | 'predicted'; action: 'opened' | 'escalated' | 'downgraded' | 'resolved'; severity: 'WARNING' | 'CRITICAL' | null; value: number; detail?: string }
+export interface AlertEvent { t: number; origin: 'observed' | 'predicted'; parameter?: string; direction?: 'low' | 'high'; action: 'opened' | 'escalated' | 'downgraded' | 'resolved'; severity: 'WARNING' | 'CRITICAL' | null; value: number; detail?: string }
 
 /**
  * Replays the backend's alert lifecycle over a sequence of already-classified statuses (one condition, in time order):
  * NORMAL resolves an open alert, WARNING/CRITICAL opens one or changes its severity, UNKNOWN changes nothing. Pure and
  * deterministic: the same statuses always give the same timeline, so a repeated run cannot produce different or duplicate alerts.
  */
-export function deriveAlerts(steps: { t: number; status: Risk; value: number; detail?: string }[], origin: AlertEvent['origin']): AlertEvent[] {
+export function deriveAlerts(steps: { t: number; status: Risk; value: number; detail?: string }[], origin: AlertEvent['origin'], meta: { parameter?: string; direction?: 'low' | 'high' } = {}): AlertEvent[] {
   const events: AlertEvent[] = []; let open: Risk | null = null;
   for (const s of steps) {
     if (s.status === 'UNKNOWN') continue;
-    if (s.status === 'NORMAL') { if (open) { events.push({ t: s.t, origin, action: 'resolved', severity: null, value: s.value, detail: s.detail }); open = null; } continue; }
-    if (!open) events.push({ t: s.t, origin, action: 'opened', severity: s.status, value: s.value, detail: s.detail });
-    else if (RANK[s.status] > RANK[open]) events.push({ t: s.t, origin, action: 'escalated', severity: s.status, value: s.value, detail: s.detail });
-    else if (RANK[s.status] < RANK[open]) events.push({ t: s.t, origin, action: 'downgraded', severity: s.status, value: s.value, detail: s.detail });
+    if (s.status === 'NORMAL') { if (open) { events.push({ t: s.t, origin, ...meta, action: 'resolved', severity: null, value: s.value, detail: s.detail }); open = null; } continue; }
+    if (!open) events.push({ t: s.t, origin, ...meta, action: 'opened', severity: s.status, value: s.value, detail: s.detail });
+    else if (RANK[s.status] > RANK[open]) events.push({ t: s.t, origin, ...meta, action: 'escalated', severity: s.status, value: s.value, detail: s.detail });
+    else if (RANK[s.status] < RANK[open]) events.push({ t: s.t, origin, ...meta, action: 'downgraded', severity: s.status, value: s.value, detail: s.detail });
     open = s.status;
   }
   return events;

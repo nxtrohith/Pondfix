@@ -20,8 +20,9 @@ test('DO boundaries at two-decimal precision (1.99 / 2.00 / 2.99 / 3.00) and the
   assert.deepEqual([classify('dissolved_oxygen', 1.99).threshold, classify('dissolved_oxygen', 2.5).threshold, classify('dissolved_oxygen', 3.5).threshold], [2, 3, null]);
 });
 
-test('parameters without validated rules are UNKNOWN, never healthy', () => {
-  for (const p of ['ph', 'temperature', 'water_level']) assert.equal(classify(p, 7.2).status, 'UNKNOWN');
+test('parameters without a rule, and missing or non-finite values, are UNKNOWN, never healthy', () => {
+  assert.equal(classify('water_level', 1.2).status, 'UNKNOWN');
+  for (const p of ['ph', 'temperature']) for (const bad of [NaN, Infinity, -Infinity, undefined, null, '7']) assert.equal(classify(p, bad).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', NaN).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', undefined).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', null).status, 'UNKNOWN');

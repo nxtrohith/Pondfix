@@ -20,10 +20,12 @@ const T0 = Date.parse('2026-01-10T00:00:00Z');
 const iso = (m: number) => new Date(T0 + m * 60_000).toISOString();
 const DO = [5, 4, 2.5, 1.5, 1.8, 3.5, 5, 5];
 const status = (v: number) => (v < 2 ? 'CRITICAL' : v < 3 ? 'WARNING' : 'NORMAL');
+const PH = [7.4, 7.4, 8.8, 9.4, 9.4, 7.4, 7.4, 7.4];
+const phRisk = (v: number) => (v > 9 ? { status: 'CRITICAL', direction: 'high' } : v > 8.5 ? { status: 'WARNING', direction: 'high' } : { status: 'NORMAL' });
 const pond = { id: 'p1', name: 'ara2_test', sourceId: 'ara2_test', sourceDataset: 'fwi-test', status: 'active' };
 const records = DO.map((v, k) => ({ recordedAt: iso(k * 15), qcFlags: [], gapBeforeMinutes: k ? 15 : null, sourceTimestamp: `src${k}`,
-  values: [{ parameter: 'dissolved_oxygen', value: v, unit: 'mg/L' }, { parameter: 'ph', value: 8, unit: 'pH' }, { parameter: 'temperature', value: 27, unit: 'C' }],
-  risk: { dissolved_oxygen: { status: status(v) }, ph: { status: 'UNKNOWN' }, temperature: { status: 'UNKNOWN' } } }));
+  values: [{ parameter: 'dissolved_oxygen', value: v, unit: 'mg/L' }, { parameter: 'ph', value: PH[k], unit: 'pH' }, { parameter: 'temperature', value: 27, unit: 'C' }],
+  risk: { dissolved_oxygen: { status: status(v), ...(v < 3 ? { direction: 'low' } : {}) }, ph: phRisk(PH[k]!), temperature: { status: 'NORMAL' } } }));
 const windowResp = { pond, source: 'historical', kind: 'historical_replay', dataset: 'fwi-test', from: iso(0), to: iso(105), records: 8, duplicatesSkipped: 0, gaps: [], expectedIntervalMinutes: 15, items: records, note: '' };
 const valid = (extra = {}) => ({ valid: true, minCoverage: 0.8, records: 97, from: iso(0), to: iso(105), expected: 97, coverage: 1, gaps: 0, maxGapMinutes: 15, ...extra });
 const coverage = { pond, records: 500, duplicateTimestamps: 0, first: iso(-3000), last: iso(3000), expectedIntervalMinutes: 15, gapThresholdMinutes: 20, presets: { '24h': valid(), '7d': { valid: false, minCoverage: 0.8, records: 300 } } };
@@ -108,6 +110,11 @@ describe('historical replay page', () => {
     expect(text).toMatch(/Severity lowered|Resolved/);
     expect(text).toMatch(/model forecast, 1 h ahead, not observed/);
     expect(within(tl).getAllByText('Forecast').length).toBeGreaterThan(0);
+    // pH is evaluated too, on its own timeline, with its direction: high pH opens, escalates and recovers independently of DO
+    expect(text).toMatch(/High pH Opened · Warning \(observed reading\)/);
+    expect(text).toMatch(/High pH Escalated · Critical \(observed reading\)/);
+    expect(text).toMatch(/High pH Resolved \(observed reading\)/);
+    expect(text).not.toMatch(/temperature/i);                                          // temperature stayed in range: no alert
   });
 
   it('stop keeps what was shown; reset clears forecasts and the alert timeline; no data is stored by either', async () => {

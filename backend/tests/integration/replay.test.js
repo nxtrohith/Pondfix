@@ -82,7 +82,7 @@ test('window: chronological, original values/timestamps, gap reported, duplicate
   const k200 = r.body.items.find((i) => i.recordedAt === at(200).toISOString());
   assert.equal(k200.values[0].value, 1.5); assert.equal(k200.sourceTimestamp, 'src-200'); assert.equal(k200.risk.dissolved_oxygen.status, 'CRITICAL');
   assert.equal(r.body.items.find((i) => i.recordedAt === at(201).toISOString()).risk.dissolved_oxygen.status, 'WARNING');
-  assert.equal(k200.risk.ph.status, 'UNKNOWN'); // no invented pH/temperature rules
+  assert.equal(k200.risk.ph.status, 'NORMAL'); // pH 8.0 is inside the acceptable range
   const g = await env.get(win(at(145).toISOString(), at(165).toISOString()));
   assert.equal(g.body.gaps.length, 1); assert.equal(g.body.gaps[0].minutes, 135);
   const d = await env.get(win(at(5).toISOString(), at(15).toISOString()));

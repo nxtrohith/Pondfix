@@ -73,9 +73,10 @@ test('DO boundaries through the API', async () => {
   }
 });
 
-test('pH/temperature are stored but classified UNKNOWN and raise no alerts', async () => {
+test('pH and temperature are classified by their rules and raise their own alerts', async () => {
   const r = await env.post('/api/measurements', { pondId: String(pond._id), source: 'live', values: [{ parameter: 'ph', value: 4.1 }, { parameter: 'temperature', value: 41 }] });
-  assert.equal(r.status, 201); assert.equal(r.body.risk.ph.status, 'UNKNOWN'); assert.equal(await env.db.collection('alerts').countDocuments(), 0);
+  assert.equal(r.status, 201); assert.equal(r.body.risk.ph.status, 'CRITICAL'); assert.equal(r.body.risk.temperature.status, 'CRITICAL');
+  assert.equal(await env.db.collection('alerts').countDocuments(), 2);
 });
 
 test('alert lifecycle: create, dedupe, escalate, acknowledge, recover, history persists', async () => {
@@ -170,10 +171,10 @@ test('summary: no data / stale / fresh are distinct and never "healthy" by defau
   assert.equal((await env.get(`/api/ponds/${pond._id}/summary`)).body.riskStatus, 'STALE');
   await env.post('/api/measurements', doReading(pond._id, 6, { recordedAt: '2026-03-01T11:55:00Z' }));
   const s = await env.get(`/api/ponds/${pond._id}/summary`);
-  assert.equal(s.body.riskStatus, 'NORMAL'); assert.deepEqual(s.body.riskBasis, ['dissolved_oxygen']);
+  assert.equal(s.body.riskStatus, 'NORMAL'); assert.deepEqual(s.body.riskBasis, ['dissolved_oxygen', 'ph', 'temperature']);
   const onlyPh = await env.makePond('TEST pH only');
   await env.post('/api/measurements', { pondId: String(onlyPh._id), source: 'live', values: [{ parameter: 'ph', value: 7.5 }] });
-  assert.equal((await env.get(`/api/ponds/${onlyPh._id}/summary`)).body.riskStatus, 'NO_DATA', 'pH alone says nothing about DO risk');
+  assert.equal((await env.get(`/api/ponds/${onlyPh._id}/summary`)).body.riskStatus, 'NORMAL', 'a fresh, in-range pH is the only ruled reading');
 });
 
 test('analytics: summary, buckets without interpolation, comparison', async () => {
@@ -213,7 +214,9 @@ test('risk-rules exposes the backend thresholds', async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.dissolvedOxygen, { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 });
   assert.equal(r.body.staleAfterMinutes, 60);
-  assert.ok(r.body.unclassifiedParameters.includes('ph'));
+  assert.deepEqual(r.body.unclassifiedParameters, ['water_level']);
+  assert.equal(r.body.mode, 'provisional_demo');
+  assert.deepEqual(r.body.parameters.ph, { label: 'pH', unit: 'pH', enabled: true, source: 'provisional_demo', acceptableRange: { min: 6.5, max: 8.5 }, lowWarning: 6.5, lowCritical: 6, highWarning: 8.5, highCritical: 9 });
 });
 
 test('CORS: both local dashboard origins are allowed, unknown origins are not', async () => {
@@ -233,25 +236,27 @@ test('demo: one request carries DO, pH and temperature and all three are persist
   assert.deepEqual(m.values, [{ parameter: 'dissolved_oxygen', value: 2.5, unit: 'mg/L' }, { parameter: 'ph', value: 7.4, unit: 'pH' }, { parameter: 'temperature', value: 28, unit: 'C' }]);
   assert.equal(String(m.pondId), String(pond._id)); assert.equal(m.source, 'simulated'); assert.equal(m.recordedAt.toISOString(), '2026-03-01T11:30:00.000Z');
   assert.equal(r.body.risk.dissolved_oxygen.status, 'WARNING', 'DO still uses the existing thresholds');
-  assert.equal(r.body.risk.ph.status, 'UNKNOWN'); assert.equal(r.body.risk.temperature.status, 'UNKNOWN');
+  assert.equal(r.body.risk.ph.status, 'NORMAL'); assert.equal(r.body.risk.temperature.status, 'NORMAL');
   const alerts = await env.db.collection('alerts').find({}).toArray();
-  assert.equal(alerts.length, 1); assert.equal(alerts[0].parameter, 'dissolved_oxygen', 'only DO can raise an alert');
+  assert.equal(alerts.length, 1); assert.equal(alerts[0].parameter, 'dissolved_oxygen', 'pH and temperature are in range, so only DO alerts');
   const latest = await env.get(`/api/ponds/${pond._id}/measurements/latest?source=simulated`);
   assert.deepEqual(Object.keys(latest.body.parameters).sort(), ['dissolved_oxygen', 'ph', 'temperature']);
 });
 
-test('demo: extreme pH or temperature never invent an alert; DO lifecycle is unchanged when they are present', async () => {
-  const p = String(pond._id);
+test('demo: extreme pH and temperature raise their own alerts; the DO lifecycle is unchanged alongside them', async () => {
+  const p = String(pond._id); const step = () => { env.state.now = new Date(+env.state.now + 60000); };
+  const byParam = (r) => Object.fromEntries(r.body.alerts.map((a) => [a.parameter, a.action]));
   let r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 3.5, ph: 4.0, temperature: 45 });
-  assert.equal(r.status, 201); assert.equal(await env.db.collection('alerts').countDocuments(), 0, 'no pH/temperature rule exists, so no alert');
-  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, scenario: 'warning', ph: 7.4, temperature: 28 });
-  assert.equal(r.body.alerts[0].action, 'opened');
-  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 1.5, ph: 7.4, temperature: 28 });
-  assert.equal(r.body.alerts[0].action, 'escalated'); assert.equal(await env.db.collection('alerts').countDocuments(), 1);
-  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 3.5, ph: 7.4, temperature: 28 });
-  assert.equal(r.body.alerts[0].action, 'resolved');
-  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, ph: 7.2 });
-  assert.equal(r.status, 201); assert.deepEqual(r.body.alerts, [], 'a pH-only reading touches no alert');
+  assert.equal(r.status, 201); assert.deepEqual(byParam(r), { dissolved_oxygen: 'none', ph: 'opened', temperature: 'opened' });
+  assert.equal(await env.db.collection('alerts').countDocuments({ status: 'ACTIVE' }), 2);
+  step(); r = await env.post('/api/demo/measurement', { pondId: p, scenario: 'warning', ph: 7.4, temperature: 28 });
+  assert.deepEqual(byParam(r), { dissolved_oxygen: 'opened', ph: 'resolved', temperature: 'resolved' });
+  step(); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 1.5, ph: 7.4, temperature: 28 });
+  assert.equal(byParam(r).dissolved_oxygen, 'escalated'); assert.equal(await env.db.collection('alerts').countDocuments({ status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }), 1);
+  step(); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 3.5, ph: 7.4, temperature: 28 });
+  assert.equal(byParam(r).dissolved_oxygen, 'resolved');
+  step(); r = await env.post('/api/demo/measurement', { pondId: p, ph: 7.2 });
+  assert.equal(r.status, 201); assert.deepEqual(r.body.alerts, [{ parameter: 'ph', action: 'none' }], 'a normal pH-only reading touches no alert');
 });
 
 test('demo: invalid values are rejected and nothing is stored', async () => {

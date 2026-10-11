@@ -97,7 +97,7 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
       request(`/ponds/${enc(id)}/measurements`, { schema: S.measurementsResponse, query, signal }),
     predictions: (id: string, query: { parameter?: string; history?: boolean; limit?: number } = {}, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/predictions`, { schema: S.predictionsResponse, query, signal }),
-    alerts: (query: { status?: string; origin?: string; pondId?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) =>
+    alerts: (query: { status?: string; origin?: string; parameter?: string; severity?: string; pondId?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) =>
       request('/alerts', { schema: S.alertsResponse, query, signal }),
     pondAlerts: (id: string, query: { status?: string; origin?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/alerts`, { schema: S.alertsResponse, query, signal }),

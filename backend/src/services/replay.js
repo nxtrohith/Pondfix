@@ -88,7 +88,7 @@ export async function replayWindow(db, pondIdText, rawQuery) {
     if (prev && +prev.recordedAt === +m.recordedAt) { duplicatesSkipped++; continue; }
     const gapBeforeMinutes = prev ? Math.round(((m.recordedAt - prev.recordedAt) / 60000) * 10) / 10 : null;
     if (gapBeforeMinutes !== null && gapBeforeMinutes > GAP_MIN) gaps.push({ from: prev.recordedAt, to: m.recordedAt, minutes: gapBeforeMinutes });
-    const risk = Object.fromEntries(m.values.map((v) => { const c = classify(v.parameter, v.value); return [v.parameter, { status: c.status, ...(c.threshold != null ? { threshold: c.threshold } : {}) }]; }));
+    const risk = Object.fromEntries(m.values.map((v) => { const c = classify(v.parameter, v.value); return [v.parameter, { status: c.status, ...(c.direction ? { direction: c.direction } : {}), ...(c.threshold != null ? { threshold: c.threshold } : {}) }]; }));
     items.push({ recordedAt: m.recordedAt, sourceTimestamp: m.provenance?.sourceTimestamp, sourceTimezone: m.provenance?.sourceTimezone, qcFlags: m.provenance?.qcFlags ?? [], values: m.values, risk, gapBeforeMinutes });
   }
   return {

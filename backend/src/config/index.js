@@ -2,9 +2,14 @@
 const int = (v, d) => { const n = Number.parseInt(v ?? '', 10); return Number.isFinite(n) ? n : d; };
 const bool = (v, d) => (v === undefined || v === '' ? d : ['1', 'true', 'yes'].includes(String(v).toLowerCase()));
 
+import { loadRiskRules } from '../services/risk.js';
+
 export function loadConfig(env = process.env) {
   const production = env.NODE_ENV === 'production';
+  // Throws RuleConfigError for an invalid rule configuration, so a bad file stops startup instead of silently disabling alerts.
+  const risk = loadRiskRules(env);
   return {
+    risk,
     production,
     port: int(env.PORT, 4000),
     host: env.HOST || '127.0.0.1',
