@@ -1,0 +1,24 @@
+# Secrets (real env files never tracked; the example is)
+.env
+.env.*
+!.env.example
+
+# Dependencies / environments
+node_modules/
+.venv/
+venv/
+env/
+
+# Caches / generated
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+database/reports/
+*.env
+*credentials*
