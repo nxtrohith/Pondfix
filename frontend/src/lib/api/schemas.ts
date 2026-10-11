@@ -153,7 +153,8 @@ export const healthResponse = z.object({
   status: z.enum(['ok', 'degraded', 'down']),
   time: iso,
   uptimeSeconds: z.number(),
-  database: z.object({ status: z.string() }),
+  // target: whether the API's database is on this machine ('local'), elsewhere ('remote'), or unknown (older API).
+  database: z.object({ status: z.string(), target: z.enum(['local', 'remote', 'unknown']).optional() }),
   ml: z.object({ status: z.string() }),
 });
 export type HealthResponse = z.infer<typeof healthResponse>;

@@ -20,7 +20,7 @@ pip install -r ml/requirements.txt   # scikit-learn 1.8.0, numpy, pandas, joblib
 npm run db:init -w database && npm run db:indexes -w database      # collections, validators, indexes (idempotent)
 npm start                       # API on http://127.0.0.1:4000/api ; spawns the Python inference worker lazily
 ```
-Local development without Atlas: `npm run dev:local` (ephemeral database with the historical data, API on :4000).
+Local development without Atlas: `npm run dev:local` (ephemeral database with the historical data, API on :4000). It refuses to start unless the database target is loopback, and the startup banner and `/api/health` show `LOCAL` / `"target":"local"`. `npm start` prints `REMOTE` when it uses Atlas. Both use port 4000; if the port is taken the second one exits with a clear message instead of sharing it.
 
 Historical import: `node database/scripts/import-fwi.js --dir <Preprocess/csv>` (dry run), add `--write` to persist, then `node database/scripts/verify-import.js --dir <Preprocess/csv>`.
 
@@ -46,7 +46,7 @@ Dissolved oxygen: `< 2.0` CRITICAL, `2.0 ≤ x < 3.0` WARNING, `≥ 3.0` no warn
 ## Endpoints (all under `/api`, JSON)
 | Method & path | Notes |
 |---|---|
-| `GET /health` | `{status: ok｜degraded｜down, database:{status}, ml:{status: ready｜unavailable｜disabled}}`; `503` if the DB is down. No URIs/internals. |
+| `GET /health` | `{status: ok｜degraded｜down, database:{status, target: local｜remote｜unknown}, ml:{status: ready｜unavailable｜disabled}}`; `503` if the DB is down. `target` says whether the database is on this machine (every host is loopback) without revealing the host or URI. |
 | `GET /risk-rules` | `{dissolvedOxygen:{unit,criticalBelow,warningBelow}, unclassifiedParameters, staleAfterMinutes, note}`: the rules the backend applies, for clients to display instead of duplicating |
 | `GET /ponds`, `GET /ponds/:id` | pond metadata (`sourceId` for imported ponds) |
 | `GET /ponds/:id/summary` | `riskStatus` (CRITICAL｜WARNING｜NORMAL｜STALE｜NO_DATA, based on DO), per-parameter latest value + age + `dataState`, open alert counts |

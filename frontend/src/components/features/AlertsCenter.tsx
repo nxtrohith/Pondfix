@@ -121,7 +121,7 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
                           <Td><Link href={`/ponds/${a.pondId}`} className="font-medium hover:text-olive-text hover:underline">{names[a.pondId] ?? 'Unknown pond'}</Link></Td>
                           <Td>
                             <p>{PARAM_LABEL[a.parameter] ?? a.parameter} <span className="text-ink-soft">{a.origin === 'predicted' ? `forecast ${formatValue(a.triggerValue, a.parameter)} ${unit} in ${horizonLabel(a.horizonMinutes)}` : `observed ${formatValue(a.triggerValue, a.parameter)} ${unit}`}</span></p>
-                            <p className="mt-0.5 text-xs text-ink-soft">{a.origin === 'predicted' ? 'Forecast' : 'Observed'}, threshold {fmtThreshold(a.threshold)} {unit}</p>
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft"><span>{a.origin === 'predicted' ? 'Forecast' : 'Observed'}, threshold {fmtThreshold(a.threshold)} {unit}</span>{a.dataSource ? <SourceBadge source={a.dataSource} /> : null}</p>
                           </Td>
                           <Td><StatusPill tone={ALERT_STATUS_TONE[a.status]}>{ALERT_STATUS_LABEL[a.status]}</StatusPill></Td>
                           <Td className="whitespace-nowrap tabular-nums text-ink-soft">{formatDateTime(a.createdAt)}</Td>

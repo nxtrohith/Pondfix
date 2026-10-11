@@ -152,7 +152,7 @@ curl http://127.0.0.1:4000/api/health      # expect "status":"ok", database "up"
 npm run dev:frontend       # http://localhost:3000
 ```
 
-Stop each with `Ctrl+C`. If the dashboard shows "Could not reach the AquaGuard API", the API is not running. `npm run dev:local` writes only to an in-memory database, so you can use the Simulation page without adding demo records to Atlas. Pages: Overview, Ponds, pond details, Forecasts, Alerts, Analytics, Simulation, System Health. Setup details, troubleshooting, API usage and design notes: [`frontend/README.md`](frontend/README.md).
+Stop each with `Ctrl+C`. If the dashboard shows "Could not reach the AquaGuard API", the API is not running. `npm run dev:local` writes only to an in-memory database, so you can use the Simulation page without adding demo records to Atlas. **Run only one of `npm start` and `npm run dev:local`**: both use port 4000, and `/api/health` reports `"target":"local"` or `"remote"` so you can tell which one is serving. The Simulation page's *Guided alert demo* (four readings, 5 s apart: open, escalate, resolve) runs only against a local database. Step-by-step: [`frontend/README.md`](frontend/README.md#hackathon-demo-the-alert-lifecycle). Pages: Overview, Ponds, pond details, Forecasts, Alerts, Analytics, Simulation, System Health. Setup details, troubleshooting, API usage and design notes: [`frontend/README.md`](frontend/README.md).
 
 ## Configuration
 

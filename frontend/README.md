@@ -26,6 +26,27 @@ Use the local-database workflow for anything that writes (the Simulation page, a
 
 Put overrides in `frontend/.env.local` (git-ignored) and restart `npm run dev:frontend`; `NEXT_PUBLIC_*` values are fixed at build time. The API accepts browser requests only from `CORS_ORIGINS` (default: `localhost` and `127.0.0.1` on ports 3000, 5173 and 8081).
 
+### Hackathon demo: the alert lifecycle
+
+1. **Terminal 1:** `npm run dev:local` and wait for `AquaGuard API listening ... (database: LOCAL ...)`. Do not run `npm start` at the same time: both use port 4000, and `npm start` connects to Atlas.
+2. **Check it is isolated:** `curl http://127.0.0.1:4000/api/health` must show `"database":{"status":"up","target":"local"}`.
+3. **Terminal 2:** `npm run dev:frontend`, then open http://localhost:3000.
+4. Open **Alerts** in one browser tab (it should say "No unresolved alerts") and **Simulation** in another.
+5. In Simulation, under **Guided alert demo**, pick a pond and press **Start demo**, then confirm. Four simulated readings go out 5 seconds apart:
+
+| Time | Dissolved oxygen | What the server does |
+|---|---|---|
+| T+0 s | 3.5 mg/L | Normal, no alert |
+| T+5 s | 2.5 mg/L | Opens a WARNING alert |
+| T+10 s | 1.5 mg/L | Escalates the same alert to CRITICAL (no duplicate) |
+| T+15 s | 3.5 mg/L | Resolves the alert; it stays in history |
+
+6. After each step, refresh the Alerts tab (or press the refresh button) to see the state change. The demo table and the "Alerts for this pond" list below it show the server's actual responses and the alert's ID.
+7. To show acknowledgement: after step 2 or 3, press **Acknowledge** on the Alerts page. The alert becomes Acknowledged but stays unresolved until a normal reading arrives.
+8. Stop both terminals with `Ctrl+C`. Everything written is discarded.
+
+The Guided demo is **disabled unless the API reports a local database** (`database.target` is `local`). Against Atlas it shows why and tells you to use `npm run dev:local`. If a step fails, the sequence pauses on that step; **Retry step N** re-sends the same reading and nothing is skipped.
+
 ### Troubleshooting
 
 | Symptom | Cause and fix |
@@ -35,6 +56,8 @@ Put overrides in `frontend/.env.local` (git-ignored) and restart `npm run dev:fr
 | Health shows "Degraded", forecasts say "unavailable" | The API is up but the Python worker is not: install `ml/requirements.txt` (scikit-learn 1.8.0) and check `PYTHON_BIN`. Measurements and alerts keep working. |
 | Health shows the database as unreachable, or the API exits at start-up | `MONGODB_URI` is missing or wrong, or your IP is not allowed in Atlas Network Access. The API prints a sanitized error. |
 | "The API returned a response in an unexpected format" | The frontend and backend versions differ. Update both and restart. |
+| "The demo is disabled" on the Simulation page, or an alert you did not expect on the dashboard | The API on port 4000 is connected to Atlas (it was started with `npm start`). Check `curl http://127.0.0.1:4000/api/health`: `"target":"remote"` means Atlas. Stop that process and start `npm run dev:local`. |
+| `FATAL: port 4000 is already in use` | Another AquaGuard API is running. Find it with `lsof -nP -iTCP:4000 -sTCP:LISTEN`, check what it is connected to, then stop it with `Ctrl+C` in its terminal. |
 | Everything shows "Stale" | Expected: the imported data ends in January 2026, so it is historical, not live. |
 
 ## Pages

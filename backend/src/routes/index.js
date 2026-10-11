@@ -9,7 +9,7 @@ import { demoMeasurement, SCENARIOS } from '../services/demo.js';
 import { THRESHOLDS } from '../services/risk.js';
 
 export function buildRouter(deps) {
-  const { db, config, now } = deps;
+  const { db, config, now, dbTarget = 'unknown' } = deps;
   const r = Router();
 
   r.get('/health', asyncHandler(async (req, res) => {
@@ -18,7 +18,7 @@ export function buildRouter(deps) {
     let ml = 'disabled';
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
-    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database }, ml: { status: ml } });
+    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, ml: { status: ml } });
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.

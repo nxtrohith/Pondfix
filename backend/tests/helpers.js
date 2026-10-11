@@ -13,7 +13,7 @@ export async function startEnv({ ml = null, configEnv = {}, clock = new Date('20
   const state = { now: clock };
   const config = loadConfig({ NODE_ENV: 'test', ...configEnv });
   const logs = [];
-  const app = createApp({ db, config, ml, now: () => new Date(state.now), log: (m) => logs.push(m) });
+  const app = createApp({ db, config, ml, now: () => new Date(state.now), log: (m) => logs.push(m), dbTarget: 'local' });
   const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const call = async (method, path, body, headers = {}) => {
