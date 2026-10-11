@@ -49,6 +49,19 @@ test('predicted risk creates an alert distinct from observed; lifecycle resolves
   assert.equal((await env.db.collection('alerts').findOne({})).status, 'RESOLVED');
 });
 
+test('inference receives DO, pH and temperature from a three-parameter reading, in the model\'s units', async () => {
+  let seen = null;
+  const spy = { ping: async () => ({ status: 'ready' }), predict: async (req) => { seen = req; return fakeResult([4, 3.5, 2.6]); } };
+  const e2 = await startEnv({ ml: spy });
+  try {
+    const p = await e2.makePond('TEST 3-param', { sourceId: 'ara2_test3' });
+    const r = await e2.post('/api/demo/measurement', { pondId: String(p._id), dissolvedOxygen: 4.2, ph: 8.1, temperature: 27.5 });
+    assert.equal(r.status, 201); assert.equal(r.body.inference.status, 'ok');
+    assert.deepEqual(seen.current.measurements, { do: 4.2, ph: 8.1, temp: 27.5 });
+    assert.equal(seen.current.source, 'simulated'); assert.equal(seen.pondId, 'ara2_test3');
+  } finally { await e2.stop(); }
+});
+
 test('ML failure is isolated: measurement and threshold alert still succeed; failure is audited', async () => {
   mode.type = 'fail';
   const r = await env.post('/api/measurements', doReading(pond._id, 1.5));

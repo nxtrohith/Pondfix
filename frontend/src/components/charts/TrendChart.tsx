@@ -1,7 +1,7 @@
 'use client';
 import { CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatAxisTime, formatDateTime, formatValue, unitLabel } from '@/lib/format';
-import { summarize, type Point } from '@/lib/chart';
+import { axisTicks, chartDomain, summarize, type Point } from '@/lib/chart';
 
 export interface Series { key: string; label: string; points: Point[]; color: string; dashed?: boolean; dotsOnly?: boolean; hideLegend?: boolean }
 export interface Threshold { y: number; label: string; tone: 'warn' | 'crit' }
@@ -9,12 +9,11 @@ export interface Threshold { y: number; label: string; tone: 'warn' | 'crit' }
 const TONE = { warn: '#A66D25', crit: '#B64D43' } as const;
 export const SERIES_COLOR = { observed: '#637957', secondary: '#7D9274', forecast: '#A66D25', muted: '#9a9c92' } as const;
 
-interface Props { series: Series[]; parameter: string; unit?: string; thresholds?: Threshold[]; height?: number; domain?: [number, number]; summaryLabel: string }
+interface Props { /** Vertical marker (e.g. the replay position), ms since epoch. */ cursorAt?: number; series: Series[]; parameter: string; unit?: string; thresholds?: Threshold[]; height?: number; domain?: [number, number]; summaryLabel: string }
 
-export function TrendChart({ series, parameter, unit, thresholds = [], height = 280, domain, summaryLabel }: Props) {
+export function TrendChart({ cursorAt, series, parameter, unit, thresholds = [], height = 280, domain, summaryLabel }: Props) {
   const all = series.flatMap((s) => s.points.filter((p): p is { t: number; v: number } => p.v !== null));
-  const t0 = domain?.[0] ?? Math.min(...all.map((p) => p.t));
-  const t1 = domain?.[1] ?? Math.max(...all.map((p) => p.t));
+  const [t0, t1] = chartDomain(all.map((p) => p.t), domain);
   const span = Math.max(t1 - t0, 1);
   const sum = summarize(all);
   const u = unitLabel(unit);
@@ -29,8 +28,9 @@ export function TrendChart({ series, parameter, unit, thresholds = [], height = 
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 800, height }}>
           <ComposedChart margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
             <CartesianGrid stroke="#E5E3D9" strokeDasharray="0" vertical={false} />
-            <XAxis type="number" dataKey="t" domain={[t0, t1]} scale="time" tickCount={5} minTickGap={36} tickFormatter={(v: number) => formatAxisTime(v, span)} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={{ stroke: '#E5E3D9' }} tickLine={false} allowDuplicatedCategory={false} padding={{ left: 16, right: 16 }} />
+            <XAxis type="number" dataKey="t" domain={[t0, t1]} scale="time" ticks={axisTicks(t0, t1, 5)} tickFormatter={(v: number) => formatAxisTime(v, span)} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={{ stroke: '#E5E3D9' }} tickLine={false} allowDuplicatedCategory={false} padding={{ left: 16, right: 16 }} />
             <YAxis type="number" domain={['auto', 'auto']} width={44} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatValue(v, parameter)} />
+            {cursorAt !== undefined && cursorAt >= t0 && cursorAt <= t1 ? <ReferenceLine x={cursorAt} stroke="#34372F" strokeWidth={1.25} ifOverflow="visible" /> : null}
             {thresholds.map((th) => (
               <ReferenceLine key={th.label} y={th.y} stroke={TONE[th.tone]} strokeDasharray="4 4" strokeWidth={1} ifOverflow="extendDomain" />
             ))}
@@ -45,7 +45,8 @@ export function TrendChart({ series, parameter, unit, thresholds = [], height = 
                 stroke={s.dotsOnly ? 'none' : s.color}
                 strokeWidth={1.75}
                 strokeDasharray={s.dashed ? '5 4' : undefined}
-                dot={s.dotsOnly ? { r: 4, fill: '#ffffff', stroke: s.color, strokeWidth: 1.75 } : false}
+                // A line needs two points; with fewer, show the point itself so a lone reading is never invisible.
+                dot={s.dotsOnly ? { r: 4, fill: '#ffffff', stroke: s.color, strokeWidth: 1.75 } : s.points.filter((p) => p.v !== null).length <= 2 ? { r: 3.5, fill: s.color, stroke: s.color } : false}
                 activeDot={{ r: 4, fill: s.color, stroke: '#ffffff', strokeWidth: 1.5 }}
                 connectNulls={false}
                 isAnimationActive={false}

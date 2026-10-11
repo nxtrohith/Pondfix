@@ -80,10 +80,18 @@ parameters: `dissolved_oxygen` (mg/L), `ph` (pH), `temperature` (C or °C), `wat
 ```
 Errors share one shape: `{"error":{"code":"VALIDATION_ERROR","message":"…","details":[{"path":"values.0.value","message":"…"}]}}` with codes `BAD_REQUEST 400`, `NOT_FOUND 404`, `CONFLICT 409`, `PAYLOAD_TOO_LARGE 413`, `VALIDATION_ERROR 422`, `INTERNAL_ERROR 500` (no stack traces).
 
-**Demo** `POST /api/demo/measurement` `{ "pondId":"…", "scenario":"healthy｜warning｜critical" }` (DO 5.2 / 2.7 / 1.8 mg/L) or `{ "dissolvedOxygen": 2.4 }`, optional `recordedAt`. It calls the same `ingestMeasurement` as normal ingestion with `source: "simulated"` (no direct alert insertion); the response adds `demo: {simulated: true, scenario}`. These are explicit inputs, not claims about real ponds. To see forecasts, use a pond with ≥24 h of preceding history: e.g. an imported pond with `recordedAt` inside its historical range (the simulated value is then appended to that real history; the response warns that the forecast is simulated).
+**Demo** `POST /api/demo/measurement` `{ "pondId":"…", "scenario":"healthy｜warning｜critical" }` (DO 5.2 / 2.7 / 1.8 mg/L) or `{ "dissolvedOxygen": 2.4 }`, optionally with `"ph": 7.4` and/or `"temperature": 28` (°C) in the same request, and an optional `recordedAt`. At least one value is required; `scenario` and `dissolvedOxygen` are mutually exclusive. The values are stored together as one `simulated` measurement and validated by the same rules as `POST /api/measurements` (pH 0-14, temperature -5-60 °C, DO 0-50 mg/L). Only dissolved oxygen is classified and can raise alerts; pH and temperature are stored and returned with status `UNKNOWN`. It calls the same `ingestMeasurement` as normal ingestion with `source: "simulated"` (no direct alert insertion); the response adds `demo: {simulated: true, scenario}`. These are explicit inputs, not claims about real ponds. To see forecasts, use a pond with ≥24 h of preceding history: e.g. an imported pond with `recordedAt` inside its historical range (the simulated value is then appended to that real history; the response warns that the forecast is simulated).
 
 ## Inference worker (`ml/worker.py`)
 Spawned by the backend (`python3 -I ml/worker.py`), JSON lines over stdin/stdout, no network port, minimal environment, one model load per process, hash-pinned artifact (`ml/MODEL_SHA256`), 30 s timeout, killed and respawned on failure. Run standalone for a check: `echo '{"id":"1","op":"ping"}' | python3 ml/worker.py`. See `docs/DATASET_AND_MODEL.md`.
 
 ## Security / assumptions
 `MONGODB_URI` is read only server-side and is not forwarded to the Python worker; error text is sanitized; logs contain method, path and status only (no query strings/bodies/headers); CORS limited to `CORS_ORIGINS`; body limit 20 kB; query ranges and page sizes capped; 500s hide internals. **There is no authentication**: the API is intended for a trusted local/dev network with one demo farmer. Before exposing it publicly add authentication and rate limiting, and set `NODE_ENV=production` (disables demo routes by default).
+
+## Historical replay (read-only)
+
+`GET /api/replay/ponds`, `GET /api/replay/ponds/:id` (coverage + valid 24 h / 7 d presets), `GET /api/replay/ponds/:id/window?from&to`
+(chronological, de-duplicated `historical` records with backend risk per record; gaps reported, never filled) and
+`POST /api/replay/forecast {pondId, at}` (real model run "as of" one historical record using only earlier history).
+These endpoints never write: no measurements, predictions, model runs or alerts are created, so a replay cannot touch live alerts
+and every request is safely repeatable. Code: `src/services/replay.js`; tests: `tests/integration/replay.test.js`.

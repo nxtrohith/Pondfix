@@ -16,41 +16,28 @@ import { TrendChart, SERIES_COLOR, type Threshold } from '../charts/TrendChart';
 const DAY = 86400_000;
 const RANGES = { '24h': DAY, '3d': 3 * DAY, '7d': 7 * DAY, '30d': 30 * DAY } as const;
 type RangeKey = keyof typeof RANGES;
-const PARAMS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
-type P = (typeof PARAMS)[number];
+/** Every parameter the analytics API serves for ponds. Each gets its own section, query and chart. */
+export const ANALYTICS_PARAMS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
+type P = (typeof ANALYTICS_PARAMS)[number];
+const TITLE: Record<P, string> = { dissolved_oxygen: 'Dissolved oxygen', ph: 'pH', temperature: 'Water temperature' };
+/** Name as written in a sentence: only pH keeps its capital. */
+const NOUN: Record<P, string> = { dissolved_oxygen: 'dissolved oxygen', ph: 'pH', temperature: 'water temperature' };
 const MAX_COMPARE = 6;
 
 const fmt = (v: number | undefined, p: string, unit?: string) => (v === undefined ? 'n/a' : formatValue(v, p, true, unit));
+const dissolvedOxygenLines = (rules: RiskRules | null): Threshold[] => (rules
+  ? [{ y: rules.dissolvedOxygen.warningBelow, label: `Warning below ${fmtThreshold(rules.dissolvedOxygen.warningBelow)}`, tone: 'warn' }, { y: rules.dissolvedOxygen.criticalBelow, label: `Critical below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)}`, tone: 'crit' }]
+  : []);
 
-export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: TrendPond[]; initialPondId: string; rules: RiskRules | null }) {
-  const [mode, setMode] = useState<'single' | 'compare'>('single');
-  const [parameter, setParameter] = useState<P>('dissolved_oxygen');
-  const [range, setRange] = useState<RangeKey>('7d');
-  const [bucketPref, setBucketPref] = useState<'auto' | 'hour' | 'day'>('auto');
-  const [pondId, setPondId] = useState(initialPondId);
-  const [picked, setPicked] = useState<string[]>(() => ponds.slice(0, 3).map((p) => p.id));
-
-  const bucket = bucketPref === 'auto' ? (RANGES[range] <= 7 * DAY ? 'hour' : 'day') : bucketPref;
-  const pond = ponds.find((p) => p.id === pondId);
-
-  const endFor = (list: (TrendPond | undefined)[]) => {
-    const t = list.map((p) => (p?.latestAt ? Date.parse(p.latestAt) : NaN)).filter(Number.isFinite);
-    return t.length ? Math.max(...t) : null;
-  };
-  const singleEnd = endFor([pond]);
-  const compareEnd = endFor(picked.map((id) => ponds.find((p) => p.id === id)));
-
-  const single = useApiQuery(
-    (signal) => browserApi().analytics(pondId, { parameter, from: new Date(singleEnd! - RANGES[range]).toISOString(), to: new Date(singleEnd!).toISOString(), bucket }, signal),
-    [pondId, parameter, range, bucket, singleEnd], mode === 'single' && singleEnd !== null,
+/** One parameter for one pond: stats from the API's own aggregation, chart of observed buckets, and an honest empty state. */
+function ParameterSection({ parameter, pondId, pondName, end, range, bucket, rules }: { parameter: P; pondId: string; pondName: string; end: number | null; range: RangeKey; bucket: 'hour' | 'day'; rules: RiskRules | null }) {
+  const q = useApiQuery(
+    (signal) => browserApi().analytics(pondId, { parameter, from: new Date(end! - RANGES[range]).toISOString(), to: new Date(end!).toISOString(), bucket }, signal),
+    [pondId, parameter, range, bucket, end], end !== null,
   );
-  const compare = useApiQuery(
-    (signal) => browserApi().compare({ parameter, from: new Date(compareEnd! - RANGES[range]).toISOString(), to: new Date(compareEnd!).toISOString(), pondIds: picked.join(',') }, signal),
-    [picked.join(','), parameter, range, compareEnd], mode === 'compare' && picked.length > 0 && compareEnd !== null,
-  );
-
+  const sm = q.data?.summary; const u = sm?.unit;
   const series = useMemo(() => {
-    const s = single.data?.series ?? [];
+    const s = q.data?.series ?? [];
     const step = (bucket === 'hour' ? 3600_000 : DAY) * 2.5;
     const line = (pick: (b: (typeof s)[number]) => number) => breakGaps(s.map((b) => ({ t: Date.parse(b.bucketStart), v: pick(b) })), step);
     return [
@@ -58,24 +45,101 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
       { key: 'min', label: 'Minimum', points: line((b) => b.min), color: SERIES_COLOR.secondary, dashed: true },
       { key: 'max', label: 'Maximum', points: line((b) => b.max), color: SERIES_COLOR.muted, dashed: true },
     ];
-  }, [single.data, bucket]);
+  }, [q.data, bucket]);
+  const label = TITLE[parameter]; const noun = NOUN[parameter];
+  // pH is unitless, so no unit is shown for it; the other units come from the API response (fallback while loading).
+  const unitText = unitLabel(u) || (u ? '' : parameter === 'dissolved_oxygen' ? 'mg/L' : parameter === 'temperature' ? '°C' : '');
+  const headingUnit = unitText ? ` (${unitText})` : '';
 
-  const thresholds: Threshold[] = parameter === 'dissolved_oxygen' && rules
-    ? [{ y: rules.dissolvedOxygen.warningBelow, label: `Warning below ${fmtThreshold(rules.dissolvedOxygen.warningBelow)}`, tone: 'warn' }, { y: rules.dissolvedOxygen.criticalBelow, label: `Critical below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)}`, tone: 'crit' }]
-    : [];
-  const sm = single.data?.summary;
-  const u = sm?.unit;
+  return (
+    <Card aria-labelledby={`an-${parameter}`}>
+      <CardHeader id={`an-${parameter}`} title={`${label}${headingUnit}`} description={q.data?.method ?? 'Observed readings only; nothing is estimated or interpolated.'} />
+      <div className="px-5 pb-5 pt-4">
+        {q.loading && !q.data ? <ChartSkeleton height={240} />
+          : q.error ? <ErrorState error={q.error} title={`Could not load ${noun} analytics`} onRetry={q.reload} />
+          : end === null ? <EmptyState title={`No ${noun} measurements`}>{pondName} has no recorded readings yet, so there is nothing to chart.</EmptyState>
+          : !sm || sm.count === 0 ? <EmptyState title={`No ${noun} measurements in this period`}>{pondName} has no recorded {noun} readings in the selected window. Try a longer range. A missing reading is not shown as zero.</EmptyState>
+          : (
+            <>
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {[['Observations', String(sm.count)], ['Average', fmt(sm.mean, parameter, u)], ['Minimum', fmt(sm.min, parameter, u)], ['Maximum', fmt(sm.max, parameter, u)],
+                  ['Change over window', sm.change === undefined ? 'n/a' : `${sm.change > 0 ? '+' : ''}${formatValue(sm.change, parameter)} ${unitLabel(u)}`.trim()]].map(([k, v]) => (
+                  <div key={k} className="rounded-lg bg-surface px-3.5 py-3"><dt className="text-xs text-ink-soft">{k}</dt><dd className="mt-1 text-lg font-medium tabular-nums text-ink">{v}</dd></div>
+                ))}
+              </dl>
+              <div className="mt-4">
+                <TrendChart series={series} parameter={parameter} unit={u} thresholds={parameter === 'dissolved_oxygen' ? dissolvedOxygenLines(rules) : []} height={240} summaryLabel={`${label} ${bucket === 'hour' ? 'hourly' : 'daily'} mean, minimum and maximum for ${pondName}`} />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-ink-soft">
+                {sm.count} recorded readings from {formatDateTime(q.data?.range?.from)} to {formatDateTime(q.data?.range?.to)}. Source: {(sm.sources ?? []).map((s) => (s in SOURCE_LABEL ? SOURCE_LABEL[s as keyof typeof SOURCE_LABEL] : s)).join(', ') || 'n/a'}.
+                {sm.slopePerHour !== null && sm.slopePerHour !== undefined ? ` Linear trend across the window: ${sm.slopePerHour > 0 ? '+' : ''}${formatValue(sm.slopePerHour, parameter)} ${unitLabel(u)} per hour (a description of this window, not a prediction).` : ''}
+                {parameter !== 'dissolved_oxygen' ? ' No validated alert rule exists for this parameter.' : ''}
+              </p>
+            </>
+          )}
+      </div>
+    </Card>
+  );
+}
+
+function CompareSection({ parameter, pondIds, end, range }: { parameter: P; pondIds: string[]; end: number | null; range: RangeKey }) {
+  const q = useApiQuery(
+    (signal) => browserApi().compare({ parameter, from: new Date(end! - RANGES[range]).toISOString(), to: new Date(end!).toISOString(), pondIds: pondIds.join(',') }, signal),
+    [pondIds.join(','), parameter, range, end], pondIds.length > 0 && end !== null,
+  );
+  const label = TITLE[parameter]; const noun = NOUN[parameter];
+  return (
+    <Card aria-labelledby={`cmp-${parameter}`}>
+      <CardHeader id={`cmp-${parameter}`} title={`${label} comparison`} description={q.data?.range ? `${formatDateTime(q.data.range.from)} to ${formatDateTime(q.data.range.to)}` : undefined} />
+      <div className="pt-3">
+        {pondIds.length === 0 ? <EmptyState title="Select at least one pond" />
+          : q.loading && !q.data ? <TableSkeleton rows={Math.min(pondIds.length, 3)} cols={6} />
+          : q.error ? <ErrorState error={q.error} title={`Could not load the ${noun} comparison`} onRetry={q.reload} />
+          : !q.data || q.data.ponds.every((r) => r.count === 0) ? <EmptyState title={`No ${noun} measurements to compare`}>The selected ponds have no recorded {noun} readings in this window.</EmptyState>
+          : (
+            <Table caption={`${label} statistics by pond`}>
+              <thead><tr><Th>Pond</Th><Th className="text-right">Observations</Th><Th className="text-right">Average</Th><Th className="text-right">Minimum</Th><Th className="text-right">Maximum</Th><Th className="text-right">Latest in window</Th></tr></thead>
+              <tbody>
+                {[...q.data.ponds].sort((a, b) => (a.mean ?? Infinity) - (b.mean ?? Infinity)).map((r) => (
+                  <Tr key={r.pondId}>
+                    <Td className="font-medium">{r.name}</Td><Td className="text-right tabular-nums">{r.count}</Td>
+                    <Td className="text-right tabular-nums">{r.count ? fmt(r.mean, parameter, r.unit) : <span className="text-ink-soft">no readings</span>}</Td>
+                    <Td className="text-right tabular-nums">{r.count ? fmt(r.min, parameter, r.unit) : 'n/a'}</Td><Td className="text-right tabular-nums">{r.count ? fmt(r.max, parameter, r.unit) : 'n/a'}</Td>
+                    <Td className="text-right tabular-nums">{r.count ? fmt(r.lastValue, parameter, r.unit) : 'n/a'}</Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        <p className="px-5 pb-5 pt-3 text-xs text-ink-soft">Sorted by average, lowest first. Statistics cover only the selected window of recorded readings. Ponds without readings in the window are listed as &quot;no readings&quot;, never as zero.</p>
+      </div>
+    </Card>
+  );
+}
+
+export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: TrendPond[]; initialPondId: string; rules: RiskRules | null }) {
+  const [mode, setMode] = useState<'single' | 'compare'>('single');
+  const [range, setRange] = useState<RangeKey>('7d');
+  const [bucketPref, setBucketPref] = useState<'auto' | 'hour' | 'day'>('auto');
+  const [pondId, setPondId] = useState(initialPondId);
+  const [picked, setPicked] = useState<string[]>(() => ponds.slice(0, 3).map((p) => p.id));
+
+  const bucket: 'hour' | 'day' = bucketPref === 'auto' ? (RANGES[range] <= 7 * DAY ? 'hour' : 'day') : bucketPref;
+  const pond = ponds.find((p) => p.id === pondId);
+  const endFor = (list: (TrendPond | undefined)[]) => { const t = list.map((p) => (p?.latestAt ? Date.parse(p.latestAt) : NaN)).filter(Number.isFinite); return t.length ? Math.max(...t) : null; };
+  const singleEnd = endFor([pond]);
+  const compareEnd = endFor(picked.map((id) => ponds.find((p) => p.id === id)));
+  const windowEnd = mode === 'single' ? singleEnd : compareEnd;
 
   if (!ponds.length) return <Card><EmptyState title="No ponds available">Analytics need stored measurements. Import or register ponds first.</EmptyState></Card>;
 
   return (
     <div className="space-y-6">
       <Card aria-labelledby="an-ctl">
-        <CardHeader id="an-ctl" title="Explore stored measurements" description="Statistics are calculated by the API from recorded readings only. Nothing is estimated or interpolated." />
+        <CardHeader id="an-ctl" title="Explore stored measurements" description="Dissolved oxygen, pH and water temperature are shown together. Statistics are calculated by the API from recorded readings only." />
         <div className="space-y-4 px-5 pb-5 pt-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <Segmented label="View" value={mode} onChange={setMode} options={[{ value: 'single', label: 'Single pond' }, { value: 'compare', label: 'Compare ponds' }]} />
-            <Segmented label="Parameter" value={parameter} onChange={setParameter} options={PARAMS.map((p) => ({ value: p, label: p === 'dissolved_oxygen' ? 'DO' : p === 'ph' ? 'pH' : 'Temperature' }))} />
             <Segmented label="Time range" value={range} onChange={setRange} options={[{ value: '24h', label: '24 h' }, { value: '3d', label: '3 days' }, { value: '7d', label: '7 days' }, { value: '30d', label: '30 days' }]} />
           </div>
           {mode === 'single' ? (
@@ -85,35 +149,11 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
             </div>
           ) : null}
         </div>
-        <p className="border-t border-line px-5 py-3 text-xs text-ink-soft">The time window ends at the latest recorded reading of the selected pond{mode === 'compare' ? 's' : ''}{(mode === 'single' ? singleEnd : compareEnd) ? ` (${formatDateTime(new Date((mode === 'single' ? singleEnd : compareEnd)!).toISOString())})` : ''}, so historical ponds are not shown as empty. This is recorded data, not current conditions.</p>
+        <p className="border-t border-line px-5 py-3 text-xs text-ink-soft">The time window ends at the latest recorded reading of the selected pond{mode === 'compare' ? 's' : ''}{windowEnd ? ` (${formatDateTime(new Date(windowEnd).toISOString())})` : ''}, so historical ponds are not shown as empty. This is recorded data, not current conditions.</p>
       </Card>
 
       {mode === 'single' ? (
-        <>
-          <section aria-label="Summary statistics" className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            {single.loading && !single.data ? Array.from({ length: 5 }).map((_, i) => <Card key={i} className="p-4"><div className="skeleton h-4 w-16" /><div className="skeleton mt-3 h-7 w-20" /></Card>) : [
-              ['Readings', sm ? String(sm.count) : 'n/a'], ['Mean', fmt(sm?.mean, parameter, u)], ['Minimum', fmt(sm?.min, parameter, u)], ['Maximum', fmt(sm?.max, parameter, u)],
-              ['Change over window', sm?.change === undefined ? 'n/a' : `${sm.change > 0 ? '+' : ''}${formatValue(sm.change, parameter)} ${unitLabel(u)}`.trim()],
-            ].map(([k, v]) => <Card key={k} className="p-4"><p className="text-[13px] text-ink-soft">{k}</p><p className="mt-2 text-xl font-medium tabular-nums text-ink">{v}</p></Card>)}
-          </section>
-          <Card aria-labelledby="an-chart">
-            <CardHeader id="an-chart" title={`${PARAM_LABEL[parameter]} over time`} description={single.data?.method ?? 'Observed readings'} />
-            <div className="px-5 pb-5 pt-4">
-              {single.loading && !single.data ? <ChartSkeleton /> : single.error ? <ErrorState error={single.error} title="Could not load analytics" onRetry={single.reload} />
-                : singleEnd === null ? <EmptyState title="This pond has no readings">Choose another pond, or submit a test reading on the Simulation page.</EmptyState>
-                : !sm || sm.count === 0 ? <EmptyState title={`No ${PARAM_LABEL[parameter]?.toLowerCase()} readings in this window`}>Try a longer range or another parameter.</EmptyState>
-                : (
-                  <>
-                    <TrendChart series={series} parameter={parameter} unit={u} thresholds={thresholds} summaryLabel={`${PARAM_LABEL[parameter]} ${bucket === 'hour' ? 'hourly' : 'daily'} mean, minimum and maximum for ${pond?.name}`} />
-                    <p className="mt-3 text-xs leading-relaxed text-ink-soft">
-                      Based on {sm.count} recorded readings from {formatDateTime(single.data?.range?.from)} to {formatDateTime(single.data?.range?.to)}. Source: {(sm.sources ?? []).map((s) => (s in SOURCE_LABEL ? SOURCE_LABEL[s as keyof typeof SOURCE_LABEL] : s)).join(', ') || 'n/a'}.
-                      {sm.slopePerHour !== null && sm.slopePerHour !== undefined ? ` Linear trend across the window: ${sm.slopePerHour > 0 ? '+' : ''}${formatValue(sm.slopePerHour, parameter)} ${unitLabel(u)} per hour (a description of this window, not a prediction).` : ''}
-                    </p>
-                  </>
-                )}
-            </div>
-          </Card>
-        </>
+        ANALYTICS_PARAMS.map((p) => <ParameterSection key={p} parameter={p} pondId={pondId} pondName={pond?.name ?? 'This pond'} end={singleEnd} range={range} bucket={bucket} rules={rules} />)
       ) : (
         <>
           <Card aria-labelledby="cmp-pick">
@@ -134,32 +174,8 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
               {picked.length >= MAX_COMPARE ? <p className="mt-2 text-xs text-ink-soft">Maximum of {MAX_COMPARE} ponds selected.</p> : null}
             </fieldset>
           </Card>
-          <Card aria-labelledby="cmp-table">
-            <CardHeader id="cmp-table" title={`${PARAM_LABEL[parameter]} comparison`} description={compare.data?.range ? `${formatDateTime(compare.data.range.from)} to ${formatDateTime(compare.data.range.to)}` : undefined} />
-            <div className="pt-3">
-              {picked.length === 0 ? <EmptyState title="Select at least one pond" />
-                : compare.loading && !compare.data ? <TableSkeleton rows={Math.min(picked.length, 4)} cols={6} />
-                : compare.error ? <ErrorState error={compare.error} title="Could not load the comparison" onRetry={compare.reload} />
-                : !compare.data || compare.data.ponds.length === 0 ? <EmptyState title="No data to compare">The selected ponds have no readings in this window.</EmptyState>
-                : (
-                  <Table caption={`${PARAM_LABEL[parameter]} statistics by pond`}>
-                    <thead><tr><Th>Pond</Th><Th className="text-right">Readings</Th><Th className="text-right">Mean</Th><Th className="text-right">Minimum</Th><Th className="text-right">Maximum</Th><Th className="text-right">Latest in window</Th></tr></thead>
-                    <tbody>
-                      {[...compare.data.ponds].sort((a, b) => (a.mean ?? Infinity) - (b.mean ?? Infinity)).map((r) => (
-                        <Tr key={r.pondId}>
-                          <Td className="font-medium">{r.name}</Td><Td className="text-right tabular-nums">{r.count}</Td>
-                          <Td className="text-right tabular-nums">{r.count ? fmt(r.mean, parameter, r.unit) : <span className="text-ink-soft">no readings</span>}</Td>
-                          <Td className="text-right tabular-nums">{r.count ? fmt(r.min, parameter, r.unit) : 'n/a'}</Td><Td className="text-right tabular-nums">{r.count ? fmt(r.max, parameter, r.unit) : 'n/a'}</Td>
-                          <Td className="text-right tabular-nums">{r.count ? fmt(r.lastValue, parameter, r.unit) : 'n/a'}</Td>
-                        </Tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                )}
-              <p className="px-5 pb-5 pt-3 text-xs text-ink-soft">Sorted by mean, lowest first. Statistics cover only the selected window of recorded readings, and ponds are not directly comparable if they were recorded over different periods.</p>
-            </div>
-          </Card>
           {picked.length > 0 && compareEnd === null ? <Notice tone="warning">None of the selected ponds has any recorded reading.</Notice> : null}
+          {ANALYTICS_PARAMS.map((p) => <CompareSection key={p} parameter={p} pondIds={picked} end={compareEnd} range={range} />)}
         </>
       )}
     </div>

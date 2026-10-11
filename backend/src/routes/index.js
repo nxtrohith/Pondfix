@@ -7,6 +7,7 @@ import { pondAnalytics, comparePonds } from '../services/analytics.js';
 import { acknowledge } from '../services/alerts.js';
 import { demoMeasurement, SCENARIOS } from '../services/demo.js';
 import { THRESHOLDS } from '../services/risk.js';
+import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
 export function buildRouter(deps) {
   const { db, config, now, dbTarget = 'unknown' } = deps;
@@ -53,6 +54,12 @@ export function buildRouter(deps) {
     const out = await ingestMeasurement(deps, req.body);
     res.status(out.status).json(out.body);
   }));
+
+  // Historical replay: read-only, never writes (see services/replay.js).
+  r.get('/replay/ponds', asyncHandler(async (req, res) => res.json(await replayPonds(db))));
+  r.get('/replay/ponds/:id', asyncHandler(async (req, res) => res.json(await replayCoverage(db, req.params.id))));
+  r.get('/replay/ponds/:id/window', asyncHandler(async (req, res) => res.json(await replayWindow(db, req.params.id, req.query))));
+  r.post('/replay/forecast', asyncHandler(async (req, res) => res.json(await replayForecast(deps, req.body))));
 
   r.get('/ponds/:id/predictions', asyncHandler(async (req, res) => res.json(await listPredictions(db, config, (await requirePond(db, req.params.id))._id, req.query))));
   r.get('/ponds/:id/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query, (await requirePond(db, req.params.id))._id))));
