@@ -206,3 +206,20 @@ test('request logs exclude bodies and query strings', async () => {
   await env.get('/api/ponds?secret=abc');
   assert.ok(env.logs.length >= 2 && env.logs.every((l) => !l.includes('secret') && !l.includes('dissolved')));
 });
+
+test('risk-rules exposes the backend thresholds', async () => {
+  const r = await env.get('/api/risk-rules');
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.dissolvedOxygen, { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 });
+  assert.equal(r.body.staleAfterMinutes, 60);
+  assert.ok(r.body.unclassifiedParameters.includes('ph'));
+});
+
+test('CORS: both local dashboard origins are allowed, unknown origins are not', async () => {
+  const get = (origin) => fetch(`${env.base}/api/health`, { headers: { origin } });
+  assert.equal((await get('http://localhost:3000')).headers.get('access-control-allow-origin'), 'http://localhost:3000');
+  assert.equal((await get('http://127.0.0.1:3000')).headers.get('access-control-allow-origin'), 'http://127.0.0.1:3000');
+  assert.equal((await get('http://evil.example')).headers.get('access-control-allow-origin'), null);
+  const pre = await fetch(`${env.base}/api/alerts/${'a'.repeat(24)}/acknowledge`, { method: 'OPTIONS', headers: { origin: 'http://127.0.0.1:3000', 'access-control-request-method': 'PATCH' } });
+  assert.match(pre.headers.get('access-control-allow-methods') ?? '', /PATCH/);
+});

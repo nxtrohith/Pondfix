@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/*
+ * Single source of truth for the design system.
+ * Shape rule (locked): cards 12px (rounded-xl), controls 8px (rounded-lg), pills and avatars fully round.
+ * Palette: ivory canvas, white panels, pale sage outlines, one sage/olive accent. Light theme only.
+ * Text variants (*-text) are slightly darker than the brand swatches so small text meets WCAG AA (4.5:1);
+ * the swatches themselves are used for surfaces, borders, icons and chart strokes.
+ */
+@theme {
+  --color-page: #f8f7f2;
+  --color-card: #ffffff;
+  --color-sidebar: #f4f2ea;
+  --color-surface: #f1f0e9;
+  --color-ink: #34372f;
+  --color-ink-muted: #77796f;
+  --color-ink-soft: #6a6c62;
+  --color-line: #e5e3d9;
+  --color-sage: #7d9274;
+  --color-olive: #637957;
+  --color-olive-text: #52684a;
+  --color-sage-pale: #eaf0e5;
+  --color-ok: #52734b;
+  --color-ok-text: #476a41;
+  --color-ok-bg: #edf4e8;
+  --color-warn: #a66d25;
+  --color-warn-text: #8e5a1a;
+  --color-warn-bg: #fbf1dd;
+  --color-crit: #b64d43;
+  --color-crit-text: #a5433a;
+  --color-crit-bg: #f9eae7;
+  --color-stale: #77796f;
+  --color-stale-text: #5e6057;
+  --color-stale-bg: #ecebe5;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-card: 0.75rem;
+  --radius-control: 0.5rem;
+
+  --z-nav: 30;
+  --z-drawer: 40;
+  --z-dialog: 50;
+}
+
+@layer base {
+  html {
+    background: var(--color-page);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-olive);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection { background: var(--color-sage-pale); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .skeleton {
+    background: var(--color-surface);
+    border-radius: var(--radius-control);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .skeleton { animation: skeleton-pulse 1.6s ease-in-out infinite; }
+  }
+}
+
+@keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }

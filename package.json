@@ -1,9 +1,16 @@
 {
   "name": "aquaguard",
   "private": true,
-  "workspaces": ["database", "backend"],
+  "workspaces": [
+    "database",
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "test": "npm test -w backend && npm test -w database",
-    "start": "npm start -w backend"
+    "test": "npm test -w backend && npm test -w database && npm test -w frontend",
+    "start": "npm start -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build:frontend": "npm run build -w frontend",
+    "dev:local": "node backend/scripts/dev-local.js"
   }
 }
