@@ -7,7 +7,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { withDb, run, DB_NAME } from '../lib/connect.js';
-import { mapRow, splitLine, fingerprint, pondObjectId, DEMO_USER_ID, DATASET } from '../lib/fwi-mapping.js';
+import { mapRow, splitLine, fingerprint, pondObjectId, pondDisplayName, DEMO_USER_ID, DATASET } from '../lib/fwi-mapping.js';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i < 0 ? d : (process.argv[i + 1]?.startsWith('--') || process.argv[i + 1] === undefined ? true : process.argv[i + 1]); };
 const BATCH = 1000;
@@ -60,7 +60,24 @@ async function main() {
       const pond = perPond[pondSourceId] = { read: docs.length + rejected.length, rejected: rejected.length, inserted: 0, skipped_identical: 0, conflicts: 0 };
       totals.read += pond.read; totals.rejected += rejected.length; rejects.push(...rejected);
       if (write) {
-        await db.collection('ponds').updateOne({ sourceId: pondSourceId }, { $setOnInsert: { _id: pondObjectId(pondSourceId), userId: DEMO_USER_ID, name: pondSourceId, sourceId: pondSourceId, sourceDataset: DATASET, status: 'active', createdAt: receivedAt, updatedAt: receivedAt } }, { upsert: true });
+        await db.collection('ponds').updateOne(
+          { sourceId: pondSourceId },
+          {
+            $setOnInsert: {
+              _id: pondObjectId(pondSourceId),
+              userId: DEMO_USER_ID,
+              sourceId: pondSourceId,
+              sourceDataset: DATASET,
+              status: 'active',
+              createdAt: receivedAt,
+              updatedAt: receivedAt,
+            },
+            $set: {
+              name: pondDisplayName(pondSourceId),
+            },
+          },
+          { upsert: true }
+        );
       }
       for (let i = 0; i < docs.length; i += BATCH) {
         const batch = docs.slice(i, i + BATCH);

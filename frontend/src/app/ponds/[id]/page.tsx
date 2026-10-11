@@ -52,7 +52,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
     <>
       <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
-        title={pond.name}
+        title={row.pond.name}
         description={POND_STATUS[row.risk].summary}
         actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-[13px] text-ink-soft" /></>)}
       />
@@ -69,7 +69,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
 
         <Section id="attention" title="What needs attention?">
           {openR.status === 'rejected' ? <Card><ErrorState server error={openR.reason} title="Could not load current problems" /></Card>
-            : problems && problems.length ? <AlertFeed alerts={problems} pondNames={{ [pond.id]: pond.name }} compact showGuidance />
+            : problems && problems.length ? <AlertFeed alerts={problems} pondNames={{ [pond.id]: row.pond.name }} compact showGuidance />
             : (
               <p className="flex items-start gap-2 rounded-xl border border-line bg-card px-4 py-4 text-[13px] text-ink">
                 <CheckCircle size={18} weight="fill" className="mt-px shrink-0 text-ok-text" aria-hidden="true" />
@@ -85,7 +85,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
 
         {row.latestAt && summary ? (
           <Section id="trends" title="Water quality over time">
-            <MeasurementTrend ponds={[{ id: pond.id, name: pond.name, latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes }]} initialPondId={pond.id} rules={rules} allowPondChange={false} forecast={preds ?? undefined} title="Trends" />
+            <MeasurementTrend ponds={[{ id: pond.id, name: row.pond.name, latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes }]} initialPondId={pond.id} rules={rules} allowPondChange={false} forecast={preds ?? undefined} title="Trends" />
           </Section>
         ) : null}
 
@@ -100,7 +100,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
           <summary className="cursor-pointer px-5 py-3.5 text-sm font-medium text-ink">Pond details</summary>
           <dl className="grid grid-cols-1 gap-x-8 gap-y-4 px-5 pb-5 pt-1 text-[13px] sm:grid-cols-2 lg:grid-cols-3">
             {([
-              ['Name', pond.name], ['Source identifier', pond.sourceId ? <span key="s" className="font-mono text-xs">{pond.sourceId}</span> : NOT_RECORDED],
+              ['Name', row.pond.name], ['Source identifier', pond.sourceId ? <span key="s" className="font-mono text-xs">{pond.sourceId}</span> : NOT_RECORDED],
               ['Data from', pond.sourceDataset ?? NOT_RECORDED], ['Monitoring', <span key="m" className="capitalize">{pond.status}</span>],
               ['Species', pond.species ?? NOT_RECORDED], ['Area', pond.area ? `${pond.area.value} ${pond.area.unit}` : NOT_RECORDED],
               ['Location', pond.location?.description ?? NOT_RECORDED], ['Added', pond.createdAt ? formatDateTime(pond.createdAt) : NOT_RECORDED],

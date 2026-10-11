@@ -179,8 +179,8 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
                   onClick={() => select(r.pond.id)} onFocus={() => hover(r.pond.id)} onBlur={() => hover(null)} onMouseEnter={() => hover(r.pond.id)} onMouseLeave={() => hover(null)}
                   className={cx('flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium tabular-nums transition-colors', selectedId === r.pond.id ? 'border-ink bg-surface text-ink' : 'border-line bg-card text-ink-soft hover:bg-surface hover:text-ink', dimHealthy && !needsAttention(r.risk) && 'opacity-50')}
                 >
-                  <span className={cx('size-2 rounded-full', SWATCH[toneOf(r.risk)])} aria-hidden="true" />{slotLabel(i)}
-                  <span className="hidden max-w-[7rem] truncate font-normal sm:inline">{r.pond.name}</span>
+                  <span className={cx('size-2 rounded-full', SWATCH[toneOf(r.risk)])} aria-hidden="true" />
+                  <span>{r.pond.name}</span>
                 </button>
               </li>
             ) : null)}

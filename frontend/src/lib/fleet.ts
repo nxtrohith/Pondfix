@@ -12,7 +12,33 @@ export interface FleetRow {
   risk: RiskStatus | 'ERROR';
 }
 
+export const POND_SOURCE_IDS = Object.freeze([
+  'ara2_0677080b',
+  'ara2_0f143c64',
+  'ara2_148f1633',
+  'ara2_176528d3',
+  'ara2_29660d32',
+  'ara2_3b2f3973',
+  'ara2_3eab831e',
+  'ara2_3ed4df8e',
+  'ara2_45e1cde5',
+  'ara2_4f79fc8d',
+  'ara2_573a2826',
+  'ara2_6ca69422',
+  'ara2_858b914c',
+  'ara2_b3d128ac',
+  'ara2_c9cdacda',
+  'ara2_ca187575',
+  'ara2_d52ddb31',
+]);
+
+export const POND_DISPLAY_NAMES: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(POND_SOURCE_IDS.map((id, index) => [id, `Pond ${index + 1}`]))
+);
+
 export function toRow(pond: Pond, summary: PondSummary | null): FleetRow {
+  const friendlyName = POND_DISPLAY_NAMES[pond.sourceId ?? ''] ?? POND_DISPLAY_NAMES[pond.name] ?? pond.name;
+  const normalizedPond = friendlyName !== pond.name ? { ...pond, name: friendlyName } : pond;
   let latestAt: string | null = null;
   let age: number | null = null;
   let latestSource: DataSource | undefined;
@@ -20,11 +46,11 @@ export function toRow(pond: Pond, summary: PondSummary | null): FleetRow {
     if (!latestAt || Date.parse(p.recordedAt) > Date.parse(latestAt)) { latestAt = p.recordedAt; latestSource = p.source; }
     if (p.ageMinutes !== null && (age === null || p.ageMinutes < age)) age = p.ageMinutes;
   }
-  return { pond, summary, latestAt, latestAgeMinutes: age, latestSource, risk: summary ? summary.riskStatus : 'ERROR' };
+  return { pond: normalizedPond, summary, latestAt, latestAgeMinutes: age, latestSource, risk: summary ? summary.riskStatus : 'ERROR' };
 }
 
 export const sortRows = (rows: FleetRow[]) =>
-  [...rows].sort((a, b) => (a.risk === 'ERROR' ? 6 : RISK_ORDER[a.risk]) - (b.risk === 'ERROR' ? 6 : RISK_ORDER[b.risk]) || a.pond.name.localeCompare(b.pond.name));
+  [...rows].sort((a, b) => (a.risk === 'ERROR' ? 6 : RISK_ORDER[a.risk]) - (b.risk === 'ERROR' ? 6 : RISK_ORDER[b.risk]) || a.pond.name.localeCompare(b.pond.name, undefined, { numeric: true }));
 
 export interface FleetStats {
   total: number;
