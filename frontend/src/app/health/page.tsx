@@ -12,7 +12,7 @@ import { ErrorState, Notice } from '@/components/ui/states';
 import { RefreshButton } from '@/components/shell/RefreshButton';
 import type { Tone } from '@/lib/status';
 
-export const metadata: Metadata = { title: 'System Health' };
+export const metadata: Metadata = { title: 'System status' };
 export const dynamic = 'force-dynamic';
 
 type Svc = { name: string; tone: Tone; label: string; detail: string };
@@ -30,7 +30,7 @@ export default async function HealthPage() {
   const api = serverApi();
   const { result: healthR, ms } = await timedHealth(api);
   const [fleetR, rulesR] = await Promise.allSettled([loadFleet(api), api.riskRules()]);
-  const header = <PageHeader title="System Health" description="Status of the API, database and forecasting service as reported by the backend." actions={<RefreshButton />} />;
+  const header = <PageHeader title="System status" description="For technical checks: whether the AquaGuard software, its database and its forecasting service are running. Pond health is on the Overview." actions={<RefreshButton />} />;
 
   const services: Svc[] = [];
   if (healthR.status === 'fulfilled') {

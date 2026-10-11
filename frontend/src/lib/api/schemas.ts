@@ -91,6 +91,9 @@ export const predictionSchema = z.object({
   persistenceBaseline: z.number().optional(),
   typicalAbsError: z.number().optional(),
   absErrorQ90: z.number().optional(),
+  /** The backend's own classification of the forecast value (so the UI never applies thresholds). */
+  risk: z.enum(['NORMAL', 'WARNING', 'CRITICAL', 'UNKNOWN']).optional(),
+  direction: z.enum(['low', 'high']).optional(),
 });
 export type Prediction = z.infer<typeof predictionSchema>;
 export const predictionsResponse = z.object({ items: z.array(predictionSchema), generatedAt: iso.nullable(), note: z.string().optional() });

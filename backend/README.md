@@ -99,3 +99,5 @@ and every request is safely repeatable. Code: `src/services/replay.js`; tests: `
 ## Risk rules and alerts for DO, pH and temperature
 
 Rules, validation and defaults are documented in the root README ([Risk rules and alert lifecycle](../README.md#risk-rules-and-alert-lifecycle)). Implementation: `src/services/risk.js` (rules, `classify`, `loadRiskRules`, `observedMessage`, `pondOverallStatus`), `src/services/alerts.js` (`applyCondition`, `applyReading`: one open alert per pond, parameter, side and source) and `src/services/ingestion.js` (per-parameter newest-reading check, partial acceptance with `rejectedValues`). No database schema change: the alert side is derived as `direction` (`low` or `high`) from the stored trigger value and limit. Tests: `tests/unit/rules.test.js`, `tests/integration/alerts-multi.test.js`.
+
+`GET /api/ponds/:id/predictions` items include `risk` (`NORMAL`, `WARNING`, `CRITICAL`) and `direction` (`low` or `high`), classified by the backend's active rules at read time, so clients never apply thresholds to forecast values. Forecast *alerts* still exist for dissolved oxygen only.

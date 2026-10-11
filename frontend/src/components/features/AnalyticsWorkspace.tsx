@@ -4,6 +4,7 @@ import { browserApi } from '@/lib/api/client';
 import type { RiskRules } from '@/lib/api/schemas';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { breakGaps } from '@/lib/chart';
+import { thresholdLines } from '@/lib/limits';
 import { PARAM_LABEL, SOURCE_LABEL, formatDateTime, formatValue, unitLabel, fmtThreshold } from '@/lib/format';
 import type { TrendPond } from './MeasurementTrend';
 import { Card, CardHeader } from '../ui/Card';
@@ -25,10 +26,6 @@ const NOUN: Record<P, string> = { dissolved_oxygen: 'dissolved oxygen', ph: 'pH'
 const MAX_COMPARE = 6;
 
 const fmt = (v: number | undefined, p: string, unit?: string) => (v === undefined ? 'n/a' : formatValue(v, p, true, unit));
-const dissolvedOxygenLines = (rules: RiskRules | null): Threshold[] => (rules
-  ? [{ y: rules.dissolvedOxygen.warningBelow, label: `Warning below ${fmtThreshold(rules.dissolvedOxygen.warningBelow)}`, tone: 'warn' }, { y: rules.dissolvedOxygen.criticalBelow, label: `Critical below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)}`, tone: 'crit' }]
-  : []);
-
 /** One parameter for one pond: stats from the API's own aggregation, chart of observed buckets, and an honest empty state. */
 function ParameterSection({ parameter, pondId, pondName, end, range, bucket, rules }: { parameter: P; pondId: string; pondName: string; end: number | null; range: RangeKey; bucket: 'hour' | 'day'; rules: RiskRules | null }) {
   const q = useApiQuery(
@@ -68,7 +65,7 @@ function ParameterSection({ parameter, pondId, pondName, end, range, bucket, rul
                 ))}
               </dl>
               <div className="mt-4">
-                <TrendChart series={series} parameter={parameter} unit={u} thresholds={parameter === 'dissolved_oxygen' ? dissolvedOxygenLines(rules) : []} height={240} summaryLabel={`${label} ${bucket === 'hour' ? 'hourly' : 'daily'} mean, minimum and maximum for ${pondName}`} />
+                <TrendChart series={series} parameter={parameter} unit={u} thresholds={thresholdLines(rules, parameter)} height={240} summaryLabel={`${label} ${bucket === 'hour' ? 'hourly' : 'daily'} mean, minimum and maximum for ${pondName}`} />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-ink-soft">
                 {sm.count} recorded readings from {formatDateTime(q.data?.range?.from)} to {formatDateTime(q.data?.range?.to)}. Source: {(sm.sources ?? []).map((s) => (s in SOURCE_LABEL ? SOURCE_LABEL[s as keyof typeof SOURCE_LABEL] : s)).join(', ') || 'n/a'}.
@@ -131,12 +128,12 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
   const compareEnd = endFor(picked.map((id) => ponds.find((p) => p.id === id)));
   const windowEnd = mode === 'single' ? singleEnd : compareEnd;
 
-  if (!ponds.length) return <Card><EmptyState title="No ponds available">Analytics need stored measurements. Import or register ponds first.</EmptyState></Card>;
+  if (!ponds.length) return <Card><EmptyState title="No ponds available">Comparing needs recorded readings. Import or register ponds first.</EmptyState></Card>;
 
   return (
     <div className="space-y-6">
       <Card aria-labelledby="an-ctl">
-        <CardHeader id="an-ctl" title="Explore stored measurements" description="Dissolved oxygen, pH and water temperature are shown together. Statistics are calculated by the API from recorded readings only." />
+        <CardHeader id="an-ctl" title="Compare ponds over time" description="Dissolved oxygen, pH and water temperature are shown together. Statistics are calculated by the API from recorded readings only." />
         <div className="space-y-4 px-5 pb-5 pt-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <Segmented label="View" value={mode} onChange={setMode} options={[{ value: 'single', label: 'Single pond' }, { value: 'compare', label: 'Compare ponds' }]} />

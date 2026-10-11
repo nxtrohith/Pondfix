@@ -165,6 +165,10 @@ test('forecast alerts keep their own identity and are never counted as observed'
     const sum = (await e2.get(`/api/ponds/${p._id}/summary`)).body;
     assert.equal(sum.riskStatus, 'NORMAL', 'a forecast-only condition does not change the observed pond status');
     assert.deepEqual(sum.openAlertItems.map((a) => a.origin), ['predicted']);
+    const preds = (await e2.get(`/api/ponds/${p._id}/predictions`)).body.items;
+    const byParam = Object.fromEntries(preds.map((x) => [x.parameter, x]));
+    assert.equal(byParam.dissolved_oxygen.risk, 'CRITICAL'); assert.equal(byParam.dissolved_oxygen.direction, 'low');
+    assert.equal(byParam.ph.risk, 'CRITICAL'); assert.equal(byParam.ph.direction, 'high');   // classified by the backend, though no pH forecast alert exists
   } finally { await e2.stop(); }
 });
 

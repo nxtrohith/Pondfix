@@ -7,13 +7,13 @@ import { EmptyState, ErrorState } from '@/components/ui/states';
 import { SimulationForm } from '@/components/features/SimulationForm';
 import { SimulationWorkspace } from '@/components/features/SimulationWorkspace';
 
-export const metadata: Metadata = { title: 'Simulation' };
+export const metadata: Metadata = { title: 'Demo & simulation' };
 export const dynamic = 'force-dynamic';
 
 export default async function SimulationPage() {
   const api = serverApi();
   const [fleetR, rulesR] = await Promise.allSettled([loadFleet(api), api.riskRules()]);
-  const header = <PageHeader title="Simulation" description="Replay recorded pond history through the risk engine and forecasting model, or submit a clearly marked test reading." />;
+  const header = <PageHeader title="Demo & simulation" description="Practice and show how AquaGuard reacts. Nothing here describes your real ponds." />;
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
   // The replay works without the pond list; only the test-reading panel needs it.
   const testReading = fleetR.status === 'rejected'

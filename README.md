@@ -160,10 +160,10 @@ Confirm the API with `curl http://127.0.0.1:4000/api/health` (expect `"status":"
 - Run only one of `npm start` and `npm run dev:local`. Both use port 4000. `/api/health` reports `"target":"local"` or `"remote"`, so you can tell which one is serving.
 - `npm run dev:local` writes only to an in-memory database, so the Simulation page never adds demo records to Atlas. Its data is discarded when you stop it.
 
-Pages: Overview, Ponds, pond details, Forecasts, Alerts, Analytics, Simulation, System Health. The Simulation page has two modes:
+The sidebar has three everyday pages (**Overview**, **Ponds**, **Alerts**), two tools under "More" (**Compare ponds**, **Demo & simulation**) and **System status** at the bottom. Forecasts are part of each pond's page ("What may happen next?"). The Overview opens with a **Farm view**: an interactive 3D plan of all 17 ponds coloured by their current status (details in [`frontend/README.md`](frontend/README.md#farm-view-digital-twin); `/?twin=demo` shows labelled demo fixtures). The Demo & simulation page has two modes:
 
-- **Historical replay** (default): pick a pond and a 24-hour or 7-day preset (or a custom UTC range), then play the recorded data back at a chosen speed. Replay is read-only and works on either database.
-- **Test reading**: save one clearly marked simulated reading, or run the guided alert demo. Both write data and need the local database.
+- **Replay history** (default): pick a pond and a 24-hour or 7-day preset (or a custom UTC range), then play the recorded data back at a chosen speed. Replay is read-only and works on either database.
+- **Test an alert**: save one clearly marked simulated reading, or run the guided alert demos. Both write data and need the local database.
 
 Setup details, troubleshooting, API usage and design notes: [`frontend/README.md`](frontend/README.md).
 
@@ -265,7 +265,7 @@ All routes are under `/api`. Full request and response examples are in [`backend
 | `GET` | `/ponds/:id/measurements` | Measurements, newest first, paginated |
 | `GET` | `/ponds/:id/measurements/latest` | Latest value per parameter, with age and staleness |
 | `POST` | `/measurements` | Submit a reading (returns risk, alert changes and inference status) |
-| `GET` | `/ponds/:id/predictions` | Latest forecast batch |
+| `GET` | `/ponds/:id/predictions` | Latest forecast batch; each value carries the backend's own `risk` (and `direction`) |
 | `GET` | `/ponds/:id/alerts` | Alerts for one pond |
 | `GET` | `/alerts` | Alerts across ponds; filter by `status`, `origin`, `parameter`, `severity`, `pondId` |
 | `PATCH` | `/alerts/:id/acknowledge` | Acknowledge an alert (the condition stays open) |

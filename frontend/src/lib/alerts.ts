@@ -15,22 +15,6 @@ export function alertTitle(a: Pick<Alert, 'parameter' | 'direction'>): string {
   return a.direction ? `${directionLabel(a.direction)} ${name}` : label;
 }
 
-/** One-line condition. Observed alerts use the backend's message (built from the real reading and active rule); forecasts say so. */
-export function alertCondition(a: Alert): string {
-  if (a.origin === 'predicted') return `Forecast (not observed): ${formatValue(a.triggerValue, a.parameter)} ${DEFAULT_UNIT[a.parameter] ?? ''} expected in ${horizonLabel(a.horizonMinutes)}`.trim();
-  return a.message;
-}
-
-export function alertBreakdown(alerts: Alert[]) {
-  const byParameter: Record<string, number> = {};
-  let observed = 0; let forecast = 0;
-  for (const a of alerts) {
-    if (a.origin === 'predicted') { forecast++; continue; }
-    observed++; byParameter[a.parameter] = (byParameter[a.parameter] ?? 0) + 1;
-  }
-  return { observed, forecast, byParameter };
-}
-
 /** "6.5 to 8.5 pH", "20 to 32 °C", "at least 3 mg/L". */
 export function acceptableText(r: Rule): string {
   const u = unitLabel(r.unit); const sfx = u ? ` ${u}` : '';

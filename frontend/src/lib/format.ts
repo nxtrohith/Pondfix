@@ -58,7 +58,7 @@ export function formatAge(minutes: number | null | undefined): string {
   return `${Math.round(minutes / 43200)} months ago`;
 }
 
-export const SOURCE_LABEL: Record<DataSource, string> = { historical: 'Historical replay', simulated: 'Simulated', live: 'Live sensor' };
+export const SOURCE_LABEL: Record<DataSource, string> = { historical: 'Historical data', simulated: 'Simulation', live: 'Live data' };
 export const horizonLabel = (minutes?: number) => (minutes === undefined ? 'n/a' : minutes % 60 === 0 ? `${minutes / 60} h` : `${minutes} min`);
 
 export const isParameter = (p: string): p is Parameter => p in PARAM_LABEL;

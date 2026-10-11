@@ -8,7 +8,7 @@ vi.mock('@/lib/api/client', async (orig) => ({ ...(await orig<typeof import('@/l
 
 import { AlertsCenter } from '@/components/features/AlertsCenter';
 import { ParameterDemo, PARAMETER_DEMO_STEPS } from '@/components/features/ParameterDemo';
-import { acceptableText, alertBreakdown, alertTitle } from '@/lib/alerts';
+import { acceptableText, alertTitle } from '@/lib/alerts';
 import type { Alert } from '@/lib/api/schemas';
 
 const T = '2026-03-01T12:00:00.000Z';
@@ -19,60 +19,86 @@ const TEMP = mk({ id: 'a3', parameter: 'temperature', severity: 'CRITICAL', trig
 const FC = mk({ id: 'a4', parameter: 'dissolved_oxygen', severity: 'CRITICAL', triggerValue: 1.5, threshold: 2, direction: 'low', origin: 'predicted', horizonMinutes: 60, message: 'FORECAST (not observed): dissolved oxygen predicted 1.5 mg/L in 60 min, below 2 mg/L' });
 const page = (items: Alert[]) => ({ items, count: items.length, nextCursor: null });
 
+const ACK = mk({ id: 'a5', parameter: 'temperature', severity: 'WARNING', triggerValue: 33, threshold: 32, direction: 'high', status: 'ACKNOWLEDGED', acknowledgedAt: T, message: 'x' });
+const RES = mk({ id: 'a6', parameter: 'ph', severity: 'WARNING', triggerValue: 6.2, threshold: 6.5, direction: 'low', status: 'RESOLVED', resolvedAt: T, message: 'x' });
+const ALL = [DO, PH, TEMP, FC, ACK, RES];
 beforeEach(() => {
   vi.clearAllMocks();
-  api.alerts.mockImplementation(async (q: { parameter?: string; severity?: string; limit?: number }) => page([DO, PH, TEMP, FC].filter((a) => (!q.parameter || a.parameter === q.parameter) && (!q.severity || a.severity === q.severity))));
+  api.alerts.mockImplementation(async (q: { status?: string; parameter?: string; severity?: string; origin?: string }) => page(ALL.filter((a) =>
+    (q.status === 'OPEN' ? a.status !== 'RESOLVED' : !q.status || q.status === 'ALL' || a.status === q.status) && (!q.parameter || a.parameter === q.parameter) && (!q.severity || a.severity === q.severity) && (!q.origin || a.origin === q.origin))));
   api.health.mockResolvedValue({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target: 'local' }, ml: { status: 'ready' } });
   api.pondAlerts.mockResolvedValue(page([PH]));
 });
 
-describe('Alerts page with three parameters', () => {
-  const open = async () => { render(<AlertsCenter ponds={[{ id: 'p1', name: 'ara2_test' }]} />); await screen.findByText(/Dissolved oxygen observed at 2\.70 mg\/L/); };
+describe('Alerts page in plain language', () => {
+  const open = async () => { render(<AlertsCenter ponds={[{ id: 'p1', name: 'ara2_test' }]} />); await screen.findByText('Dissolved oxygen is low'); };
 
-  it('shows DO, pH and temperature alerts with the backend-generated messages, direction and severity', async () => {
+  it('shows each problem as a headline, the current value and the level that was crossed', async () => {
     await open();
-    expect(screen.getByText('pH observed at 8.80; configured upper warning limit 8.50.')).toBeInTheDocument();
-    expect(screen.getByText('Water temperature observed at 36.0°C; configured upper critical limit 35.0°C.')).toBeInTheDocument();
-    expect(screen.getByText('High pH')).toBeInTheDocument(); expect(screen.getByText('High temperature')).toBeInTheDocument(); expect(screen.getAllByText('Low dissolved oxygen').length).toBe(2);
+    const doCard = screen.getByRole('article', { name: 'Dissolved oxygen is low' });
+    expect(doCard).toHaveTextContent('Current problem'); expect(doCard).toHaveTextContent('Current: 2.70 mg/L'); expect(doCard).toHaveTextContent('Warning level: below 3.0 mg/L');
+    const ph = screen.getByRole('article', { name: 'pH is too high' });
+    expect(ph).toHaveTextContent('Current: 8.80'); expect(ph).toHaveTextContent('Warning level: above 8.5');
+    const t = screen.getByRole('article', { name: 'Water temperature is critically high' });
+    expect(t).toHaveTextContent('Critical level: above 35.0 °C'); expect(t).toHaveTextContent('Current problem: critical');
   });
 
-  it('keeps forecast alerts visibly separate from observed ones, in the row and in the counts', async () => {
+  it('shows a forecast as a possible upcoming problem, never as a measurement', async () => {
     await open();
-    expect(screen.getByText(/Forecast \(not observed\): 1\.50 mg\/L expected in 1 h/)).toBeInTheDocument();
-    expect(screen.getByTestId('alert-breakdown')).toHaveTextContent('3 observed (Dissolved oxygen 1, pH 1, Temperature 1)');
-    expect(screen.getByTestId('alert-breakdown')).toHaveTextContent('1 forecast-based');
+    const f = screen.getByRole('article', { name: 'Oxygen may become critically low within 1 hour' });
+    expect(f).toHaveTextContent('Possible upcoming problem'); expect(f).toHaveTextContent('Forecast in 1 h:'); expect(f).toHaveTextContent('not a measurement');
+    expect(f).not.toHaveTextContent('Current:');
+    expect(screen.getByTestId('alert-breakdown')).toHaveTextContent('4 current problems and 1 possible upcoming problem');
   });
 
-  it('parameter and severity filters are applied by the server, over all three parameters', async () => {
+  it('tabs separate active, marked-as-seen and resolved problems using the server\'s status filter', async () => {
     await open();
-    const sel = screen.getByLabelText('Parameter') as HTMLSelectElement;
+    expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ status: 'ACTIVE' }), expect.anything());
+    expect(screen.queryByRole('article', { name: 'Water temperature is too high' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Active (4)' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Marked as seen (1)' }));
+    const seen = await screen.findByRole('article', { name: 'Water temperature is too high' });
+    expect(seen).toHaveTextContent('Marked as seen: the condition is still active'); expect(within(seen).queryByRole('button', { name: 'Mark as seen' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Resolved' }));
+    const done = await screen.findByRole('article', { name: 'pH is too low' });
+    expect(done).toHaveTextContent('Resolved: readings are back to normal'); expect(done).toHaveTextContent('Earlier current problem');
+  });
+
+  it('filters by pond, factor, seriousness and type on the server', async () => {
+    await open();
+    const sel = screen.getByLabelText('Water quality factor') as HTMLSelectElement;
     expect([...sel.options].map((o) => o.value)).toEqual(['', 'dissolved_oxygen', 'ph', 'temperature']);
     fireEvent.change(sel, { target: { value: 'ph' } });
-    await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ parameter: 'ph', status: 'OPEN' }), expect.anything()));
-    await screen.findByText('High pH');
-    await waitFor(() => expect(screen.queryByText('High temperature')).toBeNull());
+    await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ parameter: 'ph', status: 'ACTIVE' }), expect.anything()));
+    await waitFor(() => expect(screen.queryByRole('article', { name: 'Dissolved oxygen is low' })).toBeNull());
     fireEvent.change(sel, { target: { value: '' } });
-    fireEvent.change(screen.getByLabelText('Severity'), { target: { value: 'CRITICAL' } });
+    fireEvent.change(screen.getByLabelText('How serious'), { target: { value: 'CRITICAL' } });
     await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ severity: 'CRITICAL' }), expect.anything()));
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'predicted' } });
     await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ origin: 'predicted', severity: 'CRITICAL' }), expect.anything()));
   });
 
-  it('acknowledging uses the existing API and leaves the alert open', async () => {
+  it('"Mark as seen" uses the existing API and the problem stays open', async () => {
     api.acknowledgeAlert.mockResolvedValue({ alert: { ...PH, status: 'ACKNOWLEDGED' }, changed: true });
     await open();
-    const row = screen.getByText('High pH').closest('tr')!;
-    fireEvent.click(within(row).getByRole('button', { name: 'Acknowledge' }));
-    await screen.findByText(/remains open until readings recover/);
+    fireEvent.click(within(screen.getByRole('article', { name: 'pH is too high' })).getByRole('button', { name: 'Mark as seen' }));
+    await screen.findByText(/The problem stays open until readings recover/);
     expect(api.acknowledgeAlert).toHaveBeenCalledWith('a2');
-    expect(within(screen.getByText('High pH').closest('tr')!).getByText('Acknowledged')).toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'pH is too high' })).toHaveTextContent('Marked as seen: the condition is still active');
   });
 
-  it('shows an explicit empty state when no alert matches', async () => {
-    api.alerts.mockResolvedValue(page([]));
+  it('gives a plain empty state per tab, and says so when filters hide everything', async () => {
+    api.alerts.mockImplementation(async () => page([]));
     render(<AlertsCenter ponds={[{ id: 'p1', name: 'ara2_test' }]} />);
-    expect(await screen.findByText('No unresolved alerts')).toBeInTheDocument();
-    expect(screen.getByText(/dissolved-oxygen, pH and temperature limits/)).toBeInTheDocument();
+    expect(await screen.findByText('No active problems')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('How serious'), { target: { value: 'WARNING' } });
+    expect(await screen.findByText('No alerts match these filters')).toBeInTheDocument();
+  });
+
+  it('a failed request shows an error with retry instead of an empty list', async () => {
+    api.alerts.mockRejectedValue(new Error('x'));
+    render(<AlertsCenter ponds={[{ id: 'p1', name: 'ara2_test' }]} />);
+    expect(await screen.findByText('Could not load alerts')).toBeInTheDocument();
   });
 });
 
@@ -80,7 +106,6 @@ describe('alert helpers', () => {
   it('titles, breakdown and acceptable-range text come from the data, not constants', () => {
     expect(alertTitle({ parameter: 'ph', direction: 'low' })).toBe('Low pH');
     expect(alertTitle({ parameter: 'temperature', direction: 'high' })).toBe('High temperature');
-    expect(alertBreakdown([DO, PH, PH, FC])).toEqual({ observed: 3, forecast: 1, byParameter: { dissolved_oxygen: 1, ph: 2 } });
     const rule = (min: number | null, max: number | null, unit = 'C') => ({ label: 'x', unit, enabled: true, source: 's', acceptableRange: { min, max } });
     expect(acceptableText(rule(20, 32))).toBe('20 to 32 °C'); expect(acceptableText(rule(3, null, 'mg/L'))).toBe('3 mg/L or above'); expect(acceptableText(rule(6.5, 8.5, 'pH'))).toBe('6.5 to 8.5');
   });

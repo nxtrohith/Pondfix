@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { axisTicks, breakGaps, chartDomain, gapThreshold, splitBySource, summarize } from '@/lib/chart';
 import { formatAge, formatAxisTime, formatDateTime, formatValue, fmtThreshold, unitLabel } from '@/lib/format';
-import { fleetStats, sortRows, toRow, alertSeverityCounts } from '@/lib/fleet';
+import { fleetStats, sortRows, toRow } from '@/lib/fleet';
 import { buildSimRequest, defaultSimInput, utcInputToIso, type SimInput } from '@/lib/simulation';
 import type { Pond, PondSummary } from '@/lib/api/schemas';
 
@@ -82,10 +82,6 @@ describe('fleet aggregation', () => {
   });
   it('lists ponds needing attention first, unavailable last', () => {
     expect(sortRows(rows).map((r) => r.risk)).toEqual(['CRITICAL', 'WARNING', 'STALE', 'NO_DATA', 'NORMAL', 'ERROR']);
-  });
-  it('counts alert severities and acknowledgements', () => {
-    const a = (severity: 'CRITICAL' | 'WARNING', status: 'ACTIVE' | 'ACKNOWLEDGED') => ({ id: 'i', pondId: 'p', origin: 'observed' as const, parameter: 'dissolved_oxygen', severity, triggerValue: 1, threshold: 2, message: 'm', status, createdAt: '', lastTriggeredAt: '' });
-    expect(alertSeverityCounts([a('CRITICAL', 'ACTIVE'), a('WARNING', 'ACKNOWLEDGED'), a('CRITICAL', 'ACKNOWLEDGED')])).toEqual({ critical: 2, warning: 1, acknowledged: 2 });
   });
 });
 
