@@ -83,7 +83,10 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
   // The selection survives data refreshes, and is dropped only if that pond no longer exists.
   const selectedRow = selectedId ? byId.get(selectedId) ?? null : null;
   const hoveredRow = hoveredId ? byId.get(hoveredId) ?? null : null;
+  const panelRef = useRef<HTMLDivElement>(null);
   const select = useCallback((id: string) => setSelectedId(id), []);
+  // Bring the details into view after a selection, moving the page only as far as needed.
+  useEffect(() => { if (selectedId) panelRef.current?.scrollIntoView?.({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' }); }, [selectedId, reduced]);
   const hover = useCallback((id: string | null) => setHoveredId(id), []);
 
   // Tooltip: follows the pointer by writing its position straight to the DOM (no React state per mouse move), and stays inside the frame.
@@ -129,11 +132,11 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
         {useFallback ? <Notice>The 3D view is not available in this browser, so the flat plan is shown. Everything else works the same.</Notice> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-5 p-5">
         <div className="min-w-0 space-y-3">
           <div
             ref={frame} role="img" aria-label={summaryLabel}
-            className={cx('relative h-[430px] overflow-hidden rounded-lg border border-line bg-surface sm:h-[400px] lg:h-[460px] xl:h-[480px]', hoveredId && 'cursor-pointer')}
+            className={cx('relative h-[430px] overflow-hidden rounded-lg border border-line bg-surface sm:h-[420px] lg:h-[500px] xl:h-[560px]', hoveredId && 'cursor-pointer')}
             onPointerMove={onPointerMove} onPointerLeave={() => { setInside(false); hover(null); }}
           >
             {gl === 'checking' ? <SceneSkeleton />
@@ -150,7 +153,7 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
               <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
                 {scenePonds.map((p) => (
                   <div key={p.id} ref={(el) => { if (el) labelRefs.current.set(p.id, el); else labelRefs.current.delete(p.id); }} className="absolute left-0 top-0" style={{ visibility: 'hidden' }}>
-                    <div className="-translate-x-1/2 -translate-y-1/2"><PondBadge label={p.label} tone={p.tone} empty={p.empty} selected={selectedId === p.id} dim={dimHealthy && !p.attention && !p.empty} /></div>
+                    <div className="-translate-x-1/2 -translate-y-full pb-1.5"><PondBadge label={p.label} tone={p.tone} empty={p.empty} selected={selectedId === p.id} dim={dimHealthy && !p.attention && !p.empty} /></div>
                   </div>
                 ))}
               </div>
@@ -184,11 +187,11 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
           </ul>
         </div>
 
-        <div className="min-w-0">
+        <div ref={panelRef} className="min-w-0 scroll-mt-20">
           {selectedSnap && selectedRow ? (
             <PondPanel key={selectedSnap.id} snap={selectedSnap} alerts={alertsByPond[selectedSnap.id] ?? []} readings={selectedRow.summary?.parameters ?? {}} demo={demo} onClose={() => setSelectedId(null)} />
           ) : (
-            <div className="rounded-xl border border-dashed border-line bg-surface/60 px-5 py-8 text-center text-[13px] text-ink-soft"><p className="font-medium text-ink">No pond selected</p><p className="mt-1">Click a pond on the plan, or choose one from the list below it, to see its readings, problems and forecast.</p></div>
+            <div className="rounded-xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-[13px] text-ink-soft"><p className="font-medium text-ink">No pond selected</p><p className="mt-1">Click a pond on the plan, or choose one from the list, to see its readings, problems and forecast here.</p></div>
           )}
         </div>
       </div>
