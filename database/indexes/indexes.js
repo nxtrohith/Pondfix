@@ -6,6 +6,7 @@ export const indexes = {
   ],
   ponds: [
     { name: 'user_name_unique', key: { userId: 1, name: 1 }, options: { unique: true }, purpose: "A farmer's pond names are unique" },
+    { name: 'sourceId_unique', key: { sourceId: 1 }, options: { unique: true, partialFilterExpression: { sourceId: { $type: 'string' } } }, purpose: 'One pond per originating-dataset id (import idempotency)' },
     { name: 'user_status', key: { userId: 1, status: 1 }, options: {}, purpose: "List a farmer's ponds by status" },
   ],
   measurements: [

@@ -35,11 +35,18 @@ See `indexes/indexes.js` (each has a `purpose`). Highlights: `measurements(pondI
 
 ## Deduplication and lifecycle
 - Measurements: optional `dedupKey` with a *partial* unique index, so imports/ingest can be idempotent while legitimate repeat readings (no key) are never blocked.
-- Alerts: `openKey = pondId:origin:parameter` exists only while ACTIVE/ACKNOWLEDGED and is unique, giving at most one open alert per condition. Acknowledging sets status/acknowledgedAt only (condition stays open). Resolving sets `resolvedAt` and `$unset`s `openKey`; the document stays as history and a new episode may open a new alert.
+- Alerts: `openKey = pondId:origin:parameter:dataSource` (backend format; the `dataSource` suffix keeps simulated demo readings from resolving live alerts) exists only while ACTIVE/ACKNOWLEDGED and is unique, giving at most one open alert per condition. Acknowledging sets status/acknowledgedAt only (condition stays open). Resolving sets `resolvedAt` and `$unset`s `openKey`; the document stays as history and a new episode may open a new alert.
 - Predictions: unique on (pondId, parameter, forecastFor, generatedAt) so re-running one inference doesn't duplicate.
 - Retention: no TTL indexes; nothing is auto-deleted.
 
+## Added in the backend/import phase
+- `ponds.sourceId/sourceDataset` (unique partial index) and `measurements.provenance` (dataset, file, rowNumber, pondSourceId, original timestamp text + zone, QC flags, data-quality notes).
+- DO physical bound widened to 0–50 mg/L (the real data reaches 25.56; unusual values are kept, not discarded).
+- `predictions` also stores `dataSource`, `selectedModel`, `persistenceBaseline`, `typicalAbsError`, `absErrorQ90` (model-provided; no confidence is invented); `alerts` also stores `dataSource`, `horizonMinutes`, `forecastFor`.
+- `scripts/import-fwi.js` (idempotent historical import, dry run by default) and `scripts/verify-import.js`; mapping in `../docs/DATASET_AND_MODEL.md`. `lib/connect.js` also exports `getDb()/closeDb()` for the backend; `lib/setup.js` holds the reusable init/index functions.
+- Re-run `npm run db:init -w database && npm run db:indexes -w database` on an existing deployment to apply the validator/index changes (collMod, no data touched).
+
 ## Open items
-- `severity` currently allows `WARNING`/`CRITICAL`; actual DO classification thresholds are NOT defined here and must be supplied (and sourced) before alert logic is written.
-- Historical import: the 17-pond dataset is not in the repo. Needed: the source file (CSV/XLSX/…) plus its column/unit/timezone/provenance description. `imports/` is reserved; no import script was written, to avoid guessing the schema.
-- `aquaguard_model.pkl` was not opened or unpickled; its provenance/features are for the ML phase.
+- DO thresholds (CRITICAL < 2.0, WARNING < 3.0 mg/L) are implemented in the backend from the project's `ml/aquaguard_config.py`; they are project defaults, not validated species limits. pH/temperature/water level have none.
+- Historical import is implemented for the FWI CSVs (see above).
+- `aquaguard_model.pkl` is used by the backend's hash-pinned Python worker (never by these scripts).

@@ -44,6 +44,8 @@ export const collections = {
       area: { bsonType: 'object', required: ['value', 'unit'], additionalProperties: false, properties: {
         value: { bsonType: ['double', 'int', 'long'], minimum: 0 }, unit: oneOfEnum(['m2', 'ha', 'acre']) } },
       species: str(),
+      sourceId: str({ minLength: 1, description: 'Identifier in the originating dataset (e.g. anonymised FWI pond id).' }),
+      sourceDataset: str(),
       status: oneOfEnum(['active', 'inactive', 'archived']),
       createdAt: date, updatedAt: date, fixtureTag,
     },
@@ -58,11 +60,21 @@ export const collections = {
       values: {
         bsonType: 'array', minItems: 1, maxItems: 8,
         items: { anyOf: [
-          reading('dissolved_oxygen', 'mg/L', 0, 25),
+          reading('dissolved_oxygen', 'mg/L', 0, 50),
           reading('ph', 'pH', 0, 14),
           reading('temperature', 'C', -5, 60),
           reading('water_level', 'm', 0, 50),
         ] },
+      },
+      provenance: {
+        bsonType: 'object', additionalProperties: false,
+        description: 'Where a historical/imported observation came from. Absent for live/simulated input.',
+        properties: {
+          dataset: str(), file: str(), rowNumber: { bsonType: ['int', 'long'] },
+          pondSourceId: str(), sourceTimestamp: str({ description: 'Timestamp text exactly as in the source.' }),
+          sourceTimezone: str(), qcFlags: { bsonType: 'array', items: str() },
+          dataQuality: { bsonType: 'array', items: str(), description: 'Import-time notes, e.g. zero_value_artifact:do (value omitted).' },
+        },
       },
       dedupKey: str({ minLength: 1, description: 'Optional idempotency key (e.g. dataset row id). Unique when present.' }),
       createdAt: date, fixtureTag,
@@ -78,7 +90,12 @@ export const collections = {
       horizon: { bsonType: 'object', required: ['value', 'unit'], additionalProperties: false, properties: {
         value: { bsonType: ['int', 'long', 'double'], minimum: 0 }, unit: oneOfEnum(['minutes', 'hours', 'days']) } },
       sourceMeasurementIds: { bsonType: 'array', items: id },
-      modelRunId: id, createdAt: date, fixtureTag,
+      modelRunId: id,
+      dataSource: oneOfEnum(['historical', 'simulated', 'live']),
+      selectedModel: str(), persistenceBaseline: { bsonType: ['double', 'int', 'long'] },
+      typicalAbsError: { bsonType: ['double', 'int', 'long'], description: 'Empirical validation-period error band from the model bundle; not a calibrated confidence.' },
+      absErrorQ90: { bsonType: ['double', 'int', 'long'] },
+      createdAt: date, fixtureTag,
     },
   },
   alerts: {
@@ -91,6 +108,8 @@ export const collections = {
       message: str({ minLength: 1 }), status: oneOfEnum(ALERT_STATUSES),
       createdAt: date, acknowledgedAt: date, resolvedAt: date, lastTriggeredAt: date,
       triggerMeasurementId: id, triggerPredictionId: id,
+      horizonMinutes: { bsonType: ['int', 'long'] }, forecastFor: date,
+      dataSource: oneOfEnum(['historical', 'simulated', 'live']),
       openKey: str({ description: 'pondId:origin:parameter while ACTIVE/ACKNOWLEDGED; $unset on RESOLVED. Unique-when-present => one open alert per condition.' }),
       fixtureTag,
     },

@@ -10,8 +10,13 @@
     "db:check": "node scripts/check.js",
     "db:seed": "node scripts/seed-fixtures.js",
     "db:unseed": "node scripts/remove-fixtures.js",
-    "db:verify": "node scripts/verify.js"
+    "db:verify": "node scripts/verify.js",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
   },
-  "engines": { "node": ">=22" },
-  "dependencies": { "mongodb": "^6.10.0" }
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "mongodb": "^6.10.0"
+  }
 }
