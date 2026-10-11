@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { fileURLToPath } from 'node:url';
 
 const config: NextConfig = {
   reactStrictMode: true,
@@ -7,7 +8,7 @@ const config: NextConfig = {
   allowedDevOrigins: ['127.0.0.1'],
   devIndicators: { position: 'bottom-right' },
   // Packages are resolved from the repo-root workspace node_modules.
-  outputFileTracingRoot: new URL('..', import.meta.url).pathname,
+  outputFileTracingRoot: fileURLToPath(new URL('..', import.meta.url)),
 };
 
 export default config;
