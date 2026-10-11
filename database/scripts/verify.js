@@ -42,8 +42,9 @@ run(() => withDb(async (db) => {
 
   // Uniqueness
   check('dedupKey unique rejects duplicate', await rejects(db.collection('measurements').insertOne({ ...fixtures.measurements[0], _id: new ObjectId() })) === 11000);
-  check('repeat readings without dedupKey allowed', await db.collection('measurements').insertMany([{ ...goodM, fixtureTag: fixtures.users[0].fixtureTag, _id: new ObjectId(0xdead01) }, { ...goodM, fixtureTag: fixtures.users[0].fixtureTag, _id: new ObjectId(0xdead02) }]).then(() => true, () => false));
-  await db.collection('measurements').deleteMany({ _id: { $in: [new ObjectId(0xdead01), new ObjectId(0xdead02)] } });
+  const repIds = [new ObjectId(), new ObjectId()];
+  check('repeat readings without dedupKey allowed', await db.collection('measurements').insertMany(repIds.map((_id) => ({ ...goodM, fixtureTag: fixtures.users[0].fixtureTag, _id }))).then(() => true, () => false));
+  await db.collection('measurements').deleteMany({ _id: { $in: repIds }, fixtureTag: fixtures.users[0].fixtureTag });
   check('second open alert for same pond/origin/parameter rejected', await rejects(db.collection('alerts').insertOne({ ...fixtures.alerts[0], _id: new ObjectId() })) === 11000);
 
   // Alert lifecycle: ack must not resolve; resolve keeps history & frees dedup slot
