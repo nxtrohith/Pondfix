@@ -14,7 +14,7 @@ backend/src
 
 ## Run
 ```bash
-cp .env.example .env            # fill MONGODB_URI (rotate the password first if it was ever shared)
+cp .env.example .env            # in backend/: fill MONGODB_URI (rotate the password first if it was ever shared)
 npm install                     # repo root (npm workspaces: database + backend)
 pip install -r ml/requirements.txt   # scikit-learn 1.8.0, numpy, pandas, joblib
 npm run db:init -w database && npm run db:indexes -w database      # collections, validators, indexes (idempotent)

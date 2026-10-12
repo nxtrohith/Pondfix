@@ -1,4 +1,4 @@
-// Shared Atlas connection. Reads MONGODB_URI from the repo-root .env (or the
+// Shared Atlas connection. Reads MONGODB_URI from backend/.env (or the
 // process environment). Never logs the URI; errors are sanitized.
 import { MongoClient } from 'mongodb';
 import { existsSync } from 'node:fs';
@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const envFile = path.join(root, '.env');
-if (existsSync(envFile)) process.loadEnvFile(envFile); // does not override existing env vars
+// The connection belongs to the backend, so its env file is backend/.env. The old repo-root .env is still read as a fallback.
+// loadEnvFile never overrides variables that are already set, so real environment variables always win.
+for (const envFile of [path.join(root, 'backend', '.env'), path.join(root, '.env')]) if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 export const DB_NAME = process.env.MONGODB_DB || 'aquaguard';
 
@@ -39,7 +40,7 @@ export function sanitize(err, uri = process.env.MONGODB_URI) {
 
 export function requireUri() {
   const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI is not set (expected in repo-root .env).');
+  if (!uri) throw new Error('MONGODB_URI is not set (expected in backend/.env).');
   if (/<db_password>|<password>/.test(uri)) throw new Error('MONGODB_URI still contains a password placeholder.');
   return uri;
 }

@@ -15,7 +15,7 @@ const dataDir = i > -1 ? process.argv[i + 1] : process.env.FWI_DATA_DIR || path.
 const mongod = await MongoMemoryServer.create();
 process.env.MONGODB_URI = mongod.getUri();
 process.env.MONGODB_DB = 'aquaguard_dev_local';
-// Hard guard: connect.js loads the repo-root .env but never overrides variables that are already set, so the values above
+// Hard guard: connect.js loads backend/.env but never overrides variables that are already set, so the values above
 // win. Verify (after loading connect.js) that the target really is loopback; refuse to continue otherwise.
 const { getTarget } = await import('../../database/lib/connect.js');
 if (getTarget() !== 'local') { console.error('REFUSING TO START: the database target is not local.'); await mongod.stop(); process.exit(1); }

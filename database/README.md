@@ -4,7 +4,7 @@ Database-only phase: schemas, indexes, setup/verify scripts, sample fixtures. No
 
 ## Setup
 1. In Atlas: rotate the DB user password if it was ever shared, and add your IP under Network Access.
-2. Copy `../.env.example` to `../.env` and set `MONGODB_URI` (never commit it; `.env`, `.env.*`, `*.env` and `*credentials*` are git-ignored).
+2. Copy `../backend/.env.example` to `../backend/.env` and set `MONGODB_URI` (the database scripts share the backend's connection settings) (never commit it; `.env`, `.env.*`, `*.env` and `*credentials*` are git-ignored).
 3. `cd database && npm install`
 4. `npm run db:ping` → `db:init` → `db:indexes` → `db:check` → `db:seed` → `db:verify`
 

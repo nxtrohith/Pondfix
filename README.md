@@ -87,6 +87,7 @@ The system features an interactive **3D Digital Twin** of the pond farm, real-ti
 ```
 .
 ├── backend/                     REST API server (port 4000)
+│   ├── .env / .env.example      API, database, ML and risk-rule settings (.env is git-ignored)
 │   ├── scripts/dev-local.js     In-memory local stack for instant demos & testing
 │   ├── src/
 │   │   ├── config/              Environment configuration & threshold rules
@@ -97,6 +98,7 @@ The system features an interactive **3D Digital Twin** of the pond farm, real-ti
 │   │   └── server.js            HTTP server bootstrap
 │   └── tests/                   Unit & integration test suites
 ├── frontend/                    Next.js web dashboard (port 3000)
+│   ├── .env.local / .env.example Dashboard URLs and time zone (.env.local is git-ignored)
 │   ├── src/
 │   │   ├── app/                 App Router pages (Overview, Ponds, Alerts, Replay, Status)
 │   │   ├── components/
@@ -118,8 +120,7 @@ The system features an interactive **3D Digital Twin** of the pond farm, real-ti
 │   └── requirements.txt         Pinned Python dependencies
 ├── docs/
 │   └── DATASET_AND_MODEL.md     Dataset inventory, schema mappings & model validation
-├── aquaguard_model.pkl          Trained scikit-learn model bundle
-└── .env.example                 Template environment configuration
+└── aquaguard_model.pkl          Trained scikit-learn model bundle
 ```
 
 ---
@@ -163,8 +164,8 @@ npm install
 pip install -r ml/requirements.txt
 
 # 2. Configure environment
-cp .env.example .env
-# Open .env and set MONGODB_URI to your MongoDB Atlas connection string:
+cp backend/.env.example backend/.env
+# Open backend/.env and set MONGODB_URI to your MongoDB Atlas connection string:
 # MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/aquaguard?retryWrites=true&w=majority
 
 # 3. Initialize database collections & indexes (safe to rerun)
@@ -301,7 +302,7 @@ The web dashboard is organized into clear operational views:
 
 ## Configuration
 
-All configuration is managed via environment variables. See `.env.example` for full options:
+Configuration is managed with environment variables, kept next to the code that reads them: **`backend/.env`** (API, database connection, ML worker, risk rules, import; template `backend/.env.example`) and **`frontend/.env.local`** (dashboard URLs and time zone; template `frontend/.env.example`, optional for local development). The database scripts share `backend/.env`. Real env files are git-ignored; the `.env.example` files are tracked. The table below lists the backend variables:
 
 | Variable | Default | Purpose |
 |---|---|---|
