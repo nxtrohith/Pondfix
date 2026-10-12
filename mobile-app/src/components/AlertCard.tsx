@@ -17,10 +17,9 @@ export function alertTitle(a: Pick<AlertItem, 'parameter' | 'direction' | 'sever
 export function AlertCard({ alert, pondName, onPress }: { alert: AlertItem; pondName: string; onPress?: () => void }) {
   const critical = alert.severity === 'CRITICAL';
   const resolved = alert.status === 'RESOLVED';
-  const edge = resolved ? colors.healthy : critical ? colors.critical : colors.warning;
   const statusLabel = resolved ? 'Closed' : alert.status === 'ACKNOWLEDGED' ? 'Seen, still open' : 'Active';
   const body = (
-    <View style={[styles.card, { borderLeftColor: edge }]}>
+    <View style={styles.card}>
       <View style={styles.row}>
         <View style={[styles.sev, { backgroundColor: resolved ? colors.healthySurface : critical ? colors.criticalSurface : colors.warningSurface }]}>
           <Ionicons name={resolved ? 'checkmark-circle' : critical ? 'alert-circle' : 'warning'} size={13} color={resolved ? colors.healthyDark : critical ? colors.criticalDark : colors.warningDark} />
@@ -45,12 +44,12 @@ export function AlertCard({ alert, pondName, onPress }: { alert: AlertItem; pond
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderLeftWidth: 4, borderWidth: 0.5, borderColor: colors.border },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
   sev: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.badge },
   sevText: { fontSize: fontSize.secondary, fontWeight: '700' },
   status: { fontSize: fontSize.secondary, color: colors.textSecondary, fontWeight: '600' },
-  title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  title: { fontSize: fontSize.cardHeading, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
   meta: { fontSize: fontSize.secondary, color: colors.textSecondary },
   reading: { fontSize: fontSize.body, color: colors.textPrimary },
   time: { fontSize: fontSize.metadata, color: colors.textMuted },

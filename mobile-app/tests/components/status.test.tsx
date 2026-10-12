@@ -55,7 +55,8 @@ describe('PondCard', () => {
     expect(screen.getByText('Pond 1')).toBeOnTheScreen();
     expect(screen.getByText('Rohu')).toBeOnTheScreen();
     expect(screen.getByText('Critical')).toBeOnTheScreen();
-    expect(screen.getByText('DO 1.8 mg/L')).toBeOnTheScreen();
+    expect(screen.getByText('Dissolved oxygen')).toBeOnTheScreen();
+    expect(screen.getByText('1.8 mg/L')).toBeOnTheScreen();
     fireEvent.press(screen.getByRole('button', { name: /Pond 1, Rohu, critical/ }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, opacity } from '@/constants/colors';
 import { fontSize, layout, radius } from '@/constants/theme';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'critical' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'outline' | 'critical' | 'ghost' | 'onCard';
 interface Props {
   label: string;
   onPress: () => void;
@@ -24,6 +24,8 @@ const VARIANT: Record<Variant, { bg: string; fg: string; border: string }> = {
   outline: { bg: 'transparent', fg: colors.textOnDark, border: colors.buttonOutline },
   critical: { bg: colors.buttonCritical, fg: colors.textOnDark, border: 'transparent' },
   ghost: { bg: 'transparent', fg: colors.textOnDarkSecondary, border: 'transparent' },
+  // For buttons placed on a warm-white card (dark text, so it stays readable).
+  onCard: { bg: 'transparent', fg: colors.textPrimary, border: colors.border },
 };
 
 export function AppButton({ label, onPress, variant = 'primary', icon, disabled, loading, fullWidth, accessibilityHint, testID, style }: Props) {

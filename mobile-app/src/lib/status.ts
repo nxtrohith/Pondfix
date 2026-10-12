@@ -65,7 +65,7 @@ export const PARAMETER_PRESENTATION: Record<ParameterStatus, StatusPresentation>
   WARNING: { label: 'Warning', icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface },
   CRITICAL: { label: 'Critical', icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface },
   STALE: { label: 'Not recent', icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface },
-  UNAVAILABLE: { label: 'Unavailable', icon: 'help-circle', foreground: colors.textSecondary, surface: colors.cardMuted },
+  UNAVAILABLE: { label: 'Unavailable', icon: 'help-circle', foreground: colors.textPrimary, surface: colors.cardMuted },
 };
 
 export const POND_PRESENTATION: Record<PondStatus, StatusPresentation & { summary: string }> = {
@@ -73,7 +73,7 @@ export const POND_PRESENTATION: Record<PondStatus, StatusPresentation & { summar
   WARNING: { label: 'Warning', icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface, summary: 'One or more readings are outside the acceptable range.' },
   CRITICAL: { label: 'Critical', icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface, summary: 'A serious reading needs immediate attention.' },
   INCOMPLETE: { label: 'Incomplete data', icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface, summary: 'Some readings are missing or old. Missing data is not treated as healthy.' },
-  NO_DATA: { label: 'No data', icon: 'ellipse-outline', foreground: colors.textSecondary, surface: colors.cardMuted, summary: 'No readings have been received for this pond yet.' },
+  NO_DATA: { label: 'No data', icon: 'ellipse-outline', foreground: colors.textPrimary, surface: colors.cardMuted, summary: 'No readings have been received for this pond yet.' },
 };
 
 export const PARAMETER_LABEL: Record<Parameter, string> = {

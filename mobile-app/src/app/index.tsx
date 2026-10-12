@@ -30,7 +30,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   content: { justifyContent: 'space-between', paddingVertical: spacing.xl, gap: spacing.xl },
   hero: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.xxl },
-  brand: { fontSize: fontSize.splash, fontWeight: '800', color: colors.textOnDark, letterSpacing: -0.5 },
+  brand: { fontSize: fontSize.splash, fontWeight: '700', color: colors.textOnDark, letterSpacing: -0.5 },
   tagline: { fontSize: 15, color: colors.textOnDarkSecondary },
   actions: { gap: spacing.sm, alignSelf: 'stretch' },
   note: { textAlign: 'center', fontSize: fontSize.secondary, color: colors.textOnDarkMuted, marginTop: spacing.xs },

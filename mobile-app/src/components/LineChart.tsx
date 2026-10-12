@@ -57,7 +57,7 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
           <Line key={`g${i}`} x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke={colors.chartGrid} strokeWidth={1} />
         ))}
         {ticks.map((t, i) => (
-          <SvgText key={`t${i}`} x={PAD.left - 6} y={y(t) + 4} fontSize={10} fill={colors.textOnDarkMuted} textAnchor="end">{fmtY(t)}</SvgText>
+          <SvgText key={`t${i}`} x={PAD.left - 6} y={y(t) + 4} fontSize={10} fill={colors.chartAxis} textAnchor="end">{fmtY(t)}</SvgText>
         ))}
         {limits.map((v) => {
           const crit = v === rule.lowCrit || v === rule.highCrit;
@@ -70,7 +70,7 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
         {critical.map((p, i) => <Circle key={`c${i}`} cx={x(p.at)} cy={y(p.value)} r={3} fill={colors.critical} />)}
         {forecast.map((p, i) => <Circle key={`f${i}`} cx={x(p.at)} cy={y(p.value)} r={3.5} fill={colors.card} stroke={colors.chartPrediction} strokeWidth={1.5} />)}
         {xLabels.map((at, i) => (
-          <SvgText key={`x${i}`} x={i === 0 ? PAD.left : i === 1 ? PAD.left + innerW / 2 : width - PAD.right} y={height - 6} fontSize={10} fill={colors.textOnDarkMuted} textAnchor={i === 0 ? 'start' : i === 1 ? 'middle' : 'end'}>{fmtX(at)}</SvgText>
+          <SvgText key={`x${i}`} x={i === 0 ? PAD.left : i === 1 ? PAD.left + innerW / 2 : width - PAD.right} y={height - 6} fontSize={10} fill={colors.chartAxis} textAnchor={i === 0 ? 'start' : i === 1 ? 'middle' : 'end'}>{fmtX(at)}</SvgText>
         ))}
       </Svg>
       <Text style={styles.note}>
@@ -84,5 +84,5 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
 
 const styles = StyleSheet.create({
   box: { width: '100%' },
-  note: { marginTop: 6, fontSize: fontSize.metadata, color: colors.textOnDarkMuted },
+  note: { marginTop: 6, fontSize: fontSize.metadata, color: colors.textSecondary },
 });

@@ -80,9 +80,11 @@ export default function DashboardScreen() {
 function Tile({ label, value, icon, tone, accent = colors.textPrimary, testID }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; tone: string; accent?: string; testID?: string }) {
   return (
     <View style={[styles.tile, { backgroundColor: tone }]} accessible accessibilityLabel={`${label}: ${value}`} testID={testID}>
-      <Ionicons name={icon} size={18} color={accent} />
+      <View style={styles.tileHead}>
+        <Ionicons name={icon} size={16} color={accent} />
+        <Text style={styles.tileLabel}>{label}</Text>
+      </View>
       <Text style={[styles.tileValue, { color: accent }]}>{value}</Text>
-      <Text style={styles.tileLabel}>{label}</Text>
     </View>
   );
 }
@@ -92,13 +94,14 @@ const styles = StyleSheet.create({
   greeting: { fontSize: fontSize.heading, fontWeight: '700', color: colors.textOnDark, letterSpacing: -0.4 },
   sub: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
   bell: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.critical, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  badge: { position: 'absolute', top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.critical, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: colors.surface },
   badgeText: { fontSize: 10, fontWeight: '700', color: colors.textOnDark },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  tile: { flexGrow: 1, flexBasis: '46%', minWidth: 140, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border },
-  tileValue: { fontSize: 28, fontWeight: '800' },
+  tile: { flexGrow: 1, flexBasis: '46%', minWidth: 140, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, gap: spacing.xxs, borderWidth: 0.5, borderColor: colors.border },
+  tileHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  tileValue: { fontSize: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
   tileLabel: { fontSize: fontSize.secondary, color: colors.textSecondary, fontWeight: '600' },
   gap: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
-  noteTitle: { fontSize: fontSize.body, fontWeight: '700', color: colors.textPrimary },
+  noteTitle: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   noteBody: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 19 },
 });

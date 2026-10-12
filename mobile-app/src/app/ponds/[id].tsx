@@ -110,7 +110,7 @@ export default function PondDetailScreen() {
               <View key={p} style={styles.unavailRow}>
                 <Ionicons name="help-circle" size={18} color={colors.textSecondary} />
                 <Text style={[styles.small, { flex: 1 }]}>{text}</Text>
-                <AppButton label="Troubleshoot" variant="ghost" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`troubleshoot-${p}`} />
+                <AppButton label="Troubleshoot" variant="onCard" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`troubleshoot-${p}`} />
               </View>
             );
           })}
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   value: { fontSize: fontSize.body, fontWeight: '700', color: colors.textPrimary },
   small: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 18 },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
-  metrics: { flexDirection: 'row', gap: spacing.sm },
+  metrics: { gap: spacing.sm },
   unavailRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   tools: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   tool: { flexGrow: 1, flexBasis: '30%', minHeight: 64, borderRadius: radius.card, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', gap: 4, padding: spacing.xs },

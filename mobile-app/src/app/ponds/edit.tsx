@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   chip: { minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.card, borderColor: colors.card },
   chipText: { fontSize: fontSize.secondary, color: colors.textPrimary, fontWeight: '600' },
-  chipTextSelected: { color: colors.textPrimary, fontWeight: '800' },
+  chipTextSelected: { color: colors.textPrimary, fontWeight: '700' },
   hint: { fontSize: fontSize.metadata, color: colors.textOnDarkMuted },
   actions: { gap: spacing.sm, marginTop: spacing.xs },
 });
