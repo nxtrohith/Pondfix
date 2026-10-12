@@ -320,6 +320,7 @@ Configuration is managed with environment variables, kept next to the code that 
 | `ML_TIMEOUT_MS` | `30000` | Inference request timeout (milliseconds). |
 | `AQUAGUARD_MODEL_PATH` | `aquaguard_model.pkl` | Path to the trained model bundle. |
 | `AQUAGUARD_THRESHOLDS` | *(none)* | Optional path to custom JSON risk thresholds file. |
+| `AQUAGUARD_SPECIES_POLICIES` | *(none)* | Optional path to a JSON file of expert-approved species-specific alert limits. Without it no species has validated limits and the general rules decide every alert. |
 
 ---
 
@@ -487,6 +488,18 @@ npm run build:frontend
 - **CORS Protection:** Configurable via `CORS_ORIGINS` to allow only trusted web origins.
 - **Payload Limits:** Request bodies are strictly restricted to 20 kB. Query parameters and date ranges are capped to prevent denial-of-service queries.
 - **No Production Auth:** AquaGuard is currently configured for trusted local intranet environments. Authentication and rate-limiting must be applied before exposing to the public internet.
+
+---
+
+## Species-Specific Pond Configuration
+
+On a pond's page, **Species and safety profile** lets the farmer choose what is raised in that pond (Rohu, Catla, Mrigal, Vannamei shrimp, Pangasius, Common carp, Grass carp, Other/custom, or a mixed-species pond). The choice is saved on the pond in MongoDB through `PATCH /api/ponds/:id/species`, the page always shows the value the server returned, and changing an existing choice asks for confirmation. The species also appears on pond cards, the Digital Twin tooltip and panel, alerts, and the simulation page.
+
+- Ponds are never assigned a species automatically; until one is chosen the pond shows **Species not set**.
+- **No species currently has validated alert limits.** The ranges in the catalogue (for example Rohu 24–31 °C, DO target ≥ 5 mg/L) are provisional *reference* values shown for context. They never raise an alert. Until a domain expert approves limits and an operator supplies them (`AQUAGUARD_SPECIES_POLICIES`, see [backend/README.md](backend/README.md)), the existing general rules decide every alert, and each alert says so (*General safety rules*) and names the pond's species.
+- Forecasts come from one model trained without species information and are **not** species-specific.
+
+See [backend/README.md](backend/README.md#species-configuration-and-species-aware-alerts-srcservicesspeciesprofilesjs-guidancejs) for the data model, rule resolution and alert behaviour.
 
 ---
 

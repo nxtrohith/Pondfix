@@ -8,6 +8,8 @@ import { ApiError } from '../utils/errors.js';
 // One open alert per pond + origin + parameter + data source. Parameters that can fire on both sides (pH, temperature) get one
 // identity per side, so a low excursion and a high excursion are separate alerts. Dissolved oxygen's key is unchanged.
 export const openKeyFor = (pondId, origin, parameter, dataSource, direction) => `${pondId}:${origin}:${parameter}${direction && parameter !== 'dissolved_oxygen' ? `.${direction}` : ''}:${dataSource}`;
+// Snapshot of the rules/species an alert was last classified with (see speciesProfiles.alertContext).
+const CONTEXT_KEYS = ['ruleScope', 'rulesVersion', 'speciesLabel', 'speciesProfileId', 'profileVersion', 'referenceRange'];
 const SOURCE_FOR_ALERT = { historical: 'historical', simulated: 'simulated', live: 'live' };
 
 /**
@@ -33,6 +35,8 @@ export async function applyCondition(db, { pondId, origin, parameter, dataSource
       const update = { $set: set };
       // An acknowledgement covers the condition it was given for; a worse condition re-opens it as ACTIVE.
       if (escalated && existing.status === 'ACKNOWLEDGED') { set.status = 'ACTIVE'; update.$unset = { acknowledgedAt: '' }; }
+      // A refreshed snapshot must not keep context fields that no longer apply (e.g. a species that was removed).
+      if (extra.ruleScope) { const stale = CONTEXT_KEYS.filter((k) => !(k in extra) && existing[k] !== undefined); if (stale.length) update.$unset = { ...update.$unset, ...Object.fromEntries(stale.map((k) => [k, ''])) }; }
       const r = await alerts.updateOne({ _id: existing._id, openKey }, update);
       if (r.matchedCount === 1) return { action: escalated ? 'escalated' : 'updated', alertId: existing._id };
       continue; // resolved concurrently; loop to open a new one
@@ -64,9 +68,9 @@ export async function acknowledge(db, alertId, now) {
  * side and resolves any open alert on the opposite side (the value can no longer be on both); NORMAL resolves every open side;
  * UNKNOWN changes nothing. Returns [{ direction, action, alertId? }] (always at least one entry).
  */
-export async function applyReading(db, { parameter, cls, ...rest }) {
+export async function applyReading(db, { parameter, cls, rule, ...rest }) {
   if (cls.status === 'UNKNOWN') return [{ action: 'none' }];
-  const sides = sidesOf(parameter);
+  const sides = sidesOf(parameter, rule);
   const out = [];
   for (const side of sides.length ? sides : ['low']) {
     const own = cls.status !== 'NORMAL' && cls.direction === side;

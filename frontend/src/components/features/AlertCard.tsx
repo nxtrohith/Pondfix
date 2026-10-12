@@ -3,6 +3,7 @@ import { Binoculars, Warning, WarningOctagon } from '@phosphor-icons/react/dist/
 import type { Alert } from '@/lib/api/schemas';
 import { PARAM_ICON } from '@/lib/alerts';
 import { DEFAULT_UNIT, SOURCE_LABEL, formatDateTime, formatValue } from '@/lib/format';
+import { RULE_SCOPE_LABEL, rangeText, REFERENCE_KIND } from '@/lib/species';
 import { ALERT_STATE_TEXT, alertKind, describeForecastProblem, describeProblem, guidanceFor, levelText } from '@/lib/terms';
 import { Button } from '../ui/Button';
 import { SourceBadge } from '../ui/StatusPill';
@@ -32,7 +33,9 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
   const SevIcon = forecast ? Binoculars : a.severity === 'CRITICAL' ? WarningOctagon : Warning;
   const unit = DEFAULT_UNIT[a.parameter] ?? '';
   const value = `${formatValue(a.triggerValue, a.parameter)}${unit ? ` ${unit}` : ''}`;
-  const tip = !resolved && !forecast && showGuidance ? guidanceFor(a.parameter, a.direction) : null;
+  const tip = !resolved && !forecast && showGuidance ? (a.recommendedAction ?? guidanceFor(a.parameter, a.direction)) : null;
+  const scope = a.ruleScope ?? 'general';
+  const ref = a.referenceRange;
   return (
     <article className={cx('rounded-lg border border-line border-l-4 bg-card p-4', resolved ? 'border-l-ok-text' : EDGE[a.severity], forecast && !resolved && 'border-dashed border-l-solid')} aria-label={headline}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -48,9 +51,17 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
         <div className="flex gap-1.5"><dt className="text-ink-soft">{forecast ? `Forecast${a.horizonMinutes ? ` in ${a.horizonMinutes < 60 ? `${a.horizonMinutes} min` : `${a.horizonMinutes / 60} h`}` : ''}:` : 'Current:'}</dt>{' '}<dd className="font-medium tabular-nums text-ink">{value}</dd></div>
         <div className="text-ink-soft">{levelText(a.severity, a.direction, a.threshold, a.parameter)}</div>
       </dl>
+      {!forecast || a.speciesLabel ? (
+        <dl className="mt-1.5 space-y-0.5 text-[13px]">
+          <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species:</dt><dd className="text-ink">{a.speciesLabel ?? 'not set'}</dd></div>
+          <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Limits used:</dt><dd className="text-ink">{RULE_SCOPE_LABEL[scope]}{scope === 'species' && a.profileVersion ? ` (${a.profileVersion})` : ''}{scope === 'general' ? <span className="text-ink-soft"> (not specific to a species)</span> : null}</dd></div>
+          {ref ? <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species reference:</dt><dd className="text-ink">{rangeText(ref)} <span className="text-xs text-ink-soft">({REFERENCE_KIND[ref.kind ?? ''] ?? 'reference'}; context, not an alert limit)</span></dd></div> : null}
+        </dl>
+      ) : null}
+      {!resolved && a.explanation ? <p className="mt-1.5 text-[13px] text-ink-soft">{a.explanation}</p> : null}
       <p className="mt-1.5 text-[13px] text-ink-soft">{ALERT_STATE_TEXT[a.status]}{a.status === 'RESOLVED' && a.resolvedAt ? ` (${formatDateTime(a.resolvedAt)})` : ''}</p>
       {forecast && !resolved ? <p className="mt-1 text-xs text-ink-soft">This is a forecast, not a measurement. It may not happen.</p> : null}
-      {tip ? <p className="mt-2 rounded-md bg-surface px-3 py-2 text-[13px] text-ink">What to check: {tip}</p> : null}
+      {tip ? <p className="mt-2 rounded-md bg-surface px-3 py-2 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p> : null}
       {!compact ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft">
           {pondName ? <Link href={`/ponds/${a.pondId}`} className="font-medium text-ink hover:text-olive-text hover:underline">{pondName}</Link> : null}

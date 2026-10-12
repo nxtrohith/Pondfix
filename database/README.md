@@ -18,7 +18,7 @@ Errors are sanitized: the URI and password are never printed.
 | Collection | Purpose | Key fields |
 |---|---|---|
 | users | Single demo farmer | name, email?, createdAt, updatedAt |
-| ponds | Pond metadata (only real/known fields) | userId→users, name, status, location?, area{value,unit}?, species? |
+| ponds | Pond metadata (only real/known fields) | userId→users, name, status, location?, area{value,unit}?, species? (legacy note), speciesProfileId?, cultureType?, customSpeciesName?, speciesComposition?, profileVersion?, speciesConfiguredAt? (absent = species not configured) |
 | measurements | One observation of one pond | pondId, recordedAt (observed), receivedAt (system), source `historical｜simulated｜live`, values[{parameter,value,unit}], dedupKey? |
 | predictions | Model forecasts, never measurements | pondId, parameter, predictedValue, unit, forecastFor, generatedAt, modelName?/modelVersion?/horizon?, sourceMeasurementIds?, modelRunId? |
 | alerts | Persistent condition records | pondId, origin `observed｜predicted`, parameter, severity, triggerValue, threshold, message, status, lastTriggeredAt, ack/resolved timestamps, openKey |
@@ -40,6 +40,7 @@ See `indexes/indexes.js` (each has a `purpose`). Highlights: `measurements(pondI
 - Retention: no TTL indexes; nothing is auto-deleted.
 
 ## Added in the backend/import phase
+- Species fields on `ponds` and alert classification snapshots on `alerts` (`ruleScope`, `speciesLabel`, `profileVersion`, …) are optional additions; run `npm run db:init` once on an existing database to update the validators (non-destructive `collMod`).
 - `ponds.sourceId/sourceDataset` (unique partial index) and `measurements.provenance` (dataset, file, rowNumber, pondSourceId, original timestamp text + zone, QC flags, data-quality notes).
 - DO physical bound widened to 0–50 mg/L (the real data reaches 25.56; unusual values are kept, not discarded).
 - `predictions` also stores `dataSource`, `selectedModel`, `persistenceBaseline`, `typicalAbsError`, `absErrorQ90` (model-provided; no confidence is invented); `alerts` also stores `dataSource`, `horizonMinutes`, `forecastFor`.

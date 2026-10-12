@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { browserApi } from '@/lib/api/client';
-import type { DataSource, Prediction, RiskRules } from '@/lib/api/schemas';
+import type { DataSource, Prediction, RiskRules, SpeciesConfig } from '@/lib/api/schemas';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { RANGE_MS, breakGaps, gapThreshold, splitBySource, type Point } from '@/lib/chart';
 import { thresholdLines } from '@/lib/limits';
@@ -12,7 +12,7 @@ import { ChartSkeleton } from '../ui/Skeleton';
 import { EmptyState, ErrorState, Notice } from '../ui/states';
 import { TrendChart, SERIES_COLOR } from '../charts/TrendChart';
 
-export interface TrendPond { id: string; name: string; latestAt: string | null; latestAgeMinutes: number | null; latestSource?: DataSource }
+export interface TrendPond { id: string; name: string; species?: SpeciesConfig; latestAt: string | null; latestAgeMinutes: number | null; latestSource?: DataSource }
 const PARAMS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
 type P = (typeof PARAMS)[number];
 type Range = '24h' | '7d' | '30d';

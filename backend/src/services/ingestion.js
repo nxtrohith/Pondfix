@@ -8,6 +8,7 @@ import { validationError, notFound } from '../utils/errors.js';
 import { classify, observedMessage } from './risk.js';
 import { applyReading } from './alerts.js';
 import { runInference } from './inference.js';
+import { alertContext, ruleFor } from './speciesProfiles.js';
 
 /**
  * A reading may carry several parameters. Values that fail validation (impossible range, wrong unit, unknown parameter) are set
@@ -59,15 +60,16 @@ export async function ingestMeasurement({ db, ml, config, now = () => new Date()
 
   const risk = {}; const alertResults = []; let alertStateUpdated = false;
   for (const v of measurement.values) {
-    const cls = classify(v.parameter, v.value);
-    risk[v.parameter] = { value: v.value, unit: v.unit, status: cls.status, ...(cls.direction ? { direction: cls.direction } : {}), ...(cls.threshold !== null && cls.threshold !== undefined ? { threshold: cls.threshold } : {}), ...(cls.status === 'UNKNOWN' ? { note: cls.reason } : {}) };
+    const { rule, scope } = ruleFor(pond, v.parameter);
+    const cls = classify(v.parameter, v.value, rule);
+    risk[v.parameter] = { value: v.value, unit: v.unit, status: cls.status, ruleScope: scope, ...(cls.direction ? { direction: cls.direction } : {}), ...(cls.threshold !== null && cls.threshold !== undefined ? { threshold: cls.threshold } : {}), ...(cls.status === 'UNKNOWN' ? { note: cls.reason } : {}) };
     if (cls.status === 'UNKNOWN' || await newerExists(v.parameter)) continue;
     alertStateUpdated = true;
     const results = await applyReading(db, {
-      pondId, origin: 'observed', parameter: v.parameter, dataSource: measurement.source, cls, triggerValue: v.value,
+      pondId, origin: 'observed', parameter: v.parameter, rule, dataSource: measurement.source, cls, triggerValue: v.value,
       at: measurement.recordedAt, now: receivedAt,
       message: cls.status === 'NORMAL' ? '' : observedMessage(v.parameter, v.value, cls),
-      extra: { triggerMeasurementId: measurement._id },
+      extra: { triggerMeasurementId: measurement._id, ...alertContext(pond, v.parameter) },
     });
     for (const r of results) alertResults.push({ parameter: v.parameter, ...r });
   }

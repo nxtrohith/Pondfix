@@ -44,6 +44,14 @@ export const collections = {
       area: { bsonType: 'object', required: ['value', 'unit'], additionalProperties: false, properties: {
         value: { bsonType: ['double', 'int', 'long'], minimum: 0 }, unit: oneOfEnum(['m2', 'ha', 'acre']) } },
       species: str(),
+      // Species configuration (set only through PATCH /api/ponds/:id/species). Absent = unconfigured; never inferred. `species` above is a legacy free-text note.
+      speciesProfileId: str({ minLength: 1, description: 'Stable catalogue id (e.g. rohu); not a display name.' }),
+      cultureType: oneOfEnum(['freshwater_fish', 'shrimp', 'custom', 'polyculture']),
+      customSpeciesName: str({ minLength: 1, maxLength: 80 }),
+      speciesComposition: { bsonType: 'array', minItems: 2, maxItems: 6, items: { bsonType: 'object', required: ['speciesProfileId'], additionalProperties: false, properties: {
+        speciesProfileId: str({ minLength: 1 }), proportionPercent: { bsonType: ['double', 'int', 'long'], minimum: 0, maximum: 100 } } } },
+      profileVersion: str({ description: 'Safety-profile version the species resolved to when it was saved.' }),
+      speciesConfiguredAt: date,
       sourceId: str({ minLength: 1, description: 'Identifier in the originating dataset (e.g. anonymised FWI pond id).' }),
       sourceDataset: str(),
       status: oneOfEnum(['active', 'inactive', 'archived']),
@@ -110,6 +118,9 @@ export const collections = {
       triggerMeasurementId: id, triggerPredictionId: id,
       horizonMinutes: { bsonType: ['int', 'long'] }, forecastFor: date,
       dataSource: oneOfEnum(['historical', 'simulated', 'live']),
+      // Snapshot of how the alert was last classified (so a later species change never rewrites it retroactively).
+      ruleScope: oneOfEnum(['general', 'species']), rulesVersion: str(), speciesLabel: str(), speciesProfileId: str(), profileVersion: str(),
+      referenceRange: { bsonType: 'object', properties: { min: { bsonType: ['double', 'int', 'long'] }, max: { bsonType: ['double', 'int', 'long'] }, above: { bsonType: ['double', 'int', 'long'] }, kind: str(), source: str(), unit: str() } },
       openKey: str({ description: 'pondId:origin:parameter while ACTIVE/ACKNOWLEDGED; $unset on RESOLVED. Unique-when-present => one open alert per condition.' }),
       fixtureTag,
     },

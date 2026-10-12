@@ -20,6 +20,7 @@ import { cx } from '../ui/cx';
 import { AlertDemoRunner } from './AlertDemoRunner';
 import { ParameterDemo } from './ParameterDemo';
 import { acceptableText } from '@/lib/alerts';
+import { RULE_SCOPE_LABEL, SAFETY_LABEL, speciesLine } from '@/lib/species';
 
 const SCENARIO_LABEL: Record<Scenario, string> = { healthy: 'Healthy example', warning: 'Warning example', critical: 'Critical example' };
 const ACTION_TEXT: Record<string, string> = { opened: 'Opened a new alert', updated: 'Updated the open alert', escalated: 'Escalated the open alert', resolved: 'Resolved the open alert', none: 'No alert change' };
@@ -160,12 +161,16 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
             <CardHeader id="sim-prev" title="What will be submitted" description="Nothing is sent yet." />
             <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
               <div className="flex justify-between gap-4"><dt className="text-ink-soft">Pond</dt><dd className="text-right tabular-nums text-ink">{pond?.name ?? 'n/a'}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-soft">Species</dt><dd className="text-right text-ink">{speciesLine(pond?.species)}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-soft">Alert limits</dt><dd className="text-right text-ink">{pond?.species ? RULE_SCOPE_LABEL[pond.species.safetyProfile.ruleScope ?? 'general'] : 'General safety rules'}{pond?.species && !pond.species.safetyProfile.alertsEnabled ? <span className="block text-xs text-ink-soft">{SAFETY_LABEL[pond.species.safetyProfile.status].label}</span> : null}</dd></div>
               {PARAM_ORDER.map((p) => { const row = previewRows.find((r) => r.param === p); return (
                 <div key={p} className="flex justify-between gap-4"><dt className="text-ink-soft">{SIM_LABEL[p]}</dt><dd className="text-right tabular-nums text-ink">{input[p].include ? (row ? row.text : <span className="text-ink-soft">Invalid, see form</span>) : <span className="text-ink-soft">Not included</span>}</dd></div>
               ); })}
               <div className="flex justify-between gap-4"><dt className="text-ink-soft">Reading time</dt><dd className="text-right tabular-nums text-ink">{input.useNow ? 'Now (set by the server)' : preview.ok && preview.body.recordedAt ? formatDateTime(preview.body.recordedAt) : 'Not set'}</dd></div>
               <div className="flex items-center justify-between gap-4"><dt className="text-ink-soft">Data source</dt><dd><SourceBadge source="simulated" /></dd></div>
-              {rules && doNumber !== undefined ? <p className="border-t border-line pt-3 text-xs text-ink-soft">Under the backend rules, {doNumber} {rules.dissolvedOxygen.unit} is {doNumber < rules.dissolvedOxygen.criticalBelow ? 'critical (below ' + fmtThreshold(rules.dissolvedOxygen.criticalBelow) + ')' : doNumber < rules.dissolvedOxygen.warningBelow ? 'a warning (below ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')' : 'not a warning (at or above ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')'}. The server makes the final classification.</p> : null}
+              {rules && doNumber !== undefined && !pond?.species?.safetyProfile.alertsEnabled ? <p className="border-t border-line pt-3 text-xs text-ink-soft">Under the backend rules, {doNumber} {rules.dissolvedOxygen.unit} is {doNumber < rules.dissolvedOxygen.criticalBelow ? 'critical (below ' + fmtThreshold(rules.dissolvedOxygen.criticalBelow) + ')' : doNumber < rules.dissolvedOxygen.warningBelow ? 'a warning (below ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')' : 'not a warning (at or above ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')'}. The server makes the final classification.</p> : null}
+              {pond?.species?.safetyProfile.alertsEnabled ? <p className="border-t border-line pt-3 text-xs text-ink-soft">This pond uses species-specific alert limits, so the general limits above may not apply. The server makes the classification and shows which limits it used.</p> : null}
+              <p className="text-xs text-ink-soft"><Link href={`/ponds/${input.pondId}`} className="text-olive-text underline-offset-2 hover:underline">Change this pond&apos;s species</Link> to see how future simulated readings are evaluated.</p>
             </dl>
           </Card>
 
@@ -182,6 +187,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
                     return (
                       <div key={m.parameter} className="flex items-center justify-between gap-4"><dt className="text-ink-soft">{SIM_LABEL[m.parameter as SimParam] ?? m.parameter}</dt>
                         <dd className="flex items-center gap-2"><span className="tabular-nums">{formatValue(m.value, m.parameter)} {m.unit === 'C' ? '°C' : m.unit === 'pH' ? '' : m.unit}</span>
+                          {r?.ruleScope ? <span className="text-xs text-ink-soft">{RULE_SCOPE_LABEL[r.ruleScope].toLowerCase()}</span> : null}
                           {known ? <StatusPill tone={RISK_TONE[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}>{RISK_LABEL[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}</StatusPill> : <StatusPill tone="muted">No alert rule</StatusPill>}</dd></div>
                     );
                   })}

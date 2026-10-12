@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { parse, queryDate } from '../utils/params.js';
 import { ApiError, validationError } from '../utils/errors.js';
 import { classify } from './risk.js';
+import { ruleFor, ruleOfPond } from './speciesProfiles.js';
 import { modelForecast, worstDoForecast } from './inference.js';
 import { requirePond, serializePond } from './queries.js';
 
@@ -83,13 +84,14 @@ export async function replayWindow(db, pondIdText, rawQuery) {
   const pond = await requirePond(db, pondIdText);
   const rows = await db.collection('measurements').find({ pondId: pond._id, source: REPLAY_SOURCE, recordedAt: { $gte: q.from, $lte: q.to } }).sort({ recordedAt: 1, _id: 1 }).limit(MAX_RECORDS + 1).toArray();
   if (rows.length > MAX_RECORDS) throw validationError('window holds too many records', [{ path: 'to', message: `a replay window may hold at most ${MAX_RECORDS} records` }]);
+  const ruleOf = ruleOfPond(pond);
   const items = []; const gaps = []; let duplicatesSkipped = 0;
   for (const m of rows) {
     const prev = items.at(-1);
     if (prev && +prev.recordedAt === +m.recordedAt) { duplicatesSkipped++; continue; }
     const gapBeforeMinutes = prev ? Math.round(((m.recordedAt - prev.recordedAt) / 60000) * 10) / 10 : null;
     if (gapBeforeMinutes !== null && gapBeforeMinutes > GAP_MIN) gaps.push({ from: prev.recordedAt, to: m.recordedAt, minutes: gapBeforeMinutes });
-    const risk = Object.fromEntries(m.values.map((v) => { const c = classify(v.parameter, v.value); return [v.parameter, { status: c.status, ...(c.direction ? { direction: c.direction } : {}), ...(c.threshold != null ? { threshold: c.threshold } : {}) }]; }));
+    const risk = Object.fromEntries(m.values.map((v) => { const c = classify(v.parameter, v.value, ruleOf(v.parameter)); return [v.parameter, { status: c.status, ...(c.direction ? { direction: c.direction } : {}), ...(c.threshold != null ? { threshold: c.threshold } : {}) }]; }));
     items.push({ recordedAt: m.recordedAt, sourceTimestamp: m.provenance?.sourceTimestamp, sourceTimezone: m.provenance?.sourceTimezone, qcFlags: m.provenance?.qcFlags ?? [], values: m.values, risk, gapBeforeMinutes });
   }
   return {
@@ -112,9 +114,9 @@ export async function replayForecast({ db, ml, config }, raw) {
   try {
     const fc = await modelForecast({ db, ml, config, pond, measurement });
     if (fc.unsupported) return { ...base, status: 'skipped', reason: 'record has no parameter the model supports', forecasts: [] };
-    const forecasts = fc.forecasts.map((f) => (f.parameter === 'dissolved_oxygen' && f.status === 'ok' ? { ...f, risk: classify('dissolved_oxygen', f.value).status } : f));
+    const forecasts = fc.forecasts.map((f) => (f.parameter === 'dissolved_oxygen' && f.status === 'ok' ? { ...f, risk: classify('dissolved_oxygen', f.value, ruleFor(pond, 'dissolved_oxygen').rule).status } : f));
     const doOk = forecasts.filter((f) => f.parameter === 'dissolved_oxygen' && f.status === 'ok');
-    const top = doOk.length ? worstDoForecast(doOk) : null;
+    const top = doOk.length ? worstDoForecast(doOk, ruleFor(pond, 'dissolved_oxygen').rule) : null;
     return { ...base, status: 'ok', historyRows: fc.historyRows, model: fc.out.model?.bundle_id ?? null, warnings: (fc.out.warnings ?? []).slice(0, 10), forecasts,
       predictedRisk: top ? { status: top.cls.status, value: top.value, horizonMinutes: top.horizonMinutes, forecastFor: top.forecastFor } : null };
   } catch (e) {

@@ -4,6 +4,8 @@ import { decodeCursor, encodeCursor, parseObjectId } from '../utils/http.js';
 import { validationError, notFound } from '../utils/errors.js';
 import { serializeMeasurement } from './ingestion.js';
 import { getActiveRules, classify, dataState, pondOverallStatus, RULE_PARAMETERS } from './risk.js';
+import { describeSpecies, ruleOfPond } from './speciesProfiles.js';
+import { describeAlert } from './guidance.js';
 
 const limitSchema = (max, def = 100) => z.coerce.number().int().min(1).max(max).default(def);
 
@@ -26,7 +28,7 @@ export async function requirePond(db, idText) {
   return pond;
 }
 
-export const serializePond = (p) => ({ id: p._id, name: p.name, sourceId: p.sourceId, sourceDataset: p.sourceDataset, status: p.status, location: p.location, area: p.area, species: p.species, createdAt: p.createdAt, updatedAt: p.updatedAt });
+export const serializePond = (p) => ({ id: p._id, name: p.name, sourceId: p.sourceId, sourceDataset: p.sourceDataset, status: p.status, location: p.location, area: p.area, species: p.species, speciesConfig: describeSpecies(p), createdAt: p.createdAt, updatedAt: p.updatedAt });
 
 /** Newest-first, keyset-paginated. Returns observed data only: nothing is interpolated or filled. */
 export async function listMeasurements(db, config, pondId, rawQuery) {
@@ -61,7 +63,7 @@ export async function pondSummary(db, config, pond, now) {
   const latest = await latestByParameter(db, pond._id);
   const parameters = {};
   for (const [p, l] of Object.entries(latest)) {
-    const cls = classify(p, l.value); const st = dataState(l.recordedAt, now, config.staleAfterMinutes);
+    const cls = classify(p, l.value, ruleOfPond(pond)(p)); const st = dataState(l.recordedAt, now, config.staleAfterMinutes);
     parameters[p] = { ...l, ageMinutes: st.ageMinutes, dataState: st.state, risk: st.state === 'STALE' ? 'STALE' : cls.status };
   }
   const open = await db.collection('alerts').aggregate([{ $match: { pondId: pond._id, status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } } }, { $group: { _id: '$severity', n: { $sum: 1 } } }]).toArray();
@@ -69,7 +71,7 @@ export async function pondSummary(db, config, pond, now) {
   const latestPred = await db.collection('predictions').find({ pondId: pond._id }).sort({ generatedAt: -1 }).limit(1).next();
   return {
     pond: serializePond(pond),
-    riskStatus: pondOverallStatus(latest, now, config.staleAfterMinutes),
+    riskStatus: pondOverallStatus(latest, now, config.staleAfterMinutes, ruleOfPond(pond)),
     riskBasis: RULE_PARAMETERS.filter((p) => getActiveRules().rules[p].enabled), // parameters with an enabled risk rule
     staleAfterMinutes: config.staleAfterMinutes,
     parameters,
@@ -89,7 +91,8 @@ export async function listPredictions(db, config, pondId, rawQuery) {
   }
   const items = await db.collection('predictions').find(filter).sort({ generatedAt: -1, parameter: 1, forecastFor: 1 }).limit(q.limit).toArray();
   // Each forecast value carries the backend's own risk classification, so clients never apply thresholds themselves.
-  const withRisk = ({ _id, ...r }) => { const c = classify(r.parameter, r.predictedValue); return { id: _id, ...r, risk: c.status, ...(c.direction ? { direction: c.direction } : {}) }; };
+  const ruleOf = ruleOfPond(await db.collection('ponds').findOne({ _id: pondId }));
+  const withRisk = ({ _id, ...r }) => { const c = classify(r.parameter, r.predictedValue, ruleOf(r.parameter)); return { id: _id, ...r, risk: c.status, ...(c.direction ? { direction: c.direction } : {}) }; };
   return { items: items.map(withRisk), generatedAt: items[0]?.generatedAt ?? null, note: 'Model forecasts, not measurements.' };
 }
 
@@ -113,4 +116,4 @@ export async function listAlerts(db, config, rawQuery, pondId) {
 
 /** Which side of its limit an alert fired on, from the stored trigger value and the limit it crossed (no extra stored field needed). */
 export const alertDirection = (a) => (typeof a.triggerValue === 'number' && typeof a.threshold === 'number' ? (a.triggerValue > a.threshold ? 'high' : 'low') : undefined);
-export function serializeAlert({ _id, openKey, fixtureTag, ...a }) { return { id: _id, ...a, direction: alertDirection(a) }; }
+export function serializeAlert({ _id, openKey, fixtureTag, ...a }) { const direction = alertDirection(a); return { id: _id, ...a, ruleScope: a.ruleScope ?? 'general', direction, ...describeAlert({ ...a, direction }) }; }
