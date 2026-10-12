@@ -18,7 +18,7 @@ import { PondTooltip } from './PondTooltip';
 import { PondBadge } from './PondBadge';
 import type { ScenePond } from './FarmScene';
 
-const SceneSkeleton = () => <div className="flex h-full w-full items-center justify-center text-[13px] text-ink-soft" role="status">Loading the farm view…</div>;
+const SceneSkeleton = () => <div className="flex h-full w-full animate-pulse items-center justify-center bg-surface text-[13px] text-ink-soft motion-reduce:animate-none" role="status">Loading the farm view…</div>;
 const FarmScene = dynamic(() => import('./FarmScene'), { ssr: false, loading: () => <SceneSkeleton /> });
 
 /** True only where a WebGL context can really be created. jsdom and old browsers return false and get the 2D plan instead. */
@@ -116,7 +116,7 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 px-5 pt-5">
         <div className="min-w-0">
           <h2 id="twin-title" className="text-lg font-medium tracking-tight text-ink">Farm view</h2>
-          <p className="mt-0.5 text-[13px] text-ink-soft">{assignment.shown} of {FARM_POND_COUNT} places in use · schematic layout, not a surveyed map · data loaded {formatDateTime(loadedAt)}</p>
+          <p className="mt-0.5 text-[13px] text-ink-soft">{assignment.shown} {assignment.shown === 1 ? 'pond' : 'ponds'} on a simplified plan of the farm (not to scale) · updated {formatDateTime(loadedAt)}</p>
         </div>
         <Segmented<Filter> label="Which ponds to emphasise" value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All ponds' }, { value: 'attention', label: `Needs attention (${attention})` }]} />
       </div>
@@ -165,6 +165,7 @@ export function FarmTwin({ rows, alerts, mode, loadedAt }: FarmTwinProps) {
                 <Button size="sm" variant="secondary" aria-label="Zoom out" title="Zoom out" onClick={() => setZoomCommand((c) => ({ n: (c?.n ?? 0) + 1, dir: -1 }))}><MagnifyingGlassMinus size={16} aria-hidden="true" /></Button>
               </div>
             ) : null}
+            {gl === 'ok' ? <p className="pointer-events-none absolute bottom-3 right-3 hidden rounded-lg bg-card/90 px-2.5 py-1.5 text-[11px] text-ink-soft shadow-sm sm:block">Hold Ctrl/⌘ and scroll to zoom</p> : null}
             <ul className="absolute bottom-3 left-3 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-card/90 px-3 py-2 text-[11px] text-ink-soft shadow-sm" aria-label="Status legend">
               {LEGEND.map((l) => <li key={l.tone} className="flex items-center gap-1.5"><span className={cx('flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white', SWATCH[l.tone])} aria-hidden="true">{l.mark}</span>{l.label}</li>)}
             </ul>

@@ -9,7 +9,6 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { ErrorState, Notice } from '@/components/ui/states';
-import { RefreshButton } from '@/components/shell/RefreshButton';
 import type { Tone } from '@/lib/status';
 
 export const metadata: Metadata = { title: 'System status' };
@@ -30,7 +29,7 @@ export default async function HealthPage() {
   const api = serverApi();
   const { result: healthR, ms } = await timedHealth(api);
   const [fleetR, rulesR] = await Promise.allSettled([loadFleet(api), api.riskRules()]);
-  const header = <PageHeader title="System status" description="For technical checks: whether the AquaGuard software, its database and its forecasting service are running. Pond health is on the Overview." actions={<RefreshButton />} />;
+  const header = <PageHeader title="System status" description="Is AquaGuard itself working? Shows whether the software, its database and the forecasting service are running. How your ponds are doing is on the Overview." />;
 
   const services: Svc[] = [];
   if (healthR.status === 'fulfilled') {
@@ -46,6 +45,10 @@ export default async function HealthPage() {
   }
 
   const stats = fleetR.status === 'fulfilled' ? fleetStats(fleetR.value.rows) : null;
+  // Freshness comes from the stored readings, not from the pond headline (which a still-open problem can override).
+  const rawRisk = fleetR.status === 'fulfilled' ? fleetR.value.rows.map((r) => r.summary?.riskStatus) : [];
+  const fresh = rawRisk.filter((r) => r === 'NORMAL' || r === 'WARNING' || r === 'CRITICAL').length;
+  const notFresh = rawRisk.filter((r) => r === 'STALE' || r === 'NO_DATA').length;
   const lastForecast = fleetR.status === 'fulfilled' ? fleetR.value.rows.map((r) => r.summary?.latestPredictionGeneratedAt).filter((x): x is string => Boolean(x)).sort().at(-1) : undefined;
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
   const Icon = (t: Tone) => (t === 'healthy' ? CheckCircle : t === 'critical' ? WarningCircle : t === 'warning' ? WarningCircle : Question);
@@ -69,13 +72,13 @@ export default async function HealthPage() {
           <CardHeader id="data-title" title="Data freshness" description="Derived from stored readings and forecasts, not from the health check." />
           {fleetR.status === 'rejected' ? <ErrorState server error={fleetR.reason} title="Could not load pond data" /> : (
             <dl className="grid grid-cols-1 gap-x-8 gap-y-5 px-5 pb-5 pt-4 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
-              <div><dt className="text-ink-soft">Ponds</dt><dd className="mt-0.5 text-ink">{stats?.total} total, {stats ? stats.healthy + stats.warning + stats.critical : 0} with fresh data</dd></div>
+              <div><dt className="text-ink-soft">Ponds</dt><dd className="mt-0.5 text-ink">{stats?.total} total, {fresh} with fresh data</dd></div>
               <div><dt className="text-ink-soft">Latest reading</dt><dd className="mt-0.5 text-ink">{stats?.latestAt ? `${formatDateTime(stats.latestAt)} (${formatAge(stats.latestAgeMinutes)})` : 'No readings recorded'}</dd></div>
               <div><dt className="text-ink-soft">Latest forecast stored</dt><dd className="mt-0.5 text-ink">{lastForecast ? formatDateTime(lastForecast) : 'No forecast has been stored'}</dd></div>
               <div><dt className="text-ink-soft">Stale after</dt><dd className="mt-0.5 text-ink">{rules ? `${rules.staleAfterMinutes} minutes without a reading` : 'Not available'}</dd></div>
             </dl>
           )}
-          {stats && stats.stale + stats.noData > 0 ? <div className="px-5 pb-5"><Notice tone="warning">{stats.stale + stats.noData} of {stats.total} ponds have stale or no data. Stale data is never treated as healthy.</Notice></div> : null}
+          {stats && notFresh > 0 ? <div className="px-5 pb-5"><Notice tone="warning">{notFresh} of {stats.total} ponds have stale or no data. Stale data is never treated as healthy.</Notice></div> : null}
         </Card>
 
         <Card aria-labelledby="rules-title">

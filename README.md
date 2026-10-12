@@ -88,7 +88,6 @@ The system features an interactive **3D Digital Twin** of the pond farm, real-ti
 .
 ├── backend/                     REST API server (port 4000)
 │   ├── .env / .env.example      API, database, ML and risk-rule settings (.env is git-ignored)
-│   ├── scripts/dev-local.js     In-memory local stack for instant demos & testing
 │   ├── src/
 │   │   ├── config/              Environment configuration & threshold rules
 │   │   ├── routes/              Express HTTP routes
@@ -135,13 +134,14 @@ Run AquaGuard with an isolated in-memory database pre-loaded with historical dat
 > Always run these commands from the **repository root directory**.
 
 ```bash
-# 1. Install dependencies (Node.js 22+ & Python 3.13)
+# 1. Install dependencies (Node.js 22+ & Python 3.13; use a virtualenv for pip)
 npm install
 pip install -r ml/requirements.txt
 
-# 2. Terminal 1: Start the Local Backend (Port 4000)
-npm run dev:local
-# Wait until you see: "AquaGuard API listening on http://127.0.0.1:4000 (database: LOCAL ephemeral)"
+# 2. Set MONGODB_URI (your Atlas connection string) in backend/.env, then
+#    Terminal 1: Start the Backend (Port 4000)
+npm start
+# Wait until you see: "AquaGuard API listening on http://127.0.0.1:4000/api (database: ATLAS ...)"
 
 # 3. Terminal 2: Start the Web Dashboard (Port 3000)
 npm run dev:frontend
@@ -193,7 +193,6 @@ npm run dev:frontend
 
 | From Repository Root | Equivalent inside `backend/` | Equivalent inside `frontend/` | Equivalent inside `database/` |
 |---|---|---|---|
-| `npm run dev:local` | `node scripts/dev-local.js` | — | — |
 | `npm start` | `npm start` | — | — |
 | `npm run dev:frontend` | — | `npm run dev` | — |
 | `npm test` | `npm test` | `npm test` | `npm test` |
@@ -201,8 +200,8 @@ npm run dev:frontend
 | `npm run db:standardize-names` | — | — | `npm run db:standardize-names` |
 
 > [!IMPORTANT]
-> - Do not run `npm start` and `npm run dev:local` simultaneously; both bind to port `4000`.
-> - Check which database is serving at any time: `curl http://127.0.0.1:4000/api/health` indicates `"target":"local"` or `"target":"remote"`.
+> - Only one API can bind port `4000`.
+> - The API only connects to MongoDB Atlas. Check it any time: `curl http://127.0.0.1:4000/api/health` shows `"target":"atlas"`.
 
 ---
 
@@ -465,7 +464,7 @@ npm test
 # Run backend unit tests (no database or Python required)
 npm run test:unit -w backend
 
-# Run backend integration tests (starts ephemeral local MongoDB)
+# Run backend integration tests (uses throwaway test databases on your Atlas cluster)
 npm run test:integration -w backend
 
 # Run frontend tests (Vitest)

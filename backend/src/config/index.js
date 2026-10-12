@@ -21,7 +21,9 @@ export function loadConfig(env = process.env) {
     // listed because a browser treats localhost and 127.0.0.1 as different origins.
     corsOrigins: (env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081').split(',').map((s) => s.trim()).filter(Boolean),
     bodyLimit: env.BODY_LIMIT || '20kb',
-    demoEnabled: bool(env.DEMO_ENABLED, !production),
+    // Demo endpoints write simulated readings into the connected database. The API is Atlas-only, so they are off unless
+    // explicitly enabled.
+    demoEnabled: bool(env.DEMO_ENABLED, false),
     // A reading older than this is "stale", not healthy. 60 min mirrors the forecasting model's own MAX_AGE (4 x 15 min).
     staleAfterMinutes: int(env.STALE_AFTER_MINUTES, 60),
     maxFutureSkewMinutes: 5,

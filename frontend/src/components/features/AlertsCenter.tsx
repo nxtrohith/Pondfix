@@ -14,19 +14,18 @@ import { EmptyState, ErrorState, Notice } from '../ui/states';
 import { cx } from '../ui/cx';
 import { AlertCardList } from './AlertCard';
 
-type Tab = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
+type Tab = 'OPEN' | 'RESOLVED';
 const PAGE = 30;
 const EMPTY: Record<Tab, { title: string; body: string }> = {
-  ACTIVE: { title: 'No active problems', body: 'Every pond is within its acceptable range, or has no recent reading to check. Problems appear here as soon as a reading or forecast crosses a limit.' },
-  ACKNOWLEDGED: { title: 'Nothing marked as seen', body: 'When you mark an active problem as seen, it moves here until readings recover.' },
+  OPEN: { title: 'No open problems', body: 'Every pond is within its acceptable range, or has no recent reading to check. Problems appear here as soon as a reading or forecast crosses a limit.' },
   RESOLVED: { title: 'No resolved problems', body: 'Problems whose readings have returned to normal are kept here as history.' },
 };
 
-/** Every alert in one place: what is happening now, what you have already seen, and what has been resolved. */
+/** Every alert in one place: what is open now (including problems you have already seen) and what has been resolved. The bell badge counts the same open alerts. */
 export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: string; name: string }[]; initialPondId?: string }) {
   const api = useMemo(() => browserApi(), []);
   const names = useMemo(() => Object.fromEntries(ponds.map((p) => [p.id, p.name])), [ponds]);
-  const [tab, setTab] = useState<Tab>('ACTIVE');
+  const [tab, setTab] = useState<Tab>('OPEN');
   const [pondId, setPondId] = useState(initialPondId);
   const [parameter, setParameter] = useState('');
   const [severity, setSeverity] = useState<'' | 'CRITICAL' | 'WARNING'>('');
@@ -66,7 +65,7 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
   }
 
   const items = open.data?.items ?? [];
-  const count = (t: Tab) => (open.data ? items.filter((a) => a.status === t).length : null);
+  const openCount = open.data ? items.length : null;
   const current = items.filter((a) => a.origin === 'observed').length;
   const upcoming = items.length - current;
   const filtered = Boolean(pondId || parameter || severity || kind);
@@ -74,20 +73,19 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
   return (
     <div className="space-y-5">
       <Card aria-labelledby="al-title">
-        <CardHeader id="al-title" title="Alerts" description="Problems measured in your ponds, and possible problems the forecast expects. Marking a problem as seen does not close it." />
+        <CardHeader id="al-title" title="Alerts" description="Problems measured in your ponds, and possible problems the forecast expects. A problem stays open until readings recover; “Mark as seen” only tells your team you have noticed it." />
         <div className="space-y-4 px-5 pb-2 pt-4">
           <Segmented<Tab> label="Alert status" value={tab} onChange={setTab} options={[
-            { value: 'ACTIVE', label: `Active${count('ACTIVE') !== null ? ` (${count('ACTIVE')})` : ''}` },
-            { value: 'ACKNOWLEDGED', label: `Marked as seen${count('ACKNOWLEDGED') !== null ? ` (${count('ACKNOWLEDGED')})` : ''}` },
+            { value: 'OPEN', label: `Open${openCount !== null ? ` (${openCount})` : ''}` },
             { value: 'RESOLVED', label: 'Resolved' },
           ]} />
           {open.error ? <Notice tone="warning">The counts could not be loaded. <button type="button" onClick={open.reload} className="underline">Retry</button></Notice>
             : open.data ? <p className="text-xs text-ink-soft" data-testid="alert-breakdown">Right now: {current} current {current === 1 ? 'problem' : 'problems'} and {upcoming} possible upcoming {upcoming === 1 ? 'problem' : 'problems'} (forecasts, not measurements).</p> : null}
-          <form className="grid grid-cols-2 gap-3 lg:grid-cols-4" onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
+          <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
             <Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => setPondId(e.target.value)}><option value="">All ponds</option>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
-            <Field label="Water quality factor">{(id) => <Select id={id} value={parameter} onChange={(e) => setParameter(e.target.value)}><option value="">All factors</option>{ALERT_PARAMETERS.map((p) => <option key={p} value={p}>{PARAM_LABEL[p] ?? p}</option>)}</Select>}</Field>
-            <Field label="How serious">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Warning and critical</option><option value="CRITICAL">Critical only</option><option value="WARNING">Warning only</option></Select>}</Field>
-            <Field label="Type">{(id) => <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="">Current and possible upcoming</option><option value="observed">Current problems</option><option value="predicted">Possible upcoming problems</option></Select>}</Field>
+            <Field label="Measurement">{(id) => <Select id={id} value={parameter} onChange={(e) => setParameter(e.target.value)}><option value="">All factors</option>{ALERT_PARAMETERS.map((p) => <option key={p} value={p}>{PARAM_LABEL[p] ?? p}</option>)}</Select>}</Field>
+            <Field label="Severity">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Any level</option><option value="CRITICAL">Critical only</option><option value="WARNING">Warning only</option></Select>}</Field>
+            <Field label="Kind">{(id) => <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="">Current and upcoming</option><option value="observed">Current only</option><option value="predicted">Upcoming only</option></Select>}</Field>
           </form>
         </div>
 

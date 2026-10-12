@@ -1,5 +1,5 @@
 'use client';
-import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -266,6 +266,15 @@ function Rig({ resetSignal, zoomCommand }: { resetSignal: number; zoomCommand: S
     applyView(camera as THREE.OrthographicCamera, fit, view, controls as unknown as { target: THREE.Vector3; update: () => void } | null);
     invalidate();
   }, [camera, fit, view, resetSignal, controls, invalidate]);
+  // The mouse wheel scrolls the page; it zooms the map only with Ctrl/Cmd held (trackpad pinch counts). The +/- buttons always work.
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    const oc = controls as unknown as { enableZoom: boolean } | null; const el = gl.domElement;
+    if (!oc) return;
+    const gate = (e: WheelEvent) => { oc.enableZoom = e.ctrlKey || e.metaKey; };
+    el.addEventListener('wheel', gate, { capture: true });
+    return () => { el.removeEventListener('wheel', gate, { capture: true }); oc.enableZoom = true; };
+  }, [controls, gl]);
   const lastCmd = useRef(0);
   useLayoutEffect(() => {
     if (!zoomCommand || zoomCommand.n === lastCmd.current) return;
@@ -293,7 +302,7 @@ function LabelProjector({ ponds, labelRefs }: { ponds: ScenePond[]; labelRefs: S
   const invalidate = useThree((s) => s.invalidate);
   useLayoutEffect(() => { invalidate(); }, [ponds, invalidate]);
   useFrame(({ camera, size }) => {
-    const k = Math.min(1.15, Math.max(0.62, (camera as THREE.OrthographicCamera).zoom / 3.4));   // smaller tags on small screens so neighbours never overlap
+    const k = Math.min(1.15, Math.max(0.5, (camera as THREE.OrthographicCamera).zoom / 3.4));   // smaller tags on small screens so neighbours never overlap
     for (const p of ponds) {
       const el = labelRefs.current.get(p.id); if (!el) continue;
       _v.set(p.x, WATER_Y + LABEL_HEIGHT, p.z).project(camera);

@@ -23,6 +23,6 @@ export function pageTitle(pathname: string): { title: string; parent?: { label: 
   if (isActive(pathname, SYSTEM_PAGE.href)) return { title: SYSTEM_PAGE.label };
   const hit = NAV.find((n) => isActive(pathname, n.href));
   if (!hit) return { title: 'AquaGuard' };
-  if (pathname.startsWith('/ponds/') && pathname !== '/ponds') return { title: 'Pond', parent: { label: 'Ponds', href: '/ponds' } };
+  if (pathname.startsWith('/ponds/') && pathname !== '/ponds') return { title: 'Pond details', parent: { label: 'Ponds', href: '/ponds' } };
   return { title: hit.label };
 }

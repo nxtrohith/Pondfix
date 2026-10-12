@@ -107,7 +107,7 @@ describe('current water quality card', () => {
   it('shows value, status in words, freshness and the normal range from the backend rule', () => {
     render(<WaterQualityCard parameter="ph" reading={reading(9.2, 'CRITICAL', 'pH')} rule={rule} />);
     const c = screen.getByRole('region', { name: 'pH' });
-    expect(c).toHaveTextContent('9.20'); expect(c).toHaveTextContent('Critical'); expect(c).toHaveTextContent('Updated 3 min ago'); expect(c).toHaveTextContent('Normal: 6.5 to 8.5 (demo setting)');
+    expect(c).toHaveTextContent('9.20'); expect(c).toHaveTextContent('Critical'); expect(c).toHaveTextContent('Updated 3 min ago'); expect(c).toHaveTextContent('Normal: 6.5 to 8.5 (provisional limit)');
   });
   it('a missing factor is "No reading", never zero or normal; an old one is flagged as not recent', () => {
     const { rerender } = render(<WaterQualityCard parameter="temperature" />);
@@ -115,7 +115,7 @@ describe('current water quality card', () => {
     expect(c).toHaveTextContent('No reading'); expect(c).toHaveTextContent('No recent data'); expect(c).not.toHaveTextContent('Normal');
     rerender(<WaterQualityCard parameter="temperature" reading={reading(27, 'STALE', 'C', { ageMinutes: 400 })} />);
     expect(screen.getByRole('region', { name: 'Temperature' })).toHaveTextContent('Data is not recent');
-    expect(screen.getByRole('region', { name: 'Temperature' })).toHaveTextContent('may not describe the pond now');
+    expect(screen.getByRole('region', { name: 'Temperature' })).toHaveTextContent('Updated 7 h ago');
   });
 });
 
@@ -124,7 +124,7 @@ describe('navigation and shared limit lines', () => {
     expect(NAV_GROUPS[0]!.items.map((i) => i.label)).toEqual(['Overview', 'Ponds', 'Alerts']);
     expect(NAV_GROUPS[1]!.items.map((i) => i.label)).toEqual(['Compare ponds', 'Demo & simulation']);
     expect(NAV.some((i) => i.href === '/forecasts')).toBe(false);
-    expect(pageTitle('/health').title).toBe('System status'); expect(pageTitle('/ponds/abc')).toEqual({ title: 'Pond', parent: { label: 'Ponds', href: '/ponds' } });
+    expect(pageTitle('/health').title).toBe('System status'); expect(pageTitle('/ponds/abc')).toEqual({ title: 'Pond details', parent: { label: 'Ponds', href: '/ponds' } });
     expect(isActive('/ponds/abc', '/ponds')).toBe(true);
   });
   it('limit lines come from the backend rules for every factor', () => {

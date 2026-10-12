@@ -10,14 +10,14 @@ import { ApiError } from '@/lib/api/client';
 
 const ponds = [{ id: 'p1', name: 'ara2_test', latestAt: '2026-01-30T18:15:00.000Z', latestAgeMinutes: 1000 }];
 const rules = { dissolvedOxygen: { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 }, unclassifiedParameters: ['ph', 'temperature'], staleAfterMinutes: 60, note: '' };
-const health = (target: 'local' | 'remote' | 'unknown') => ({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target }, ml: { status: 'ready' } });
+const health = (target: 'atlas' | 'non-atlas' | 'unknown', demo = true) => ({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target }, demo: { enabled: demo }, ml: { status: 'ready' } });
 const response = { duplicate: false, measurement: { id: 'm1', pondId: 'p1', recordedAt: '2026-03-01T12:00:00.000Z', receivedAt: '', source: 'simulated', values: [{ parameter: 'dissolved_oxygen', value: 2.5, unit: 'mg/L' }, { parameter: 'ph', value: 7.4, unit: 'pH' }, { parameter: 'temperature', value: 28, unit: 'C' }] },
   risk: { dissolved_oxygen: { value: 2.5, unit: 'mg/L', status: 'WARNING', threshold: 3 }, ph: { value: 7.4, unit: 'pH', status: 'UNKNOWN', note: 'no validated threshold configured for this parameter' }, temperature: { value: 28, unit: 'C', status: 'UNKNOWN', note: 'no validated threshold configured for this parameter' } },
   alerts: [{ parameter: 'dissolved_oxygen', action: 'opened', alertId: 'a'.repeat(24) }], alertStateUpdated: true, inference: { status: 'insufficient_history' }, demo: { simulated: true, scenario: null, note: 'x' } };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.health.mockResolvedValue(health('local'));
+  api.health.mockResolvedValue(health('atlas'));
   api.demoScenarios.mockResolvedValue({ scenarios: { healthy: { dissolved_oxygen: 5.2, expected: 'NORMAL' }, warning: { dissolved_oxygen: 2.7, expected: 'WARNING' }, critical: { dissolved_oxygen: 1.8, expected: 'CRITICAL' } }, note: '' });
   api.pondAlerts.mockResolvedValue({ items: [], count: 0, nextCursor: null });
 });
@@ -89,9 +89,9 @@ describe('simulation: one reading, three parameters', () => {
     expect(screen.getByText(/request validation failed \(VALIDATION_ERROR\)/)).toBeInTheDocument(); expect(screen.getByText(/values\.1\.value: ph must be between 0 and 14/)).toBeInTheDocument();
   });
 
-  it('is disabled unless the API reports a local database (manual form and guided demo)', async () => {
-    for (const t of ['remote', 'unknown'] as const) {
-      api.health.mockResolvedValue(health(t));
+  it('is disabled unless the API is on Atlas with demo mode enabled (manual form and guided demo)', async () => {
+    for (const [t, demo] of [['atlas', false], ['non-atlas', true], ['unknown', true]] as const) {
+      api.health.mockResolvedValue(health(t, demo));
       const { unmount } = render(<SimulationForm ponds={ponds} rules={rules} />);
       await screen.findByText('Simulated reading: DO, pH and temperature');
       await waitFor(() => expect(screen.getByRole('button', { name: 'Review and save simulated reading' })).toBeDisabled());

@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.alerts.mockImplementation(async (q: { status?: string; parameter?: string; severity?: string; origin?: string }) => page(ALL.filter((a) =>
     (q.status === 'OPEN' ? a.status !== 'RESOLVED' : !q.status || q.status === 'ALL' || a.status === q.status) && (!q.parameter || a.parameter === q.parameter) && (!q.severity || a.severity === q.severity) && (!q.origin || a.origin === q.origin))));
-  api.health.mockResolvedValue({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target: 'local' }, ml: { status: 'ready' } });
+  api.health.mockResolvedValue({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target: 'atlas' }, demo: { enabled: true }, ml: { status: 'ready' } });
   api.pondAlerts.mockResolvedValue(page([PH]));
 });
 
@@ -51,13 +51,12 @@ describe('Alerts page in plain language', () => {
     expect(screen.getByTestId('alert-breakdown')).toHaveTextContent('4 current problems and 1 possible upcoming problem');
   });
 
-  it('tabs separate active, marked-as-seen and resolved problems using the server\'s status filter', async () => {
+  it('tabs separate open (including marked-as-seen) and resolved problems using the server\'s status filter', async () => {
     await open();
-    expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ status: 'ACTIVE' }), expect.anything());
-    expect(screen.queryByRole('article', { name: 'Water temperature is too high' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Active (4)' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Marked as seen (1)' }));
-    const seen = await screen.findByRole('article', { name: 'Water temperature is too high' });
+    expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ status: 'OPEN' }), expect.anything());
+    expect(screen.getByRole('button', { name: 'Open (5)' })).toHaveAttribute('aria-pressed', 'true');
+    // A problem marked as seen is still open, so it stays on this tab (and in the bell count) with its state spelled out.
+    const seen = screen.getByRole('article', { name: 'Water temperature is too high' });
     expect(seen).toHaveTextContent('Marked as seen: the condition is still active'); expect(within(seen).queryByRole('button', { name: 'Mark as seen' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Resolved' }));
     const done = await screen.findByRole('article', { name: 'pH is too low' });
@@ -66,15 +65,15 @@ describe('Alerts page in plain language', () => {
 
   it('filters by pond, factor, seriousness and type on the server', async () => {
     await open();
-    const sel = screen.getByLabelText('Water quality factor') as HTMLSelectElement;
+    const sel = screen.getByLabelText('Measurement') as HTMLSelectElement;
     expect([...sel.options].map((o) => o.value)).toEqual(['', 'dissolved_oxygen', 'ph', 'temperature']);
     fireEvent.change(sel, { target: { value: 'ph' } });
-    await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ parameter: 'ph', status: 'ACTIVE' }), expect.anything()));
+    await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ parameter: 'ph', status: 'OPEN' }), expect.anything()));
     await waitFor(() => expect(screen.queryByRole('article', { name: 'Dissolved oxygen is low' })).toBeNull());
     fireEvent.change(sel, { target: { value: '' } });
-    fireEvent.change(screen.getByLabelText('How serious'), { target: { value: 'CRITICAL' } });
+    fireEvent.change(screen.getByLabelText('Severity'), { target: { value: 'CRITICAL' } });
     await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ severity: 'CRITICAL' }), expect.anything()));
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'predicted' } });
+    fireEvent.change(screen.getByLabelText('Kind'), { target: { value: 'predicted' } });
     await waitFor(() => expect(api.alerts).toHaveBeenCalledWith(expect.objectContaining({ origin: 'predicted', severity: 'CRITICAL' }), expect.anything()));
   });
 
@@ -90,8 +89,8 @@ describe('Alerts page in plain language', () => {
   it('gives a plain empty state per tab, and says so when filters hide everything', async () => {
     api.alerts.mockImplementation(async () => page([]));
     render(<AlertsCenter ponds={[{ id: 'p1', name: 'ara2_test' }]} />);
-    expect(await screen.findByText('No active problems')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('How serious'), { target: { value: 'WARNING' } });
+    expect(await screen.findByText('No open problems')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Severity'), { target: { value: 'WARNING' } });
     expect(await screen.findByText('No alerts match these filters')).toBeInTheDocument();
   });
 

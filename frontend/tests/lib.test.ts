@@ -56,9 +56,9 @@ describe('formatting', () => {
     expect(formatValue(null, 'ph')).toBe('n/a'); expect(formatValue(undefined, 'dissolved_oxygen')).toBe('n/a'); expect(formatValue(NaN, 'ph')).toBe('n/a');
     expect(formatValue(3.456, 'dissolved_oxygen')).toBe('3.46'); expect(formatValue(26.84, 'temperature', true, 'C')).toBe('26.8 °C'); expect(formatValue(8.5, 'ph', true, 'pH')).toBe('8.50');
   });
-  it('renders timestamps in UTC by default and labels the zone', () => {
+  it('renders timestamps in the display zone (UTC under test) and labels the zone', () => {
     expect(formatDateTime('2026-01-30T18:15:00Z')).toBe('30 Jan 2026, 18:15 UTC'); expect(formatDateTime(null)).toBe('n/a'); expect(formatDateTime('nope')).toBe('n/a');
-    expect(formatDateTime('2026-01-30T18:15:00Z', 'Asia/Kolkata')).toBe('30 Jan 2026, 23:45 Kolkata');
+    expect(formatDateTime('2026-01-30T18:15:00Z', 'Asia/Kolkata')).toBe('30 Jan 2026, 23:45 GMT+5:30');
   });
   it('axis labels stay unambiguous per span', () => {
     const t = Date.parse('2026-01-30T18:15:00Z');
@@ -127,4 +127,15 @@ describe('simulation request building (three parameters)', () => {
     expect(buildSimRequest(base({ useNow: false, recordedAtInput: '2026-01-20T06:30' }), now)).toMatchObject({ ok: true, body: { recordedAt: '2026-01-20T06:30:00.000Z' } });
   });
   it('parses datetime-local as UTC', () => { expect(utcInputToIso('2026-01-20T06:30')).toBe('2026-01-20T06:30:00.000Z'); expect(utcInputToIso('2026-13-40T99:99')).toBeNull(); expect(utcInputToIso('')).toBeNull(); });
+});
+
+describe('display time zone', () => {
+  it('follows NEXT_PUBLIC_DISPLAY_TIMEZONE when set, otherwise the local zone (not a hard-coded UTC)', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules(); vi.stubEnv('NEXT_PUBLIC_DISPLAY_TIMEZONE', 'Asia/Kolkata');
+    expect((await import('@/lib/format')).formatDateTime('2026-01-30T18:15:00Z')).toBe('30 Jan 2026, 23:45 GMT+5:30');
+    vi.resetModules(); vi.stubEnv('NEXT_PUBLIC_DISPLAY_TIMEZONE', '');
+    expect((await import('@/lib/env')).DISPLAY_TIMEZONE).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    vi.unstubAllEnvs(); vi.resetModules();
+  });
 });

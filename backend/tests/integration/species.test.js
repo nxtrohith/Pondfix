@@ -45,7 +45,7 @@ test('a species is saved, returned, and survives a backend restart; unrelated fi
   assert.equal(stored.speciesProfileId, 'rohu'); assert.equal(stored.cultureType, 'freshwater_fish'); assert.equal(stored.updatedAt.toISOString(), '2026-03-02T09:00:00.000Z');
 
   // "Restart": a brand-new app instance on the same database reads the persisted value.
-  const app2 = createApp({ db: env.db, config: env.config, now: () => env.state.now, log: () => {}, dbTarget: 'local' });
+  const app2 = createApp({ db: env.db, config: env.config, now: () => env.state.now, log: () => {}, dbTarget: 'atlas' });
   const s2 = await new Promise((res) => { const s = app2.listen(0, '127.0.0.1', () => res(s)); });
   const again = await (await fetch(`http://127.0.0.1:${s2.address().port}/api/ponds`)).json(); s2.close();
   assert.equal(again.items.find((p) => p.id === String(pond._id)).speciesConfig.speciesProfileId, 'rohu');

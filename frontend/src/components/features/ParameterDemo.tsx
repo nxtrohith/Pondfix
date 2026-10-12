@@ -48,7 +48,7 @@ export const PARAMETER_DEMO_STEPS: Step[] = [
 ];
 
 const BODY_KEY = { dissolved_oxygen: 'dissolvedOxygen', ph: 'ph', temperature: 'temperature' } as const;
-const SHORT: Record<Param, string> = { dissolved_oxygen: 'DO', ph: 'pH', temperature: 'Temp' };
+const SHORT: Record<Param, string> = { dissolved_oxygen: 'Oxygen', ph: 'pH', temperature: 'Temp' };
 const UNIT: Record<Param, string> = { dissolved_oxygen: 'mg/L', ph: '', temperature: '°C' };
 const ACTION: Record<string, string> = { opened: 'opened', updated: 'updated', escalated: 'escalated', resolved: 'resolved', none: 'no change' };
 type Outcome = { sending: true } | { response: IngestResponse } | { error: string };

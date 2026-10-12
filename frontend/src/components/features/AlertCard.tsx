@@ -34,37 +34,44 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
   const unit = DEFAULT_UNIT[a.parameter] ?? '';
   const value = `${formatValue(a.triggerValue, a.parameter)}${unit ? ` ${unit}` : ''}`;
   const tip = !resolved && !forecast && showGuidance ? (a.recommendedAction ?? guidanceFor(a.parameter, a.direction)) : null;
+  const tone = resolved ? 'text-ink-soft' : forecast ? 'text-olive-text' : a.severity === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text';
   const scope = a.ruleScope ?? 'general';
   const ref = a.referenceRange;
   return (
     <article className={cx('rounded-lg border border-line border-l-4 bg-card p-4', resolved ? 'border-l-ok-text' : EDGE[a.severity], forecast && !resolved && 'border-dashed border-l-solid')} aria-label={headline}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className={cx('flex items-center gap-1.5 text-xs font-medium', resolved ? 'text-ink-soft' : forecast ? 'text-olive-text' : a.severity === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text')}>
-            <SevIcon size={15} weight="fill" aria-hidden="true" />{resolved ? `Earlier ${alertKind(a.origin).toLowerCase()}` : alertKind(a.origin)}{!resolved && !forecast ? `: ${a.severity === 'CRITICAL' ? 'critical' : 'warning'}` : ''}
-          </p>
-          <h3 className="mt-1 flex items-center gap-1.5 text-[15px] font-medium leading-snug text-ink">{ParamIcon ? <ParamIcon size={16} className="shrink-0 text-ink-soft" aria-hidden="true" /> : null}{headline}</h3>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            {!compact && pondName ? <Link href={`/ponds/${a.pondId}`} className="rounded-md bg-ink px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-card hover:opacity-90">{pondName}</Link> : null}
+            <p className={cx('flex items-center gap-1.5 text-xs font-semibold', tone)}>
+              <SevIcon size={15} weight="fill" aria-hidden="true" />{resolved ? `Earlier ${alertKind(a.origin).toLowerCase()}` : alertKind(a.origin)}{!resolved && !forecast ? `: ${a.severity === 'CRITICAL' ? 'critical' : 'warning'}` : ''}
+            </p>
+          </div>
+          <h3 className="mt-1 flex items-center gap-1.5 text-base font-semibold leading-snug text-ink">{ParamIcon ? <ParamIcon size={18} className={cx('shrink-0', tone)} aria-hidden="true" /> : null}{headline}</h3>
         </div>
         {onMarkSeen && a.status === 'ACTIVE' ? <Button size="sm" disabled={busy} onClick={() => onMarkSeen(a)}>{busy ? 'Saving' : 'Mark as seen'}</Button> : null}
       </div>
-      <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px]">
-        <div className="flex gap-1.5"><dt className="text-ink-soft">{forecast ? `Forecast${a.horizonMinutes ? ` in ${a.horizonMinutes < 60 ? `${a.horizonMinutes} min` : `${a.horizonMinutes / 60} h`}` : ''}:` : 'Current:'}</dt>{' '}<dd className="font-medium tabular-nums text-ink">{value}</dd></div>
-        <div className="text-ink-soft">{levelText(a.severity, a.direction, a.threshold, a.parameter)}</div>
+      {forecast && !resolved ? <p className="mt-1 text-xs text-ink-soft">A forecast, not a measurement. It may not happen.</p> : null}
+      <dl className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[13px]">
+        <div className="flex items-baseline gap-1.5"><dt className="text-ink-soft">{forecast ? `Forecast${a.horizonMinutes ? ` in ${a.horizonMinutes < 60 ? `${a.horizonMinutes} min` : `${a.horizonMinutes / 60} h`}` : ''}:` : 'Current:'}</dt>{' '}<dd className={cx('text-lg font-semibold tabular-nums', resolved ? 'text-ink' : tone)}>{value}</dd></div>
+        <div className={cx('font-medium', resolved ? 'text-ink-soft' : tone)}>{levelText(a.severity, a.direction, a.threshold, a.parameter)}</div>
       </dl>
-      {!forecast || a.speciesLabel ? (
-        <dl className="mt-1.5 space-y-0.5 text-[13px]">
-          <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species:</dt><dd className="text-ink">{a.speciesLabel ?? 'not set'}</dd></div>
-          <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Limits used:</dt><dd className="text-ink">{RULE_SCOPE_LABEL[scope]}{scope === 'species' && a.profileVersion ? ` (${a.profileVersion})` : ''}{scope === 'general' ? <span className="text-ink-soft"> (not specific to a species)</span> : null}</dd></div>
-          {ref ? <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species reference:</dt><dd className="text-ink">{rangeText(ref)} <span className="text-xs text-ink-soft">({REFERENCE_KIND[ref.kind ?? ''] ?? 'reference'}; context, not an alert limit)</span></dd></div> : null}
-        </dl>
-      ) : null}
-      {!resolved && a.explanation ? <p className="mt-1.5 text-[13px] text-ink-soft">{a.explanation}</p> : null}
       <p className="mt-1.5 text-[13px] text-ink-soft">{ALERT_STATE_TEXT[a.status]}{a.status === 'RESOLVED' && a.resolvedAt ? ` (${formatDateTime(a.resolvedAt)})` : ''}</p>
-      {forecast && !resolved ? <p className="mt-1 text-xs text-ink-soft">This is a forecast, not a measurement. It may not happen.</p> : null}
       {tip ? <p className="mt-2 rounded-md bg-surface px-3 py-2 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p> : null}
+      <section className="mt-2 text-[13px]" aria-label="Why this alert, and which limits">
+        <div className="space-y-1.5">
+          {!resolved && a.explanation ? <p className="text-ink-soft">{a.explanation}</p> : null}
+          {!forecast || a.speciesLabel ? (
+            <dl className="space-y-0.5">
+              <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species:</dt><dd className="text-ink">{a.speciesLabel ?? 'not set'}</dd></div>
+              <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Limits used:</dt><dd className="text-ink">{RULE_SCOPE_LABEL[scope]}{scope === 'species' && a.profileVersion ? ` (${a.profileVersion})` : ''}{scope === 'general' ? <span className="text-ink-soft"> (not specific to a species)</span> : null}</dd></div>
+              {ref ? <div className="flex flex-wrap gap-x-1.5"><dt className="text-ink-soft">Species reference:</dt><dd className="text-ink">{rangeText(ref)} <span className="text-xs text-ink-soft">({REFERENCE_KIND[ref.kind ?? ''] ?? 'reference'}; context, not an alert limit)</span></dd></div> : null}
+            </dl>
+          ) : null}
+        </div>
+      </section>
       {!compact ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft">
-          {pondName ? <Link href={`/ponds/${a.pondId}`} className="font-medium text-ink hover:text-olive-text hover:underline">{pondName}</Link> : null}
           <span>Started {formatDateTime(a.createdAt)}</span>
           {a.lastTriggeredAt !== a.createdAt ? <span>Last confirmed {formatDateTime(a.lastTriggeredAt)}</span> : null}
           {a.dataSource && a.dataSource !== 'live' ? <SourceBadge source={a.dataSource} /> : null}

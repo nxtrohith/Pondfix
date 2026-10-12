@@ -9,7 +9,7 @@ import { AlertDemoRunner } from '@/components/features/AlertDemoRunner';
 import { ApiError } from '@/lib/api/client';
 
 const ponds = [{ id: 'p1', name: 'ara2_test', latestAt: null, latestAgeMinutes: null }];
-const health = (target: 'local' | 'remote' | 'unknown') => ({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target }, ml: { status: 'ready' } });
+const health = (target: 'atlas' | 'non-atlas' | 'unknown', demo = true) => ({ status: 'ok', time: '', uptimeSeconds: 1, database: { status: 'up', target }, demo: { enabled: demo }, ml: { status: 'ready' } });
 const ingest = (risk: string, action: string, alertId?: string) => ({ duplicate: false, measurement: { id: 'm', pondId: 'p1', recordedAt: '2026-03-01T12:00:00.000Z', receivedAt: '', source: 'simulated', values: [] }, risk: { dissolved_oxygen: { value: 1, unit: 'mg/L', status: risk } }, alerts: [{ parameter: 'dissolved_oxygen', action, ...(alertId ? { alertId } : {}) }], alertStateUpdated: true, inference: { status: 'insufficient_history' } });
 const SEQUENCE = [ingest('NORMAL', 'none'), ingest('WARNING', 'opened', 'a'.repeat(24)), ingest('CRITICAL', 'escalated', 'a'.repeat(24)), ingest('NORMAL', 'resolved', 'a'.repeat(24))];
 const sentValues = () => api.demoMeasurement.mock.calls.map((c) => c[0].dissolvedOxygen);
@@ -18,12 +18,11 @@ beforeEach(() => { vi.clearAllMocks(); api.pondAlerts.mockResolvedValue({ items:
 const start = async () => { fireEvent.click(await screen.findByRole('button', { name: /start demo|run again/i })); fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Run demo' })); };
 
 describe('guided alert demo', () => {
-  it('is disabled against a remote or unknown database and says how to get an isolated one', async () => {
-    for (const t of ['remote', 'unknown'] as const) {
-      api.health.mockResolvedValue(health(t));
+  it('is disabled unless the API is on Atlas with demo mode enabled', async () => {
+    for (const [t, demo] of [['atlas', false], ['non-atlas', true], ['unknown', true]] as const) {
+      api.health.mockResolvedValue(health(t, demo));
       const { unmount } = render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
       expect(await screen.findByText(/The demo is disabled/)).toBeInTheDocument();
-      expect(screen.getByText('npm run dev:local')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Start demo' })).toBeDisabled();
       unmount();
     }
@@ -38,7 +37,7 @@ describe('guided alert demo', () => {
   });
 
   it('sends nothing until the user confirms', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Start demo' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -47,7 +46,7 @@ describe('guided alert demo', () => {
   });
 
   it('sends 3.5, 2.5, 1.5, 3.5 in order and renders only what the server returned', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     SEQUENCE.forEach((r) => api.demoMeasurement.mockResolvedValueOnce(r));
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     await start();
@@ -60,7 +59,7 @@ describe('guided alert demo', () => {
   });
 
   it('pauses on a failed step, never skips it, and retries the SAME step', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     api.demoMeasurement
       .mockResolvedValueOnce(SEQUENCE[0]).mockRejectedValueOnce(new ApiError('http', 'service unavailable', 503, 'INTERNAL_ERROR'))
       .mockResolvedValueOnce(SEQUENCE[1]).mockResolvedValueOnce(SEQUENCE[2]).mockResolvedValueOnce(SEQUENCE[3]);
@@ -76,7 +75,7 @@ describe('guided alert demo', () => {
   });
 
   it('cannot start two runs at once (double confirm)', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     api.demoMeasurement.mockImplementation(async () => { await new Promise((r) => setTimeout(r, 5)); return SEQUENCE[0]; });
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Start demo' }));
@@ -87,7 +86,7 @@ describe('guided alert demo', () => {
   });
 
   it('flags a classification that differs from the expected one instead of hiding it', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     api.demoMeasurement.mockResolvedValue(ingest('CRITICAL', 'updated', 'b'.repeat(24)));
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     await start();
@@ -96,7 +95,7 @@ describe('guided alert demo', () => {
   });
 
   it('Stop halts the sequence', async () => {
-    api.health.mockResolvedValue(health('local'));
+    api.health.mockResolvedValue(health('atlas'));
     api.demoMeasurement.mockResolvedValue(SEQUENCE[0]);
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={400} />);
     await start();

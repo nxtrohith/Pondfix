@@ -11,7 +11,8 @@ import { Card, CardHeader } from '../ui/Card';
 import { Field, Select, Segmented } from '../ui/Field';
 import { ChartSkeleton, TableSkeleton } from '../ui/Skeleton';
 import { EmptyState, ErrorState, Notice } from '../ui/states';
-import { Table, Td, Th, Tr } from '../ui/Table';
+import { Table, Td, Th, Tr, STICKY_COL } from '../ui/Table';
+import { cx } from '../ui/cx';
 import { TrendChart, SERIES_COLOR, type Threshold } from '../charts/TrendChart';
 
 const DAY = 86400_000;
@@ -25,6 +26,35 @@ const TITLE: Record<P, string> = { dissolved_oxygen: 'Dissolved oxygen', ph: 'pH
 const NOUN: Record<P, string> = { dissolved_oxygen: 'dissolved oxygen', ph: 'pH', temperature: 'water temperature' };
 const MAX_COMPARE = 6;
 
+/** Number with its unit set apart in muted text, so values line up and units never compete with them. */
+function Num({ v, p, unit, bold }: { v: number | undefined | null; p: string; unit?: string; bold?: boolean }) {
+  if (v === undefined || v === null) return <span className="text-ink-soft">n/a</span>;
+  const u = unitLabel(unit);
+  return <span className={cx('tabular-nums', bold && 'font-semibold')}>{formatValue(v, p)}{u ? <span className="ml-1 text-xs font-normal text-ink-soft">{u}</span> : null}</span>;
+}
+/** Severity of one reading against the backend's own rules; undefined when no rule exists (nothing is invented). */
+function severity(v: number | undefined | null, parameter: string, rules: RiskRules | null): 'critical' | 'warning' | 'normal' | undefined {
+  if (v === undefined || v === null) return undefined;
+  const r = rules?.parameters?.[parameter];
+  if (r) {
+    if ((r.lowCritical !== undefined && v < r.lowCritical) || (r.highCritical !== undefined && v > r.highCritical)) return 'critical';
+    if ((r.lowWarning !== undefined && v < r.lowWarning) || (r.highWarning !== undefined && v > r.highWarning)) return 'warning';
+    return r.lowWarning === undefined && r.highWarning === undefined && r.lowCritical === undefined && r.highCritical === undefined ? undefined : 'normal';
+  }
+  if (parameter === 'dissolved_oxygen' && rules) return v < rules.dissolvedOxygen.criticalBelow ? 'critical' : v < rules.dissolvedOxygen.warningBelow ? 'warning' : 'normal';
+  return undefined;
+}
+/** Status is always a word plus an icon, never colour alone. */
+function SeverityTag({ level }: { level?: 'critical' | 'warning' | 'normal' }) {
+  if (level !== 'critical' && level !== 'warning') return null;
+  const crit = level === 'critical';
+  return (
+    <span className={cx('ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', crit ? 'bg-crit-bg text-crit-text' : 'bg-warn-bg text-warn-text')}>
+      <svg aria-hidden viewBox="0 0 16 16" className="size-3" fill="currentColor">{crit ? <path d="M8 1 15 14H1L8 1Zm-.75 5v4h1.5V6h-1.5Zm0 5v1.5h1.5V11h-1.5Z" /> : <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 3.5h1.5v4.5h-1.5V4.5Zm0 5.5h1.5v1.5h-1.5V10Z" />}</svg>
+      {crit ? 'Critical' : 'Warning'}
+    </span>
+  );
+}
 const fmt = (v: number | undefined, p: string, unit?: string) => (v === undefined ? 'n/a' : formatValue(v, p, true, unit));
 /** One parameter for one pond: stats from the API's own aggregation, chart of observed buckets, and an honest empty state. */
 function ParameterSection({ parameter, pondId, pondName, end, range, bucket, rules }: { parameter: P; pondId: string; pondName: string; end: number | null; range: RangeKey; bucket: 'hour' | 'day'; rules: RiskRules | null }) {
@@ -79,36 +109,45 @@ function ParameterSection({ parameter, pondId, pondName, end, range, bucket, rul
   );
 }
 
-function CompareSection({ parameter, pondIds, end, range }: { parameter: P; pondIds: string[]; end: number | null; range: RangeKey }) {
+function CompareSection({ parameter, pondIds, end, range, rules }: { parameter: P; pondIds: string[]; end: number | null; range: RangeKey; rules: RiskRules | null }) {
   const q = useApiQuery(
     (signal) => browserApi().compare({ parameter, from: new Date(end! - RANGES[range]).toISOString(), to: new Date(end!).toISOString(), pondIds: pondIds.join(',') }, signal),
     [pondIds.join(','), parameter, range, end], pondIds.length > 0 && end !== null,
   );
   const label = TITLE[parameter]; const noun = NOUN[parameter];
+  const apiUnit = unitLabel(q.data?.ponds.find((r) => r.unit)?.unit);
+  const unitText = apiUnit || (parameter === 'dissolved_oxygen' ? 'mg/L' : parameter === 'temperature' ? '°C' : '');
   return (
-    <Card aria-labelledby={`cmp-${parameter}`}>
-      <CardHeader id={`cmp-${parameter}`} title={`${label} comparison`} description={q.data?.range ? `${formatDateTime(q.data.range.from)} to ${formatDateTime(q.data.range.to)}` : undefined} />
-      <div className="pt-3">
+    <Card aria-labelledby={`cmp-${parameter}`} className="overflow-hidden">
+      <CardHeader id={`cmp-${parameter}`} title={`${label} comparison${unitText ? ` (${unitText})` : ''}`} description={q.data?.range ? `${formatDateTime(q.data.range.from)} to ${formatDateTime(q.data.range.to)}` : undefined} />
+      <div className="mt-4 border-t border-line">
         {pondIds.length === 0 ? <EmptyState title="Select at least one pond" />
           : q.loading && !q.data ? <TableSkeleton rows={Math.min(pondIds.length, 3)} cols={6} />
           : q.error ? <ErrorState error={q.error} title={`Could not load the ${noun} comparison`} onRetry={q.reload} />
           : !q.data || q.data.ponds.every((r) => r.count === 0) ? <EmptyState title={`No ${noun} measurements to compare`}>The selected ponds have no recorded {noun} readings in this window.</EmptyState>
           : (
             <Table caption={`${label} statistics by pond`}>
-              <thead><tr><Th>Pond</Th><Th className="text-right">Observations</Th><Th className="text-right">Average</Th><Th className="text-right">Minimum</Th><Th className="text-right">Maximum</Th><Th className="text-right">Latest in window</Th></tr></thead>
+              <thead><tr><Th className={cx('min-w-40', STICKY_COL)}>Pond</Th><Th className="text-right">Observations</Th><Th className="text-right">Average</Th><Th className="text-right">Minimum</Th><Th className="text-right">Maximum</Th><Th className="text-right">Latest in window</Th></tr></thead>
               <tbody>
-                {[...q.data.ponds].sort((a, b) => (a.mean ?? Infinity) - (b.mean ?? Infinity)).map((r) => (
-                  <Tr key={r.pondId}>
-                    <Td className="font-medium">{r.name}</Td><Td className="text-right tabular-nums">{r.count}</Td>
-                    <Td className="text-right tabular-nums">{r.count ? fmt(r.mean, parameter, r.unit) : <span className="text-ink-soft">no readings</span>}</Td>
-                    <Td className="text-right tabular-nums">{r.count ? fmt(r.min, parameter, r.unit) : 'n/a'}</Td><Td className="text-right tabular-nums">{r.count ? fmt(r.max, parameter, r.unit) : 'n/a'}</Td>
-                    <Td className="text-right tabular-nums">{r.count ? fmt(r.lastValue, parameter, r.unit) : 'n/a'}</Td>
-                  </Tr>
-                ))}
+                {[...q.data.ponds].sort((a, b) => (a.mean ?? Infinity) - (b.mean ?? Infinity)).map((r) => {
+                  const has = r.count > 0; const sev = has ? severity(r.lastValue, parameter, rules) : undefined;
+                  return (
+                    <Tr key={r.pondId}>
+                      <Td className={cx('max-w-56 font-semibold', STICKY_COL)}><span className="flex items-center gap-2"><span aria-hidden className="size-2 shrink-0 rounded-full bg-sage" /><span className="truncate" title={r.name}>{r.name}</span></span></Td>
+                      <Td className="text-right tabular-nums">{r.count}</Td>
+                      <Td className="text-right">{has ? <Num v={r.mean} p={parameter} unit={r.unit} /> : <span className="text-ink-soft">no readings</span>}</Td>
+                      <Td className="text-right">{has ? <Num v={r.min} p={parameter} unit={r.unit} /> : <span className="text-ink-soft">n/a</span>}</Td>
+                      <Td className="text-right">{has ? <Num v={r.max} p={parameter} unit={r.unit} /> : <span className="text-ink-soft">n/a</span>}</Td>
+                      <Td className={cx('whitespace-nowrap text-right', sev === 'critical' && 'shadow-[inset_3px_0_0_var(--color-crit)]', sev === 'warning' && 'shadow-[inset_3px_0_0_var(--color-warn)]')}>
+                        {has ? <><SeverityTag level={sev} /><span className="ml-2"><Num v={r.lastValue} p={parameter} unit={r.unit} bold /></span></> : <span className="text-ink-soft">n/a</span>}
+                      </Td>
+                    </Tr>
+                  );
+                })}
               </tbody>
             </Table>
           )}
-        <p className="px-5 pb-5 pt-3 text-xs text-ink-soft">Sorted by average, lowest first. Statistics cover only the selected window of recorded readings. Ponds without readings in the window are listed as &quot;no readings&quot;, never as zero.</p>
+        <p className="px-5 pb-5 pt-3 text-xs text-ink-soft">Sorted by average, lowest first. Warning and critical tags apply to the latest reading only, using the configured limits; minimum and maximum are history, not current conditions. Statistics cover only the selected window of recorded readings. Ponds without readings in the window are listed as &quot;no readings&quot;, never as zero.</p>
       </div>
     </Card>
   );
@@ -142,7 +181,7 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
           {mode === 'single' ? (
             <div className="flex flex-wrap items-end gap-4">
               <div className="w-full sm:w-60"><Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => setPondId(e.target.value)}>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field></div>
-              <div className="w-full sm:w-44"><Field label="Aggregation">{(id) => <Select id={id} value={bucketPref} onChange={(e) => setBucketPref(e.target.value as typeof bucketPref)}><option value="auto">Automatic</option><option value="hour">Hourly</option><option value="day">Daily</option></Select>}</Field></div>
+              <div className="w-full sm:w-44"><Field label="Detail level">{(id) => <Select id={id} value={bucketPref} onChange={(e) => setBucketPref(e.target.value as typeof bucketPref)}><option value="auto">Automatic</option><option value="hour">Hourly</option><option value="day">Daily</option></Select>}</Field></div>
             </div>
           ) : null}
         </div>
@@ -172,7 +211,7 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
             </fieldset>
           </Card>
           {picked.length > 0 && compareEnd === null ? <Notice tone="warning">None of the selected ponds has any recorded reading.</Notice> : null}
-          {ANALYTICS_PARAMS.map((p) => <CompareSection key={p} parameter={p} pondIds={picked} end={compareEnd} range={range} />)}
+          {ANALYTICS_PARAMS.map((p) => <CompareSection key={p} parameter={p} pondIds={picked} end={compareEnd} range={range} rules={rules} />)}
         </>
       )}
     </div>

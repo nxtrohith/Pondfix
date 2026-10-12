@@ -12,7 +12,6 @@
     "dev:backend": "npm start -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "build:frontend": "npm run build -w frontend",
-    "dev:local": "node backend/scripts/dev-local.js",
     "db:standardize-names": "npm run db:standardize-names -w database"
   }
 }

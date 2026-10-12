@@ -96,8 +96,8 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
       <div className="space-y-4 px-5 pb-5 pt-4">
         {db.loading ? <p className="text-[13px] text-ink-soft">Checking which database the API uses.</p>
           : db.error ? <Notice tone="warning">Could not check the API&apos;s database. The demo is disabled until the API responds. <button type="button" onClick={db.reload} className="underline">Retry</button></Notice>
-          : target === 'local' ? <Notice>The API is connected to a <strong className="font-medium">local test database</strong>. Demo readings stay on this machine and never reach Atlas.</Notice>
-          : <Notice tone="warning"><strong className="font-medium">The demo is disabled.</strong> {target === 'remote' ? 'This API is connected to a remote database, so running it would write simulated records there.' : 'This API did not report which database it uses.'} Stop the API and start the isolated one with <code className="font-mono text-xs">npm run dev:local</code>.</Notice>}
+          : db.canWrite ? <Notice tone="warning">Demo mode is on. The demo readings are <strong className="font-medium">saved to the Atlas database</strong>, marked as simulated.</Notice>
+          : <Notice tone="warning"><strong className="font-medium">The demo is disabled.</strong> {target === 'atlas' ? 'Demo mode is off on the API (DEMO_ENABLED=false), so simulated readings are not accepted.' : 'This API did not report an Atlas database.'}</Notice>}
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-full sm:w-64"><Field label="Pond">{(id) => <Select id={id} value={pondId} disabled={running || run === 'paused'} onChange={(e) => { setPondId(e.target.value); setSteps(blank()); setAlerts(null); setRun('idle'); }}>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field></div>

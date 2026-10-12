@@ -63,7 +63,7 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
 
   return (
     <Card aria-labelledby="species-title">
-      <CardHeader id="species-title" title="Species and safety profile"
+      <CardHeader id="species-title" title="Species and alert limits"
         description="The species raised in this pond decides which reference ranges AquaGuard shows with its alerts."
         action={!editing ? <Button size="sm" onClick={startEdit} disabled={catalogue.loading && !catalogue.data}><PencilSimple size={14} aria-hidden="true" />{configured ? 'Change species' : 'Select species'}</Button> : null} />
       <div className="space-y-4 px-5 pb-5 pt-4 text-[13px]">
@@ -75,7 +75,7 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
               <div><dt className="text-ink-soft">Saved species</dt><dd className="mt-0.5 text-[15px] font-medium text-ink">{saved ? saved.label : 'Species not set'}{saved?.cultureLabel ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5 align-middle text-xs font-normal text-ink-soft">{saved.cultureLabel}</span> : null}</dd></div>
               {saved?.scientificName ? <div><dt className="text-ink-soft">Scientific name</dt><dd className="mt-0.5 italic text-ink">{saved.scientificName}</dd></div> : null}
               {saved?.mode === 'polyculture' ? <div className="sm:col-span-2"><dt className="text-ink-soft">Species mix</dt><dd className="mt-0.5 text-ink">{saved.composition?.map((c) => `${c.displayName}${c.proportionPercent !== undefined ? ` ${c.proportionPercent}%` : ''}`).join(', ')}{saved.composition?.some((c) => c.proportionPercent === undefined) ? <span className="text-ink-soft"> (shares not recorded)</span> : null}</dd></div> : null}
-              <div><dt className="text-ink-soft">Safety profile</dt><dd className="mt-1">{safety ? <StatusPill tone={SAFETY_LABEL[safety.status].tone}>{SAFETY_LABEL[safety.status].label}</StatusPill> : <span className="text-ink-soft">Not available</span>}</dd></div>
+              <div><dt className="text-ink-soft">Alert limits</dt><dd className="mt-1">{safety ? <StatusPill tone={SAFETY_LABEL[safety.status].tone}>{SAFETY_LABEL[safety.status].label}</StatusPill> : <span className="text-ink-soft">Not available</span>}</dd></div>
               {saved?.configuredAt ? <div><dt className="text-ink-soft">Last saved</dt><dd className="mt-0.5 text-ink">{formatDateTime(saved.configuredAt)}</dd></div> : null}
             </dl>
             <Notice tone={safety?.alertsEnabled ? 'neutral' : 'warning'}>
