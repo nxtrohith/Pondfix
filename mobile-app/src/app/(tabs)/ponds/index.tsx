@@ -31,7 +31,7 @@ export default function PondsScreen() {
   const active = (filter !== 'ALL' ? 1 : 0) + (query.trim() ? 1 : 0);
 
   return (
-    <ScreenContainer bottomNav="ponds" testID="ponds-screen">
+    <ScreenContainer testID="ponds-screen">
       <AppHeader title="Ponds" subtitle="View and manage all your ponds" right={<DemoLabel />} />
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>

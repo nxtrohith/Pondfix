@@ -47,6 +47,26 @@ describe('dashboard', () => {
   });
 });
 
+describe('bottom navigation stays in sync with the page', () => {
+  it('a pond detail page keeps Ponds highlighted', () => {
+    renderApp('/ponds/pond-1');
+    expect(screen.getByRole('tab', { name: 'Ponds' })).toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Home' })).not.toBeSelected();
+  });
+  it('tapping a tab from a pond detail page opens that destination', () => {
+    renderApp('/ponds/pond-1');
+    press('tab', 'Alerts');
+    expect(screen.getByTestId('alerts-screen')).toBeOnTheScreen();
+    expect(screen.getByRole('tab', { name: 'Alerts' })).toBeSelected();
+  });
+  it('tapping a tab highlights it and the page behind it', () => {
+    renderApp('/dashboard');
+    press('tab', 'Alerts');
+    expect(screen.getByRole('tab', { name: 'Alerts' })).toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Home' })).not.toBeSelected();
+  });
+});
+
 describe('pond list', () => {
   it('searches by pond name and by species, case-insensitively', () => {
     renderApp('/ponds');

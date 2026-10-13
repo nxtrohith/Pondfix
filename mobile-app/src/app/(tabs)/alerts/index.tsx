@@ -26,7 +26,7 @@ export default function AlertsScreen() {
   const list: AlertItem[] = tab === 'active' ? active : resolved;
 
   return (
-    <ScreenContainer bottomNav="alerts" testID="alerts-screen">
+    <ScreenContainer testID="alerts-screen">
       <AppHeader title="Alerts" subtitle="Open problems and resolved history" />
       <DemoLabel />
       <SegmentedControl

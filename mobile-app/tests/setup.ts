@@ -11,3 +11,7 @@ jest.mock('@expo/vector-icons', () => {
   const Icon = ({ name, testID }: { name: string; testID?: string }) => React.createElement(Text, { testID: testID ?? `icon-${name}` }, '');
   return { Ionicons: Icon, MaterialIcons: Icon, MaterialCommunityIcons: Icon, Feather: Icon };
 });
+
+// Reduce-motion is read asynchronously by the app. Tests use a fixed value so state does not change after a test finishes.
+jest.spyOn(require('react-native').AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
+jest.spyOn(require('react-native').AccessibilityInfo, 'addEventListener').mockReturnValue({ remove: () => {} } as never);

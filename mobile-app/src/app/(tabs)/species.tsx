@@ -18,7 +18,7 @@ export default function SpeciesScreen() {
   const [selectedId, setSelectedId] = useState(SPECIES[0]!.id);
   const species = SPECIES.find((s) => s.id === selectedId) ?? SPECIES[0]!;
   return (
-    <ScreenContainer bottomNav="species" testID="species-screen">
+    <ScreenContainer testID="species-screen">
       <AppHeader title="Species" subtitle="Reference information for common culture species" />
       <DemoLabel text="Illustrative information · not validated alert limits" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabel="Species selector">

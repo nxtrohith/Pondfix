@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   const initials = profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <ScreenContainer bottomNav="profile" testID="profile-screen">
+    <ScreenContainer testID="profile-screen">
       <AppHeader title="Profile" />
       <DemoLabel text="Demo profile · not from a server" />
       <View style={styles.hero}>
