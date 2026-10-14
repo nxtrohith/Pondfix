@@ -224,3 +224,42 @@ test('CORS: both local dashboard origins are allowed, unknown origins are not', 
   const pre = await fetch(`${env.base}/api/alerts/${'a'.repeat(24)}/acknowledge`, { method: 'OPTIONS', headers: { origin: 'http://127.0.0.1:3000', 'access-control-request-method': 'PATCH' } });
   assert.match(pre.headers.get('access-control-allow-methods') ?? '', /PATCH/);
 });
+
+test('demo: one request carries DO, pH and temperature and all three are persisted as simulated', async () => {
+  const r = await env.post('/api/demo/measurement', { pondId: String(pond._id), dissolvedOxygen: 2.5, ph: 7.4, temperature: 28, recordedAt: '2026-03-01T11:30:00Z' });
+  assert.equal(r.status, 201); assert.equal(r.body.measurement.source, 'simulated'); assert.equal(r.body.demo.simulated, true);
+  const m = await env.db.collection('measurements').findOne({});
+  assert.equal(await env.db.collection('measurements').countDocuments(), 1, 'a single measurement document');
+  assert.deepEqual(m.values, [{ parameter: 'dissolved_oxygen', value: 2.5, unit: 'mg/L' }, { parameter: 'ph', value: 7.4, unit: 'pH' }, { parameter: 'temperature', value: 28, unit: 'C' }]);
+  assert.equal(String(m.pondId), String(pond._id)); assert.equal(m.source, 'simulated'); assert.equal(m.recordedAt.toISOString(), '2026-03-01T11:30:00.000Z');
+  assert.equal(r.body.risk.dissolved_oxygen.status, 'WARNING', 'DO still uses the existing thresholds');
+  assert.equal(r.body.risk.ph.status, 'UNKNOWN'); assert.equal(r.body.risk.temperature.status, 'UNKNOWN');
+  const alerts = await env.db.collection('alerts').find({}).toArray();
+  assert.equal(alerts.length, 1); assert.equal(alerts[0].parameter, 'dissolved_oxygen', 'only DO can raise an alert');
+  const latest = await env.get(`/api/ponds/${pond._id}/measurements/latest?source=simulated`);
+  assert.deepEqual(Object.keys(latest.body.parameters).sort(), ['dissolved_oxygen', 'ph', 'temperature']);
+});
+
+test('demo: extreme pH or temperature never invent an alert; DO lifecycle is unchanged when they are present', async () => {
+  const p = String(pond._id);
+  let r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 3.5, ph: 4.0, temperature: 45 });
+  assert.equal(r.status, 201); assert.equal(await env.db.collection('alerts').countDocuments(), 0, 'no pH/temperature rule exists, so no alert');
+  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, scenario: 'warning', ph: 7.4, temperature: 28 });
+  assert.equal(r.body.alerts[0].action, 'opened');
+  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 1.5, ph: 7.4, temperature: 28 });
+  assert.equal(r.body.alerts[0].action, 'escalated'); assert.equal(await env.db.collection('alerts').countDocuments(), 1);
+  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, dissolvedOxygen: 3.5, ph: 7.4, temperature: 28 });
+  assert.equal(r.body.alerts[0].action, 'resolved');
+  env.state.now = new Date(+env.state.now + 60000); r = await env.post('/api/demo/measurement', { pondId: p, ph: 7.2 });
+  assert.equal(r.status, 201); assert.deepEqual(r.body.alerts, [], 'a pH-only reading touches no alert');
+});
+
+test('demo: invalid values are rejected and nothing is stored', async () => {
+  const p = String(pond._id); const bad = async (b) => (await env.post('/api/demo/measurement', { pondId: p, ...b })).status;
+  assert.equal(await bad({ dissolvedOxygen: 2.5, ph: 15 }), 422); assert.equal(await bad({ ph: -1 }), 422);
+  assert.equal(await bad({ dissolvedOxygen: 2.5, temperature: 61 }), 422); assert.equal(await bad({ temperature: -6 }), 422);
+  assert.equal(await bad({ ph: '7.4' }), 422, 'strings are not numbers'); assert.equal(await bad({ dissolvedOxygen: 2.5, ph: null }), 422);
+  assert.equal(await bad({}), 422, 'at least one value is required'); assert.equal(await bad({ scenario: 'critical', dissolvedOxygen: 1 }), 422);
+  assert.equal(await bad({ dissolvedOxygen: 2.5, salinity: 3 }), 422, 'unknown fields are rejected');
+  assert.equal(await env.db.collection('measurements').countDocuments(), 0); assert.equal(await env.db.collection('alerts').countDocuments(), 0);
+});

@@ -23,6 +23,42 @@ export async function buildHistory(db, pondId, source, upTo, hours) {
   });
 }
 
+
+/** Worst DO forecast across horizons (the one that drives a predicted-risk alert). Input: [{ value, horizonMinutes, forecastFor }]. */
+export function worstDoForecast(items) {
+  const scored = items.map((d) => ({ ...d, cls: classify('dissolved_oxygen', d.value) }));
+  return scored.reduce((a, b) => (RANK[b.cls.status] > RANK[a.cls.status] ? b : a));
+}
+
+/**
+ * Builds the model request for one stored measurement (history strictly BEFORE it, so nothing later can leak in), calls the
+ * worker and flattens the response. Pure with respect to storage: persisting is the caller's decision.
+ * Returns { unsupported: true } when the measurement carries no parameter the model supports.
+ */
+export async function modelForecast({ db, ml, config, pond, measurement }) {
+  const history = (await buildHistory(db, pond._id, measurement.source, measurement.recordedAt, config.ml.historyHours))
+    .filter((r) => r.timestamp !== measurement.recordedAt.toISOString());
+  const meas = {};
+  for (const v of measurement.values) if (FROM_API[v.parameter]) meas[FROM_API[v.parameter]] = v.value;
+  if (!Object.keys(meas).length) return { unsupported: true };
+  const out = await ml.predict({
+    pondId: pond.sourceId || pond.name,
+    current: { timestamp: measurement.recordedAt.toISOString(), source: { historical: 'historical_replay', simulated: 'simulated', live: 'live_hardware' }[measurement.source], measurements: meas },
+    history,
+  });
+  const forecasts = [];
+  for (const [hm, byParam] of Object.entries(out.forecasts ?? {})) {
+    for (const [p, f] of Object.entries(byParam)) {
+      const ok = f.status === 'ok' && typeof f.value === 'number';
+      forecasts.push({
+        horizonMinutes: Number(hm), parameter: TO_API[p] ?? p, status: ok ? 'ok' : 'withheld', ...(ok ? { value: f.value, forecastFor: istToDate(f.target_timestamp) } : { reason: f.reason ?? f.status }),
+        selectedModel: f.selected_model, persistenceBaseline: f.persistence_baseline, typicalAbsError: f.typical_abs_error, absErrorQ90: f.abs_error_q90,
+      });
+    }
+  }
+  return { out, forecasts, historyRows: history.length };
+}
+
 /**
  * Runs inference for a stored measurement, persists predictions + a modelRuns audit row, and evaluates predicted-risk alerts.
  * Resolves with a status object; never throws for ML problems.
@@ -34,31 +70,21 @@ export async function runInference({ db, ml, config, pond, measurement, now }) {
   const finish = async (status, extra = {}) => { await runs.updateOne({ _id: runId }, { $set: { status, completedAt: new Date(), ...extra } }).catch(() => {}); };
   try {
     await runs.insertOne({ _id: runId, pondId: pond._id, status: 'RUNNING', startedAt: now, inputMeasurementIds: [measurement._id] });
-    const history = (await buildHistory(db, pond._id, measurement.source, measurement.recordedAt, config.ml.historyHours))
-      .filter((r) => r.timestamp !== measurement.recordedAt.toISOString());
-    const meas = {};
-    for (const v of measurement.values) if (FROM_API[v.parameter]) meas[FROM_API[v.parameter]] = v.value;
-    if (!Object.keys(meas).length) { await finish('FAILED', { errorCode: 'NO_SUPPORTED_PARAMETER' }); return { status: 'skipped', reason: 'measurement has no parameter the model supports', runId }; }
-    const out = await ml.predict({
-      pondId: pond.sourceId || pond.name,
-      current: { timestamp: measurement.recordedAt.toISOString(), source: { historical: 'historical_replay', simulated: 'simulated', live: 'live_hardware' }[measurement.source], measurements: meas },
-      history,
-    });
+    const fc = await modelForecast({ db, ml, config, pond, measurement });
+    if (fc.unsupported) { await finish('FAILED', { errorCode: 'NO_SUPPORTED_PARAMETER' }); return { status: 'skipped', reason: 'measurement has no parameter the model supports', runId }; }
+    const { out } = fc;
     const modelVersion = out.model?.bundle_id || undefined;
     const docs = [];
-    for (const [hm, byParam] of Object.entries(out.forecasts)) {
-      for (const [p, f] of Object.entries(byParam)) {
-        if (f.status !== 'ok' || typeof f.value !== 'number') continue; // withheld forecasts are not stored
-        const parameter = TO_API[p];
-        docs.push(stripUndefined({
-          pondId: pond._id, parameter, predictedValue: f.value, unit: UNIT[parameter],
-          forecastFor: istToDate(f.target_timestamp), generatedAt: now,
-          modelName: 'aquaguard-multivariate', ...(modelVersion ? { modelVersion } : {}),
-          horizon: { value: Number(hm), unit: 'minutes' }, sourceMeasurementIds: [measurement._id], modelRunId: runId,
-          dataSource: measurement.source, selectedModel: f.selected_model, persistenceBaseline: f.persistence_baseline,
-          typicalAbsError: f.typical_abs_error, absErrorQ90: f.abs_error_q90, createdAt: now,
-        }));
-      }
+    for (const f of fc.forecasts) {
+      if (f.status !== 'ok') continue; // withheld forecasts are not stored
+      docs.push(stripUndefined({
+        pondId: pond._id, parameter: f.parameter, predictedValue: f.value, unit: UNIT[f.parameter],
+        forecastFor: f.forecastFor, generatedAt: now,
+        modelName: 'aquaguard-multivariate', ...(modelVersion ? { modelVersion } : {}),
+        horizon: { value: f.horizonMinutes, unit: 'minutes' }, sourceMeasurementIds: [measurement._id], modelRunId: runId,
+        dataSource: measurement.source, selectedModel: f.selectedModel, persistenceBaseline: f.persistenceBaseline,
+        typicalAbsError: f.typicalAbsError, absErrorQ90: f.absErrorQ90, createdAt: now,
+      }));
     }
     if (docs.length) await db.collection('predictions').insertMany(docs);
     await finish('SUCCEEDED', { predictionIds: docs.length ? (await db.collection('predictions').find({ modelRunId: runId }, { projection: { _id: 1 } }).toArray()).map((d) => d._id) : [] });
@@ -67,14 +93,12 @@ export async function runInference({ db, ml, config, pond, measurement, now }) {
     let alert = { action: 'none' };
     const doForecasts = docs.filter((d) => d.parameter === 'dissolved_oxygen');
     if (doForecasts.length) {
-      const scored = doForecasts.map((d) => ({ d, cls: classify('dissolved_oxygen', d.predictedValue) }));
-      const top = scored.reduce((a, b) => (RANK[b.cls.status] > RANK[a.cls.status] ? b : a));
-      const horizon = top.d.horizon.value;
+      const top = worstDoForecast(doForecasts.map((d) => ({ value: d.predictedValue, horizonMinutes: d.horizon.value, forecastFor: d.forecastFor })));
       alert = await applyCondition(db, {
         pondId: pond._id, origin: 'predicted', parameter: 'dissolved_oxygen', dataSource: measurement.source, cls: top.cls,
-        triggerValue: top.d.predictedValue, at: now, now,
-        message: `FORECAST (not observed): dissolved oxygen predicted ${top.d.predictedValue} mg/L in ${horizon} min, below ${top.cls.threshold} mg/L`,
-        extra: { horizonMinutes: horizon, forecastFor: top.d.forecastFor },
+        triggerValue: top.value, at: now, now,
+        message: `FORECAST (not observed): dissolved oxygen predicted ${top.value} mg/L in ${top.horizonMinutes} min, below ${top.cls.threshold} mg/L`,
+        extra: { horizonMinutes: top.horizonMinutes, forecastFor: top.forecastFor },
       });
     }
     return { status: 'ok', runId, predictions: docs.length, warnings: out.warnings?.slice(0, 10) ?? [], predictedAlert: alert };

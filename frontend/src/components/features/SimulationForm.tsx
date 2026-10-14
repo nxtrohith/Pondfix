@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { browserApi, ApiError } from '@/lib/api/client';
 import type { IngestResponse, RiskRules } from '@/lib/api/schemas';
 import { useApiQuery } from '@/lib/useApiQuery';
-import { buildSimRequest, isoToUtcInput, type Scenario } from '@/lib/simulation';
+import { useDbTarget } from '@/lib/useDbTarget';
+import { SIM_BOUNDS, SIM_LABEL, SIM_PRESETS, SIM_UNIT, buildSimRequest, defaultSimInput, isoToUtcInput, type ParamInput, type Scenario, type SimErrors, type SimInput, type SimParam } from '@/lib/simulation';
 import { fmtThreshold, formatAge, formatDateTime, formatValue } from '@/lib/format';
 import { RISK_LABEL, RISK_TONE } from '@/lib/status';
 import type { TrendPond } from './MeasurementTrend';
@@ -18,11 +19,7 @@ import { Skeleton } from '../ui/Skeleton';
 import { cx } from '../ui/cx';
 import { AlertDemoRunner } from './AlertDemoRunner';
 
-const SCENARIO_COPY: Record<Scenario, { label: string; text: string }> = {
-  healthy: { label: 'Healthy', text: 'Dissolved oxygen above the warning limit' },
-  warning: { label: 'Warning', text: 'Between the critical and warning limits' },
-  critical: { label: 'Critical', text: 'Below the critical limit' },
-};
+const SCENARIO_LABEL: Record<Scenario, string> = { healthy: 'Healthy example', warning: 'Warning example', critical: 'Critical example' };
 const ACTION_TEXT: Record<string, string> = { opened: 'Opened a new alert', updated: 'Updated the open alert', escalated: 'Escalated the open alert', resolved: 'Resolved the open alert', none: 'No alert change' };
 const INFERENCE_TEXT: Record<string, string> = {
   ok: 'Forecasts were generated and stored.',
@@ -31,35 +28,46 @@ const INFERENCE_TEXT: Record<string, string> = {
   disabled: 'Forecasting is disabled on this server.',
   skipped: 'Forecasting was skipped for this reading.',
 };
+const PARAM_ORDER: SimParam[] = ['dissolved_oxygen', 'ph', 'temperature'];
 
 export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: RiskRules | null }) {
   const api = useMemo(() => browserApi(), []);
   const scen = useApiQuery((s) => api.demoScenarios(s), []);
-  const [pondId, setPondId] = useState(ponds[0]?.id ?? '');
-  const [mode, setMode] = useState<'scenario' | 'custom'>('scenario');
-  const [scenario, setScenario] = useState<Scenario>('critical');
-  const [customDo, setCustomDo] = useState('');
-  const [useNow, setUseNow] = useState(true);
-  const [recordedAtInput, setRecordedAtInput] = useState('');
-  const [errors, setErrors] = useState<{ doValue?: string; recordedAt?: string; pond?: string }>({});
+  const db = useDbTarget();
+  const [input, setInput] = useState<SimInput>(() => defaultSimInput(ponds[0]?.id ?? ''));
+  const [errors, setErrors] = useState<SimErrors>({});
   const [confirm, setConfirm] = useState<ReturnType<typeof buildSimRequest> | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IngestResponse | null>(null);
+  const [sent, setSent] = useState<unknown>(null);
   const [failure, setFailure] = useState<unknown>(null);
 
-  const pond = ponds.find((p) => p.id === pondId);
-  const preview = buildSimRequest({ pondId, mode, scenario, customDo, useNow, recordedAtInput });
-  const doValue = mode === 'scenario' ? scen.data?.scenarios[scenario]?.dissolved_oxygen : preview.ok ? preview.body.dissolvedOxygen : undefined;
+  const pond = ponds.find((p) => p.id === input.pondId);
+  const preview = buildSimRequest(input);
+  const setParam = (p: SimParam, patch: Partial<ParamInput>) => setInput((s) => ({ ...s, [p]: { ...s[p], ...patch } }));
+
+  /** Rows describing what will be sent, derived from the same request builder that produces the HTTP body. */
+  const previewRows = useMemo(() => {
+    const rows: { param: SimParam; text: string }[] = [];
+    if (!preview.ok) return rows;
+    const b = preview.body;
+    const doNum = b.scenario ? scen.data?.scenarios[b.scenario]?.dissolved_oxygen : b.dissolvedOxygen;
+    if (doNum !== undefined) rows.push({ param: 'dissolved_oxygen', text: `${doNum} ${SIM_UNIT.dissolved_oxygen}${b.scenario ? ` (${SCENARIO_LABEL[b.scenario].toLowerCase()})` : ''}` });
+    if (b.ph !== undefined) rows.push({ param: 'ph', text: `${b.ph}` });
+    if (b.temperature !== undefined) rows.push({ param: 'temperature', text: `${b.temperature} ${SIM_UNIT.temperature}` });
+    return rows;
+  }, [preview, scen.data]);
+  const doNumber = previewRows.find((r) => r.param === 'dissolved_oxygen') ? Number(previewRows.find((r) => r.param === 'dissolved_oxygen')!.text.split(' ')[0]) : undefined;
 
   function request() {
     setResult(null); setFailure(null);
-    const built = buildSimRequest({ pondId, mode, scenario, customDo, useNow, recordedAtInput });
+    const built = buildSimRequest(input);
     if (!built.ok) { setErrors(built.errors); return; }
     setErrors({}); setConfirm(built);
   }
   async function run() {
-    if (!confirm?.ok) return;
-    setBusy(true);
+    if (!confirm?.ok || !db.canWrite) return;
+    setBusy(true); setSent(confirm.body);
     try { setResult(await api.demoMeasurement(confirm.body)); setConfirm(null); }
     catch (e) { setFailure(e); setConfirm(null); }
     finally { setBusy(false); }
@@ -71,54 +79,75 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
 
   return (
     <div className="space-y-6">
-      <Notice tone="warning"><strong className="font-medium">This page saves test data.</strong> A simulation stores a real record marked &quot;Simulated&quot;, can open or resolve alerts, and can create forecasts. It never changes anything until you confirm. There is no delete action, so saved simulated readings remain in the database.</Notice>
+      <Notice tone="warning"><strong className="font-medium">This page saves test data.</strong> A simulation stores a real record marked &quot;Simulated&quot;, can open or resolve dissolved-oxygen alerts, and can create forecasts. Nothing changes until you confirm, and it only runs against a local test database. There is no delete action, so saved simulated readings remain in that database.</Notice>
+      {!db.loading && !db.canWrite ? <Notice tone="warning"><strong className="font-medium">Simulation is disabled.</strong> {db.error ? 'The API\'s database could not be checked.' : db.target === 'remote' ? 'This API is connected to a remote database, so a simulation would write test records there.' : 'This API did not report which database it uses.'} Stop it and start the isolated one with <code className="font-mono text-xs">npm run dev:local</code>.</Notice> : null}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="p-5"><p className="text-sm font-medium text-ink">Simulated reading</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">One reading with dissolved oxygen, pH and temperature, sent as a single request. Use the form further down. Only dissolved oxygen can raise alerts.</p></Card>
+        <Card className="p-5"><p className="text-sm font-medium text-ink">Guided alert demo</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">Four dissolved-oxygen readings in sequence (3.5, 2.5, 1.5, 3.5 mg/L) that open, escalate and resolve one alert. It sends dissolved oxygen only.</p></Card>
+      </div>
 
       <AlertDemoRunner ponds={ponds} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card aria-labelledby="sim-form">
-          <CardHeader id="sim-form" title="Simulated reading" description="Submits one dissolved-oxygen reading through the same pipeline as a sensor reading." />
+          <CardHeader id="sim-form" title="Simulated reading: DO, pH and temperature" description="Choose an example or enter your own value for each parameter. All included values are saved together in one reading." />
           <form className="space-y-5 px-5 pb-5 pt-4" onSubmit={(e) => { e.preventDefault(); request(); }} noValidate>
-            <Field label="Pond" error={errors.pond}>{(id, d) => <Select id={id} aria-describedby={d} value={pondId} onChange={(e) => setPondId(e.target.value)}>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
+            <Field label="Pond" error={errors.pond}>{(id, d) => <Select id={id} aria-describedby={d} value={input.pondId} onChange={(e) => setInput((s) => ({ ...s, pondId: e.target.value }))}>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
 
             <fieldset>
-              <legend className="mb-1.5 text-[13px] font-medium text-ink">Dissolved oxygen</legend>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Scenario">
-                {(Object.keys(SCENARIO_COPY) as Scenario[]).map((k) => {
-                  const on = mode === 'scenario' && scenario === k;
+              <legend className="mb-2 text-[13px] font-medium text-ink">Values</legend>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                {PARAM_ORDER.map((p) => {
+                  const v = input[p]; const [lo, hi] = SIM_BOUNDS[p]; const err = errors[p];
                   return (
-                    <label key={k} className={cx('flex cursor-pointer flex-col rounded-lg border px-3 py-2.5 text-[13px] transition-colors duration-150', on ? 'border-olive bg-sage-pale' : 'border-line bg-card hover:bg-surface')}>
-                      <span className="flex items-center gap-2"><input type="radio" name="scenario" className="accent-[#637957]" checked={on} onChange={() => { setMode('scenario'); setScenario(k); }} /><span className="font-medium text-ink">{SCENARIO_COPY[k].label}</span><span className="ml-auto tabular-nums text-ink-soft">{scen.data?.scenarios[k]?.dissolved_oxygen} mg/L</span></span>
-                      <span className="mt-1 pl-6 text-xs text-ink-soft">{SCENARIO_COPY[k].text}</span>
-                    </label>
+                    <div key={p} className={cx('rounded-lg border p-3.5', v.include ? 'border-line bg-card' : 'border-line bg-surface/60')}>
+                      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+                        <input type="checkbox" className="size-4 accent-[#637957]" checked={v.include} onChange={(e) => setParam(p, { include: e.target.checked })} />
+                        {SIM_LABEL[p]} <span className="font-normal text-ink-soft">({SIM_UNIT[p]})</span>
+                      </label>
+                      <div className="mt-3 space-y-2.5">
+                        <Field label="Value">
+                          {(id) => (
+                            <Select id={id} disabled={!v.include} value={v.choice} onChange={(e) => setParam(p, { choice: e.target.value })}>
+                              {p === 'dissolved_oxygen'
+                                ? (['healthy', 'warning', 'critical'] as Scenario[]).map((k) => <option key={k} value={k}>{SCENARIO_LABEL[k]} ({scen.data?.scenarios[k]?.dissolved_oxygen} mg/L)</option>)
+                                : SIM_PRESETS[p].map((n) => <option key={n} value={String(n)}>{n} {SIM_UNIT[p] === 'pH' ? 'pH' : SIM_UNIT[p]} (example)</option>)}
+                              <option value="custom">Custom value</option>
+                            </Select>
+                          )}
+                        </Field>
+                        {v.choice === 'custom' ? (
+                          <Field label={`Custom ${SIM_LABEL[p].toLowerCase()} (${SIM_UNIT[p]})`} hint={`Between ${lo} and ${hi}`} error={err}>
+                            {(id, d) => <Input id={id} aria-describedby={d} inputMode="decimal" disabled={!v.include} value={v.custom} onChange={(e) => setParam(p, { custom: e.target.value })} placeholder={p === 'ph' ? 'e.g. 7.4' : p === 'temperature' ? 'e.g. 28' : 'e.g. 2.4'} />}
+                          </Field>
+                        ) : err ? <p role="alert" className="text-xs text-crit-text">{err}</p> : null}
+                      </div>
+                      <p className="mt-2.5 text-xs leading-snug text-ink-soft">
+                        {p === 'dissolved_oxygen' && rules ? `Alerts: below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} is critical, ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} to ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} is a warning.` : p === 'dissolved_oxygen' ? 'Drives alerts.' : 'Stored and charted. No validated alert rule exists, so it never raises an alert.'}
+                      </p>
+                    </div>
                   );
                 })}
               </div>
-              <div className="mt-3">
-                <label className={cx('flex cursor-pointer items-center gap-2 text-[13px]', mode === 'custom' ? 'text-ink' : 'text-ink-soft')}>
-                  <input type="radio" name="scenario" className="accent-[#637957]" checked={mode === 'custom'} onChange={() => setMode('custom')} />Custom value
-                </label>
-                <div className="mt-2 max-w-[220px]">
-                  <Field label="Dissolved oxygen (mg/L)" hint="Between 0 and 50" error={errors.doValue}>{(id, d) => <Input id={id} aria-describedby={d} inputMode="decimal" disabled={mode !== 'custom'} value={customDo} onChange={(e) => setCustomDo(e.target.value)} placeholder="e.g. 2.4" />}</Field>
-                </div>
-              </div>
+              {errors.include ? <p role="alert" className="mt-2 text-xs text-crit-text">{errors.include}</p> : null}
             </fieldset>
 
             <fieldset>
               <legend className="mb-1.5 text-[13px] font-medium text-ink">Reading time</legend>
-              <label className="flex cursor-pointer items-center gap-2 text-[13px]"><input type="checkbox" className="size-4 accent-[#637957]" checked={useNow} onChange={(e) => setUseNow(e.target.checked)} />Use the current time</label>
-              {!useNow ? (
+              <label className="flex cursor-pointer items-center gap-2 text-[13px]"><input type="checkbox" className="size-4 accent-[#637957]" checked={input.useNow} onChange={(e) => setInput((s) => ({ ...s, useNow: e.target.checked }))} />Use the current time</label>
+              {!input.useNow ? (
                 <div className="mt-3 flex flex-wrap items-end gap-3">
-                  <div className="w-60"><Field label="Reading time (UTC)" hint="Date and time in UTC" error={errors.recordedAt}>{(id, d) => <Input id={id} aria-describedby={d} type="datetime-local" value={recordedAtInput} onChange={(e) => setRecordedAtInput(e.target.value)} />}</Field></div>
-                  {pond?.latestAt ? <Button size="sm" onClick={() => setRecordedAtInput(isoToUtcInput(new Date(Date.parse(pond.latestAt!) - 3 * 86400_000).toISOString()))}>Use a time inside this pond&apos;s history</Button> : null}
+                  <div className="w-60"><Field label="Reading time (UTC)" hint="Date and time in UTC" error={errors.recordedAt}>{(id, d) => <Input id={id} aria-describedby={d} type="datetime-local" value={input.recordedAtInput} onChange={(e) => setInput((s) => ({ ...s, recordedAtInput: e.target.value }))} />}</Field></div>
+                  {pond?.latestAt ? <Button size="sm" onClick={() => setInput((s) => ({ ...s, recordedAtInput: isoToUtcInput(new Date(Date.parse(pond.latestAt!) - 3 * 86400_000).toISOString()) }))}>Use a time inside this pond&apos;s history</Button> : null}
                 </div>
               ) : null}
-              {!useNow ? <p className="mt-2 max-w-[62ch] text-xs leading-relaxed text-ink-soft">A past time inside a pond&apos;s recorded history lets the model forecast from that point. The simulated value is then added to the real history around it, so the forecast reflects a mix of real and simulated data and is labelled as simulated.</p> : null}
+              {!input.useNow ? <p className="mt-2 max-w-[62ch] text-xs leading-relaxed text-ink-soft">A past time inside a pond&apos;s recorded history lets the model forecast from that point. A single reading never provides the 24 hours of earlier history the model needs by itself; at the current time most ponds have none, so no forecast is made. The simulated values are added to the real history around that time, and the forecast is labelled simulated.</p> : null}
             </fieldset>
 
-            <div className="flex items-center gap-3 pt-1">
-              <Button variant="primary" type="submit">Review and run simulation</Button>
-              <p className="text-xs text-ink-soft">You will be asked to confirm before anything is saved.</p>
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button variant="primary" type="submit" disabled={!db.canWrite}>Review and save simulated reading</Button>
+              <p className="text-xs text-ink-soft">{db.canWrite ? 'You will be asked to confirm before anything is saved.' : 'Disabled: the API is not on a verified local database.'}</p>
             </div>
           </form>
         </Card>
@@ -127,33 +156,43 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
           <Card aria-labelledby="sim-prev" className="self-start">
             <CardHeader id="sim-prev" title="What will be submitted" description="Nothing is sent yet." />
             <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
-              {[
-                ['Pond', pond?.name ?? 'n/a'],
-                ['Dissolved oxygen', doValue === undefined ? 'n/a' : `${doValue} mg/L`],
-                ['Reading time', useNow ? 'Now (set by the server)' : preview.ok && preview.body.recordedAt ? formatDateTime(preview.body.recordedAt) : 'Not set'],
-              ].map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-ink-soft">{k}</dt><dd className="text-right tabular-nums text-ink">{v}</dd></div>)}
+              <div className="flex justify-between gap-4"><dt className="text-ink-soft">Pond</dt><dd className="text-right tabular-nums text-ink">{pond?.name ?? 'n/a'}</dd></div>
+              {PARAM_ORDER.map((p) => { const row = previewRows.find((r) => r.param === p); return (
+                <div key={p} className="flex justify-between gap-4"><dt className="text-ink-soft">{SIM_LABEL[p]}</dt><dd className="text-right tabular-nums text-ink">{input[p].include ? (row ? row.text : <span className="text-ink-soft">Invalid, see form</span>) : <span className="text-ink-soft">Not included</span>}</dd></div>
+              ); })}
+              <div className="flex justify-between gap-4"><dt className="text-ink-soft">Reading time</dt><dd className="text-right tabular-nums text-ink">{input.useNow ? 'Now (set by the server)' : preview.ok && preview.body.recordedAt ? formatDateTime(preview.body.recordedAt) : 'Not set'}</dd></div>
               <div className="flex items-center justify-between gap-4"><dt className="text-ink-soft">Data source</dt><dd><SourceBadge source="simulated" /></dd></div>
-              {rules && doValue !== undefined ? <p className="border-t border-line pt-3 text-xs text-ink-soft">Under the backend rules, {doValue} {rules.dissolvedOxygen.unit} is {doValue < rules.dissolvedOxygen.criticalBelow ? 'critical (below ' + fmtThreshold(rules.dissolvedOxygen.criticalBelow) + ')' : doValue < rules.dissolvedOxygen.warningBelow ? 'a warning (below ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')' : 'not a warning (at or above ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')'}. The server makes the final classification.</p> : null}
+              {rules && doNumber !== undefined ? <p className="border-t border-line pt-3 text-xs text-ink-soft">Under the backend rules, {doNumber} {rules.dissolvedOxygen.unit} is {doNumber < rules.dissolvedOxygen.criticalBelow ? 'critical (below ' + fmtThreshold(rules.dissolvedOxygen.criticalBelow) + ')' : doNumber < rules.dissolvedOxygen.warningBelow ? 'a warning (below ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')' : 'not a warning (at or above ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')'}. The server makes the final classification.</p> : null}
             </dl>
           </Card>
 
           <div aria-live="polite">
-            {failure ? <Card><ErrorState error={failure} title="The simulation was not saved" onRetry={() => setFailure(null)} /></Card> : null}
+            {failure ? <Card><ErrorState error={failure} title="The simulation was not saved" onRetry={() => setFailure(null)} />{failure instanceof ApiError && failure.details?.length ? <ul className="px-6 pb-5 text-xs text-crit-text">{failure.details.map((d, i) => <li key={i}>{d.path}: {d.message}</li>)}</ul> : null}</Card> : null}
             {result ? (
               <Card aria-labelledby="sim-res">
                 <CardHeader id="sim-res" title="Result from the server" description={result.duplicate ? 'This reading was already saved.' : 'The simulated reading was saved.'} />
                 <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
                   <div className="flex justify-between gap-4"><dt className="text-ink-soft">Stored as</dt><dd className="flex items-center gap-2"><SourceBadge source={result.measurement.source} /></dd></div>
                   <div className="flex justify-between gap-4"><dt className="text-ink-soft">Reading time</dt><dd className="tabular-nums">{formatDateTime(result.measurement.recordedAt)}</dd></div>
-                  {Object.entries(result.risk).map(([p, r]) => (
-                    <div key={p} className="flex items-center justify-between gap-4"><dt className="text-ink-soft">Classification</dt><dd className="flex items-center gap-2"><span className="tabular-nums">{formatValue(r.value, p)} {r.unit}</span><StatusPill tone={RISK_TONE[(r.status === 'NORMAL' || r.status === 'WARNING' || r.status === 'CRITICAL' ? r.status : 'UNKNOWN')]}>{RISK_LABEL[(r.status === 'NORMAL' || r.status === 'WARNING' || r.status === 'CRITICAL' ? r.status : 'UNKNOWN')]}</StatusPill></dd></div>
-                  ))}
+                  {result.measurement.values.map((m) => {
+                    const r = result.risk[m.parameter]; const known = r && (r.status === 'NORMAL' || r.status === 'WARNING' || r.status === 'CRITICAL');
+                    return (
+                      <div key={m.parameter} className="flex items-center justify-between gap-4"><dt className="text-ink-soft">{SIM_LABEL[m.parameter as SimParam] ?? m.parameter}</dt>
+                        <dd className="flex items-center gap-2"><span className="tabular-nums">{formatValue(m.value, m.parameter)} {m.unit === 'C' ? '°C' : m.unit === 'pH' ? '' : m.unit}</span>
+                          {known ? <StatusPill tone={RISK_TONE[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}>{RISK_LABEL[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}</StatusPill> : <StatusPill tone="muted">No alert rule</StatusPill>}</dd></div>
+                    );
+                  })}
                   <div className="flex justify-between gap-4"><dt className="text-ink-soft">Alerts</dt><dd className="text-right">{result.alerts.length ? result.alerts.map((a) => ACTION_TEXT[a.action] ?? a.action).join(', ') : 'No alert change'}{!result.alertStateUpdated ? <span className="block text-xs text-ink-soft">Older than the newest reading, so alert state was not changed.</span> : null}</dd></div>
                   <div><dt className="text-ink-soft">Forecast</dt><dd className="mt-0.5">{INFERENCE_TEXT[result.inference.status] ?? result.inference.status}{result.inference.predictions ? ` (${result.inference.predictions} values)` : ''}</dd></div>
                   {result.inference.warnings?.length ? <div><dt className="text-ink-soft">Notes from the model</dt><dd className="mt-0.5 text-xs text-ink-soft">{result.inference.warnings.join(' ')}</dd></div> : null}
                 </dl>
+                <details className="border-t border-line px-5 py-3 text-xs">
+                  <summary className="cursor-pointer text-ink-soft hover:text-ink">Request sent and raw server response</summary>
+                  <pre className="mt-2 overflow-x-auto rounded-lg bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">{JSON.stringify({ request: sent, response: result }, null, 2)}</pre>
+                </details>
                 <div className="flex flex-wrap gap-2 border-t border-line px-5 py-4">
                   <Link href={`/ponds/${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>Open pond</Link>
+                  <Link href={`/analytics`} className={linkButtonClass('secondary', 'sm')}>View analytics</Link>
                   <Link href="/alerts" className={linkButtonClass('secondary', 'sm')}>View alerts</Link>
                   <Link href={`/forecasts?pond=${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>View forecasts</Link>
                 </div>
@@ -164,9 +203,10 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
       </div>
 
       <ConfirmDialog open={confirm !== null && confirm.ok} title="Save this simulated reading?" confirmLabel="Save simulated reading" busy={busy} onConfirm={run} onCancel={() => !busy && setConfirm(null)}>
-        <p>This permanently stores a reading for <strong className="font-medium text-ink">{pond?.name}</strong> with dissolved oxygen <strong className="font-medium text-ink">{doValue} mg/L</strong>, marked as simulated.</p>
-        <p>It can open, update or resolve alerts for this pond and may create forecasts. It cannot be deleted from this interface.</p>
-        {pond?.latestAt && !useNow ? <p className="text-xs">This pond&apos;s recorded history ends {formatAge(pond.latestAgeMinutes)}.</p> : null}
+        <p>This permanently stores one reading for <strong className="font-medium text-ink">{pond?.name}</strong>, marked as simulated, on the connected local test database:</p>
+        <ul className="list-disc space-y-0.5 pl-5">{previewRows.map((r) => <li key={r.param}><strong className="font-medium text-ink">{SIM_LABEL[r.param]}</strong>: {r.text}</li>)}</ul>
+        <p>A dissolved-oxygen value can open, update or resolve an alert and may create forecasts. It cannot be deleted from this interface.</p>
+        {pond?.latestAt && !input.useNow ? <p className="text-xs">This pond&apos;s recorded history ends {formatAge(pond.latestAgeMinutes)}.</p> : null}
       </ConfirmDialog>
     </div>
   );

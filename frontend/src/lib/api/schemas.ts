@@ -185,3 +185,45 @@ export const ingestResponse = z.object({
 export type IngestResponse = z.infer<typeof ingestResponse>;
 
 export const errorEnvelope = z.object({ error: z.object({ code: z.string(), message: z.string(), details: z.array(z.object({ path: z.string(), message: z.string() })).optional() }) });
+
+// ---- Historical replay (read-only endpoints; nothing is stored) ----
+const riskStatus = z.enum(['NORMAL', 'WARNING', 'CRITICAL', 'UNKNOWN']);
+const presetSchema = z.object({
+  valid: z.boolean(), minCoverage: z.number(), records: z.number(),
+  from: iso.optional(), to: iso.optional(), expected: z.number().optional(), coverage: z.number().optional(), gaps: z.number().optional(), maxGapMinutes: z.number().optional(),
+});
+export type ReplayPreset = z.infer<typeof presetSchema>;
+export const replayPondsResponse = z.object({
+  items: z.array(pondSchema.extend({ records: z.number(), first: iso, last: iso })),
+  expectedIntervalMinutes: z.number(),
+});
+export type ReplayPondsResponse = z.infer<typeof replayPondsResponse>;
+export const replayCoverageResponse = z.object({
+  pond: pondSchema, records: z.number(), duplicateTimestamps: z.number(), first: iso.nullable(), last: iso.nullable(),
+  expectedIntervalMinutes: z.number(), gapThresholdMinutes: z.number(), presets: z.record(z.string(), presetSchema),
+});
+export type ReplayCoverage = z.infer<typeof replayCoverageResponse>;
+export const replayRecordSchema = z.object({
+  recordedAt: iso, sourceTimestamp: z.string().optional(), sourceTimezone: z.string().optional(), qcFlags: z.array(z.string()),
+  values: z.array(measurementValueSchema), risk: z.record(z.string(), z.object({ status: riskStatus, threshold: z.number().optional() })), gapBeforeMinutes: z.number().nullable(),
+});
+export type ReplayRecord = z.infer<typeof replayRecordSchema>;
+export const replayWindowResponse = z.object({
+  pond: pondSchema, source: z.literal('historical'), kind: z.literal('historical_replay'), dataset: z.string().nullable(), from: iso, to: iso,
+  records: z.number(), duplicatesSkipped: z.number(), gaps: z.array(z.object({ from: iso, to: iso, minutes: z.number() })),
+  expectedIntervalMinutes: z.number(), items: z.array(replayRecordSchema), note: z.string(),
+});
+export type ReplayWindow = z.infer<typeof replayWindowResponse>;
+const replayForecastItem = z.object({
+  horizonMinutes: z.number(), parameter: z.string(), status: z.enum(['ok', 'withheld']),
+  value: z.number().optional(), forecastFor: iso.optional(), reason: z.string().optional(), risk: riskStatus.optional(),
+  selectedModel: z.string().optional(), typicalAbsError: z.number().optional(), absErrorQ90: z.number().optional(), persistenceBaseline: z.number().optional(),
+});
+export type ReplayForecastItem = z.infer<typeof replayForecastItem>;
+export const replayForecastResponse = z.object({
+  asOf: iso, status: z.enum(['ok', 'insufficient_history', 'unavailable', 'disabled', 'skipped']), persisted: z.literal(false),
+  forecasts: z.array(replayForecastItem), historyRows: z.number().optional(), model: z.string().nullable().optional(), warnings: z.array(z.string()).optional(),
+  predictedRisk: z.object({ status: riskStatus, value: z.number(), horizonMinutes: z.number(), forecastFor: iso }).nullable().optional(),
+  errorCode: z.string().optional(), message: z.string().optional(), reason: z.string().optional(),
+});
+export type ReplayForecast = z.infer<typeof replayForecastResponse>;

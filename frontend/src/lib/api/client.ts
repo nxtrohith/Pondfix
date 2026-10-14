@@ -105,8 +105,12 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     analytics: (id: string, query: { parameter?: string; from?: string; to?: string; source?: string; bucket?: 'none' | 'hour' | 'day' }, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/analytics`, { schema: S.analyticsResponse, query, signal }),
     compare: (query: { parameter?: string; from?: string; to?: string; pondIds?: string }, signal?: AbortSignal) => request('/analytics/compare', { schema: S.compareResponse, query, signal }),
+    replayPonds: (signal?: AbortSignal) => request('/replay/ponds', { schema: S.replayPondsResponse, signal }),
+    replayCoverage: (id: string, signal?: AbortSignal) => request(`/replay/ponds/${enc(id)}`, { schema: S.replayCoverageResponse, signal }),
+    replayWindow: (id: string, query: { from: string; to: string }, signal?: AbortSignal) => request(`/replay/ponds/${enc(id)}/window`, { schema: S.replayWindowResponse, query, signal }),
+    replayForecast: (body: { pondId: string; at: string }, signal?: AbortSignal) => request('/replay/forecast', { schema: S.replayForecastResponse, method: 'POST', body, signal }),
     demoScenarios: (signal?: AbortSignal) => request('/demo/scenarios', { schema: S.scenariosResponse, signal }),
-    demoMeasurement: (body: { pondId: string; scenario?: 'healthy' | 'warning' | 'critical'; dissolvedOxygen?: number; recordedAt?: string }, signal?: AbortSignal) =>
+    demoMeasurement: (body: { pondId: string; scenario?: 'healthy' | 'warning' | 'critical'; dissolvedOxygen?: number; ph?: number; temperature?: number; recordedAt?: string }, signal?: AbortSignal) =>
       request('/demo/measurement', { schema: S.ingestResponse, method: 'POST', body, signal }),
   };
 }

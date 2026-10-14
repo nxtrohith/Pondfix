@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { breakGaps, gapThreshold, splitBySource, summarize } from '@/lib/chart';
+import { axisTicks, breakGaps, chartDomain, gapThreshold, splitBySource, summarize } from '@/lib/chart';
 import { formatAge, formatAxisTime, formatDateTime, formatValue, fmtThreshold, unitLabel } from '@/lib/format';
 import { fleetStats, sortRows, toRow, alertSeverityCounts } from '@/lib/fleet';
-import { buildSimRequest, utcInputToIso } from '@/lib/simulation';
+import { buildSimRequest, defaultSimInput, utcInputToIso, type SimInput } from '@/lib/simulation';
 import type { Pond, PondSummary } from '@/lib/api/schemas';
 
 const MIN = 60_000;
@@ -26,6 +26,23 @@ describe('chart helpers', () => {
     ];
     const r = splitBySource(items, 'dissolved_oxygen');
     expect(r.recorded).toHaveLength(1); expect(r.simulated).toEqual([{ t: Date.parse('2026-01-01T00:15:00Z'), v: 1.8 }]); expect(r.unit).toBe('mg/L');
+  });
+  it('chartDomain widens a single point so the time axis is never zero-width', () => {
+    const t = Date.parse('2026-10-11T16:00:00Z');
+    expect(chartDomain([t])).toEqual([t - 1800000, t + 1800000]);
+    expect(chartDomain([t, t, t])).toEqual([t - 1800000, t + 1800000]);
+    expect(chartDomain([t, t + 3600000])).toEqual([t, t + 3600000]);
+    expect(chartDomain([t], [t, t])).toEqual([t - 1800000, t + 1800000]);
+    expect(chartDomain([t], [t - 5, t + 5])).toEqual([t - 5, t + 5]);
+    const [a, b] = chartDomain([]); expect(b).toBeGreaterThan(a);
+  });
+  it('axisTicks returns distinct, increasing ticks spanning the domain (the chart library produced duplicates for narrow windows)', () => {
+    const t = Date.parse('2026-10-11T16:00:00Z');
+    const a = axisTicks(t, t + 3600000, 5); expect(a).toHaveLength(5); expect(a[0]).toBe(t); expect(a[4]).toBe(t + 3600000);
+    for (const [s, e] of [[t, t + 1], [t, t + 3], [t, t + 3600000], [t - 1800000, t + 1800000], [t, t + 30 * 86400000]] as const) {
+      const k = axisTicks(s, e, 5); expect(new Set(k).size).toBe(k.length); expect([...k].sort((x, y) => x - y)).toEqual(k);
+    }
+    expect(axisTicks(t, t)).toEqual([t]);
   });
   it('summarize handles empty input', () => { expect(summarize([])).toBeNull(); });
 });
@@ -72,22 +89,46 @@ describe('fleet aggregation', () => {
   });
 });
 
-describe('simulation request building', () => {
-  const base = { pondId: 'p1', mode: 'scenario' as const, scenario: 'critical' as const, customDo: '', useNow: true, recordedAtInput: '' };
+describe('simulation request building (three parameters)', () => {
   const now = new Date('2026-03-01T12:00:00Z');
-  it('builds a scenario request', () => { expect(buildSimRequest(base, now)).toEqual({ ok: true, body: { pondId: 'p1', scenario: 'critical' } }); });
-  it('validates custom values like the server', () => {
-    expect(buildSimRequest({ ...base, mode: 'custom', customDo: '' }, now)).toMatchObject({ ok: false, errors: { doValue: expect.any(String) } });
-    expect(buildSimRequest({ ...base, mode: 'custom', customDo: 'abc' }, now)).toMatchObject({ ok: false });
-    expect(buildSimRequest({ ...base, mode: 'custom', customDo: '-1' }, now)).toMatchObject({ ok: false });
-    expect(buildSimRequest({ ...base, mode: 'custom', customDo: '51' }, now)).toMatchObject({ ok: false });
-    expect(buildSimRequest({ ...base, mode: 'custom', customDo: '0.4' }, now)).toEqual({ ok: true, body: { pondId: 'p1', dissolvedOxygen: 0.4 } });
+  const base = (over: Partial<SimInput> = {}): SimInput => ({ ...defaultSimInput('p1'), ...over });
+  it('defaults produce ONE request with a DO scenario, pH and temperature', () => {
+    expect(buildSimRequest(base(), now)).toEqual({ ok: true, body: { pondId: 'p1', scenario: 'warning', ph: 7.4, temperature: 28 } });
+  });
+  it('custom values for all three are sent as numbers with the request key names the API expects', () => {
+    const r = buildSimRequest(base({ dissolved_oxygen: { include: true, choice: 'custom', custom: '2.5' }, ph: { include: true, choice: 'custom', custom: '7.4' }, temperature: { include: true, choice: 'custom', custom: '28' } }), now);
+    expect(r).toEqual({ ok: true, body: { pondId: 'p1', dissolvedOxygen: 2.5, ph: 7.4, temperature: 28 } });
+  });
+  it('leaves out parameters that are not included (never sends zero for them)', () => {
+    const r = buildSimRequest(base({ ph: { include: false, choice: '7.4', custom: '' }, temperature: { include: false, choice: '28', custom: '' } }), now);
+    expect(r).toEqual({ ok: true, body: { pondId: 'p1', scenario: 'warning' } });
+    const phOnly = buildSimRequest(base({ dissolved_oxygen: { include: false, choice: 'warning', custom: '' }, temperature: { include: false, choice: '28', custom: '' } }), now);
+    expect(phOnly).toEqual({ ok: true, body: { pondId: 'p1', ph: 7.4 } });
+  });
+  it('requires at least one parameter', () => {
+    const off = { include: false, choice: 'custom', custom: '' };
+    expect(buildSimRequest(base({ dissolved_oxygen: off, ph: off, temperature: off }), now)).toMatchObject({ ok: false, errors: { include: expect.any(String) } });
+  });
+  it('validates every parameter against physical bounds and numeric format', () => {
+    const c = (custom: string) => ({ include: true, choice: 'custom', custom });
+    expect(buildSimRequest(base({ dissolved_oxygen: c('') }), now)).toMatchObject({ ok: false, errors: { dissolved_oxygen: expect.any(String) } });
+    expect(buildSimRequest(base({ dissolved_oxygen: c('51') }), now)).toMatchObject({ ok: false });
+    expect(buildSimRequest(base({ dissolved_oxygen: c('-1') }), now)).toMatchObject({ ok: false });
+    expect(buildSimRequest(base({ ph: c('15') }), now)).toMatchObject({ ok: false, errors: { ph: expect.stringMatching(/0 and 14/) } });
+    expect(buildSimRequest(base({ ph: c('abc') }), now)).toMatchObject({ ok: false, errors: { ph: expect.any(String) } });
+    expect(buildSimRequest(base({ temperature: c('61') }), now)).toMatchObject({ ok: false, errors: { temperature: expect.stringMatching(/-5 and 60/) } });
+    expect(buildSimRequest(base({ temperature: c('-6') }), now)).toMatchObject({ ok: false });
+    expect(buildSimRequest(base({ temperature: c('1e3') }), now)).toMatchObject({ ok: false });
+    expect(buildSimRequest(base({ dissolved_oxygen: c('0.4'), ph: c('0'), temperature: c('-5') }), now)).toMatchObject({ ok: true, body: { dissolvedOxygen: 0.4, ph: 0, temperature: -5 } });
+  });
+  it('a parameter that is switched off is not validated', () => {
+    expect(buildSimRequest(base({ ph: { include: false, choice: 'custom', custom: 'garbage' } }), now)).toMatchObject({ ok: true });
   });
   it('requires a pond and a valid, non-future UTC time', () => {
-    expect(buildSimRequest({ ...base, pondId: '' }, now)).toMatchObject({ ok: false, errors: { pond: expect.any(String) } });
-    expect(buildSimRequest({ ...base, useNow: false, recordedAtInput: '' }, now)).toMatchObject({ ok: false });
-    expect(buildSimRequest({ ...base, useNow: false, recordedAtInput: '2026-03-02T12:00' }, now)).toMatchObject({ ok: false, errors: { recordedAt: expect.stringMatching(/future/) } });
-    expect(buildSimRequest({ ...base, useNow: false, recordedAtInput: '2026-01-20T06:30' }, now)).toEqual({ ok: true, body: { pondId: 'p1', scenario: 'critical', recordedAt: '2026-01-20T06:30:00.000Z' } });
+    expect(buildSimRequest(base({ pondId: '' }), now)).toMatchObject({ ok: false, errors: { pond: expect.any(String) } });
+    expect(buildSimRequest(base({ useNow: false, recordedAtInput: '' }), now)).toMatchObject({ ok: false });
+    expect(buildSimRequest(base({ useNow: false, recordedAtInput: '2026-03-02T12:00' }), now)).toMatchObject({ ok: false, errors: { recordedAt: expect.stringMatching(/future/) } });
+    expect(buildSimRequest(base({ useNow: false, recordedAtInput: '2026-01-20T06:30' }), now)).toMatchObject({ ok: true, body: { recordedAt: '2026-01-20T06:30:00.000Z' } });
   });
   it('parses datetime-local as UTC', () => { expect(utcInputToIso('2026-01-20T06:30')).toBe('2026-01-20T06:30:00.000Z'); expect(utcInputToIso('2026-13-40T99:99')).toBeNull(); expect(utcInputToIso('')).toBeNull(); });
 });

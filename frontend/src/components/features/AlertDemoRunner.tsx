@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ApiError, browserApi } from '@/lib/api/client';
 import type { Alert } from '@/lib/api/schemas';
-import { useApiQuery } from '@/lib/useApiQuery';
+import { useDbTarget } from '@/lib/useDbTarget';
 import { formatDateTime } from '@/lib/format';
 import { ALERT_STATUS_LABEL, ALERT_STATUS_TONE, RISK_LABEL, RISK_TONE, SEVERITY_TONE } from '@/lib/status';
 import { Card, CardHeader } from '../ui/Card';
@@ -29,7 +29,7 @@ const blank = (): StepResult[] => DEMO_STEPS.map(() => ({ status: 'waiting' }));
 
 export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPond[]; stepDelayMs?: number }) {
   const api = useMemo(() => browserApi(), []);
-  const health = useApiQuery((s) => api.health(s), []);
+  const db = useDbTarget();
   const [pondId, setPondId] = useState(ponds[0]?.id ?? '');
   const [steps, setSteps] = useState<StepResult[]>(blank);
   const [run, setRun] = useState<RunState>('idle');
@@ -41,8 +41,8 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
   const busy = useRef(false);           // synchronous guard against double clicks and concurrent runs
   const ctrl = useRef<AbortController | null>(null);
   const pond = ponds.find((p) => p.id === pondId);
-  const target = health.data?.database.target ?? 'unknown';
-  const canRun = target === 'local' && health.data?.database.status === 'up';
+  const target = db.target;
+  const canRun = db.canWrite;
 
   useEffect(() => () => { token.current++; ctrl.current?.abort(); }, []);
 
@@ -94,8 +94,8 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
     <Card aria-labelledby="demo-title">
       <CardHeader id="demo-title" title="Guided alert demo" description="Sends four simulated dissolved-oxygen readings, 5 seconds apart, so you can watch an alert open, escalate and resolve." />
       <div className="space-y-4 px-5 pb-5 pt-4">
-        {health.loading && !health.data ? <p className="text-[13px] text-ink-soft">Checking which database the API uses.</p>
-          : health.error ? <Notice tone="warning">Could not check the API&apos;s database. The demo is disabled until the API responds. <button type="button" onClick={health.reload} className="underline">Retry</button></Notice>
+        {db.loading ? <p className="text-[13px] text-ink-soft">Checking which database the API uses.</p>
+          : db.error ? <Notice tone="warning">Could not check the API&apos;s database. The demo is disabled until the API responds. <button type="button" onClick={db.reload} className="underline">Retry</button></Notice>
           : target === 'local' ? <Notice>The API is connected to a <strong className="font-medium">local test database</strong>. Demo readings stay on this machine and never reach Atlas.</Notice>
           : <Notice tone="warning"><strong className="font-medium">The demo is disabled.</strong> {target === 'remote' ? 'This API is connected to a remote database, so running it would write simulated records there.' : 'This API did not report which database it uses.'} Stop the API and start the isolated one with <code className="font-mono text-xs">npm run dev:local</code>.</Notice>}
 

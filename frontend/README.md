@@ -69,8 +69,8 @@ The Guided demo is **disabled unless the API reports a local database** (`databa
 | `/ponds/[id]` | Latest values with source and age, measurement history, latest forecast, alert history, metadata | `/ponds/:id`, `/summary`, `/measurements`, `/predictions`, `/alerts`, `/risk-rules` |
 | `/forecasts` | Pond and parameter selection, recorded readings next to model forecasts, forecast table | `/ponds/:id/predictions`, `/measurements`, `/risk-rules` |
 | `/alerts` | Severity counts, filters, expandable details, acknowledge, load more | `/alerts`, `PATCH /alerts/:id/acknowledge` |
-| `/analytics` | Single-pond statistics and bucketed chart; multi-pond comparison | `/ponds/:id/analytics`, `/analytics/compare` |
-| `/simulation` | Submit a simulated reading with a preview and an explicit confirmation | `/demo/scenarios`, `POST /demo/measurement` |
+| `/analytics` | Dissolved oxygen, pH and water temperature for a pond, each in its own section with observations, average, minimum, maximum, change and a chart; multi-pond comparison of all three | `/ponds/:id/analytics` and `/analytics/compare` (one request per parameter) |
+| `/simulation` | (1) Manual simulated reading: DO, pH and temperature (presets or custom, each optional) sent as ONE request, with preview, confirmation and the raw server response. (2) Guided alert demo: four DO-only readings. Both are enabled only when the API reports a local database. | `/demo/scenarios`, `/health`, `POST /demo/measurement` |
 | `/health` | API, database and forecasting-service status, data freshness, risk rules in use | `/health`, `/ponds/:id/summary`, `/risk-rules` |
 
 All requests go through one typed client (`src/lib/api/client.ts`) whose zod schemas (`schemas.ts`) validate every response. Failures surface as `ApiError` with a kind (`network`, `timeout`, `http`, `invalid`, `aborted`), and the UI shows an error state with Retry; there is no mock-data fallback.
@@ -128,3 +128,9 @@ The frontend only uses endpoints that exist. Limitations that follow from the cu
 - **`GET /api/risk-rules` was added to the backend** so the UI does not duplicate thresholds.
 - **No read-only inference endpoint.** Forecasts are only created as part of writing a measurement (`POST /api/measurements` or the demo endpoint), so forecasts for the imported ponds appear only after a simulation. The worker itself was verified separately against real stored history without writing anything.
 - **Dev mode logs a cancelled request.** In `next dev`, React StrictMode runs effects twice and the first chart request is cancelled by design (`net::ERR_ABORTED`). It is not an error and does not occur in production builds.
+
+## Simulation: historical replay
+
+The Simulation page opens on **Historical replay** (the existing test-reading form is under the "Test reading" tab). Pick a pond and a
+24 h / 7 d preset (offered only when enough real records exist) or a custom UTC range, then Start/Pause/Stop/Reset or seek. Replay is
+read-only and works against any database target. Code: `components/features/HistoricalReplay.tsx`, `lib/replay.ts`.

@@ -50,5 +50,27 @@ export function splitBySource(items: { recordedAt: string; source: string; value
   return { recorded, simulated, unit };
 }
 
+/**
+ * Time-axis domain for a chart. A single point in time (or none) would give a zero-width axis, which makes the chart
+ * library emit duplicate ticks and draw no line, so it is widened symmetrically around the point.
+ */
+export function chartDomain(times: number[], override?: [number, number], padMs = 30 * 60_000): [number, number] {
+  if (override) return override[0] === override[1] ? [override[0] - padMs, override[1] + padMs] : override;
+  if (!times.length) return [0, 1];
+  const lo = Math.min(...times); const hi = Math.max(...times);
+  return lo === hi ? [lo - padMs, hi + padMs] : [lo, hi];
+}
+
+/** `count` evenly spaced, strictly increasing tick times from start to end (inclusive). Never returns duplicates. */
+export function axisTicks(start: number, end: number, count = 5): number[] {
+  if (!(end > start) || count < 2) return [Math.round(start)];
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = Math.round(start + ((end - start) * i) / (count - 1));
+    if (out.length === 0 || t > out[out.length - 1]!) out.push(t);
+  }
+  return out;
+}
+
 export const RANGE_MS = { '24h': 24 * 3600_000, '3d': 3 * 86400_000, '7d': 7 * 86400_000 } as const;
 export type RangeKey = keyof typeof RANGE_MS;
