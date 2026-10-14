@@ -1,98 +1,97 @@
 'use client';
-import { Fragment, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { CaretDown, CheckCircle } from '@phosphor-icons/react/dist/ssr';
+import { useMemo, useState } from 'react';
+import { CheckCircle } from '@phosphor-icons/react/dist/ssr';
 import { ApiError, browserApi } from '@/lib/api/client';
 import type { Alert } from '@/lib/api/schemas';
 import { useApiQuery } from '@/lib/useApiQuery';
-import { alertSeverityCounts } from '@/lib/fleet';
-import { ALERT_PARAMETERS, PARAM_ICON, alertBreakdown, alertCondition, alertTitle } from '@/lib/alerts';
-import { DEFAULT_UNIT, PARAM_LABEL, fmtThreshold, formatDateTime } from '@/lib/format';
-import { ALERT_STATUS_LABEL, ALERT_STATUS_TONE, SEVERITY_TONE } from '@/lib/status';
+import { ALERT_PARAMETERS } from '@/lib/alerts';
+import { PARAM_LABEL } from '@/lib/format';
 import { Card, CardHeader } from '../ui/Card';
-import { Field, Select } from '../ui/Field';
-import { Button, linkButtonClass } from '../ui/Button';
-import { TableSkeleton } from '../ui/Skeleton';
+import { Field, Segmented, Select } from '../ui/Field';
+import { Button } from '../ui/Button';
+import { Skeleton } from '../ui/Skeleton';
 import { EmptyState, ErrorState, Notice } from '../ui/states';
-import { SourceBadge, StatusPill } from '../ui/StatusPill';
-import { Table, Td, Th, Tr } from '../ui/Table';
 import { cx } from '../ui/cx';
+import { AlertCardList } from './AlertCard';
 
-type StatusFilter = 'OPEN' | 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED' | 'ALL';
-const PAGE = 50;
+type Tab = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
+const PAGE = 30;
+const EMPTY: Record<Tab, { title: string; body: string }> = {
+  ACTIVE: { title: 'No active problems', body: 'Every pond is within its acceptable range, or has no recent reading to check. Problems appear here as soon as a reading or forecast crosses a limit.' },
+  ACKNOWLEDGED: { title: 'Nothing marked as seen', body: 'When you mark an active problem as seen, it moves here until readings recover.' },
+  RESOLVED: { title: 'No resolved problems', body: 'Problems whose readings have returned to normal are kept here as history.' },
+};
 
+/** Every alert in one place: what is happening now, what you have already seen, and what has been resolved. */
 export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: string; name: string }[]; initialPondId?: string }) {
   const api = useMemo(() => browserApi(), []);
   const names = useMemo(() => Object.fromEntries(ponds.map((p) => [p.id, p.name])), [ponds]);
-  const [status, setStatus] = useState<StatusFilter>('OPEN');
-  const [origin, setOrigin] = useState<'' | 'observed' | 'predicted'>('');
+  const [tab, setTab] = useState<Tab>('ACTIVE');
   const [pondId, setPondId] = useState(initialPondId);
-  const [severity, setSeverity] = useState<'' | 'CRITICAL' | 'WARNING'>('');
   const [parameter, setParameter] = useState('');
+  const [severity, setSeverity] = useState<'' | 'CRITICAL' | 'WARNING'>('');
+  const [kind, setKind] = useState<'' | 'observed' | 'predicted'>('');
 
-  // Counts always describe ALL unresolved alerts, independent of the table filters.
+  // Tab counts always describe ALL unresolved alerts, whatever the filters.
   const open = useApiQuery((s) => api.alerts({ status: 'OPEN', limit: 1000 }, s), []);
-  const first = useApiQuery((s) => api.alerts({ status, origin: origin || undefined, parameter: parameter || undefined, severity: severity || undefined, pondId: pondId || undefined, limit: PAGE }, s), [status, origin, pondId, parameter, severity]);
+  const filters = { status: tab, origin: kind || undefined, parameter: parameter || undefined, severity: severity || undefined, pondId: pondId || undefined };
+  const first = useApiQuery((s) => api.alerts({ ...filters, limit: PAGE }, s), [tab, kind, parameter, severity, pondId]);
 
-  // Extra pages and local acknowledgements belong to one first-page response; a new response (new filters or reload) discards them.
+  // Extra pages and local "seen" changes belong to one first-page response; a new response discards them.
   interface Tail { base: unknown; items: Alert[]; cursor: string | null; patched: Record<string, Alert>; loading: boolean; error: unknown }
   const [tailState, setTailState] = useState<Tail | null>(null);
   const tail: Tail = tailState && tailState.base === first.data ? tailState : { base: first.data, items: [], cursor: first.data?.nextCursor ?? null, patched: {}, loading: false, error: null };
-  const { cursor, patched, loading: moreLoading, error: moreError } = tail;
-  const update = (patch: Partial<Tail>) => setTailState({ ...tail, ...patch });
+  const loaded = useMemo(() => [...(first.data?.items ?? []), ...tail.items].map((a) => tail.patched[a.id] ?? a), [first.data, tail.items, tail.patched]);
 
   async function loadMore() {
-    if (!cursor) return;
-    update({ loading: true, error: null });
-    try {
-      const r = await api.alerts({ status, origin: origin || undefined, parameter: parameter || undefined, severity: severity || undefined, pondId: pondId || undefined, limit: PAGE, cursor });
-      setTailState({ ...tail, items: [...tail.items, ...r.items], cursor: r.nextCursor, loading: false, error: null });
-    } catch (error) { setTailState({ ...tail, loading: false, error }); }
+    if (!tail.cursor) return;
+    setTailState({ ...tail, loading: true, error: null });
+    try { const r = await api.alerts({ ...filters, limit: PAGE, cursor: tail.cursor }); setTailState({ ...tail, items: [...tail.items, ...r.items], cursor: r.nextCursor, loading: false, error: null }); }
+    catch (error) { setTailState({ ...tail, loading: false, error }); }
   }
 
-  const loaded = useMemo(() => [...(first.data?.items ?? []), ...tail.items].map((a) => patched[a.id] ?? a), [first.data, tail.items, patched]);
-  const rows = loaded;
-  const counts = open.data ? alertSeverityCounts(open.data.items) : null;
-  const breakdown = open.data ? alertBreakdown(open.data.items) : null;
-
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
-
-  async function acknowledge(a: Alert) {
+  async function markSeen(a: Alert) {
     setBusy(a.id); setFeedback(null);
     try {
       const r = await api.acknowledgeAlert(a.id);
       setTailState({ ...tail, patched: { ...tail.patched, [a.id]: r.alert } });
-      setFeedback({ kind: 'ok', text: r.changed ? `Alert acknowledged. It remains open until readings recover.` : 'This alert was already acknowledged.' });
+      setFeedback({ kind: 'ok', text: r.changed ? 'Marked as seen. The problem stays open until readings recover.' : 'This problem was already marked as seen.' });
       open.reload();
     } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'The alert could not be acknowledged.';
+      const msg = e instanceof ApiError ? e.message : 'Could not mark this as seen.';
       setFeedback({ kind: 'error', text: e instanceof ApiError && e.status === 409 ? `${msg} Refresh to see its current state.` : msg });
     } finally { setBusy(null); }
   }
 
+  const items = open.data?.items ?? [];
+  const count = (t: Tab) => (open.data ? items.filter((a) => a.status === t).length : null);
+  const current = items.filter((a) => a.origin === 'observed').length;
+  const upcoming = items.length - current;
+  const filtered = Boolean(pondId || parameter || severity || kind);
+
   return (
-    <div className="space-y-6">
-      <section aria-label="Unresolved alert counts" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {([['Unresolved', counts ? `${open.data!.count}${open.data!.nextCursor ? '+' : ''}` : null, 'text-ink'], ['Critical', counts?.critical, 'text-crit-text'], ['Warning', counts?.warning, 'text-warn-text'], ['Acknowledged', counts?.acknowledged, 'text-olive-text']] as const).map(([label, n, cls]) => (
-          <Card key={label} className="p-5"><p className="text-[13px] text-ink-soft">{label}</p><p className={cx('mt-2 text-3xl font-medium leading-none tabular-nums', cls)}>{open.loading && !open.data ? <span className="skeleton inline-block h-7 w-10 align-middle" aria-label="Loading" /> : open.error ? 'n/a' : (n ?? 'n/a')}</p></Card>
-        ))}
-      </section>
-      {breakdown ? <p className="-mt-3 text-xs text-ink-soft" data-testid="alert-breakdown">Unresolved: {breakdown.observed} observed ({ALERT_PARAMETERS.map((p) => `${PARAM_LABEL[p]} ${breakdown.byParameter[p] ?? 0}`).join(', ')}) and {breakdown.forecast} forecast-based. Forecast alerts are model predictions, not measurements.</p> : null}
-      {open.error ? <Notice tone="warning">Unresolved alert counts could not be loaded. <button type="button" onClick={open.reload} className="underline">Retry</button></Notice> : null}
-
+    <div className="space-y-5">
       <Card aria-labelledby="al-title">
-        <CardHeader id="al-title" title="Alerts" description="Acknowledging an alert marks it as seen. It stays open until readings or forecasts return to normal." />
-        <form className="grid grid-cols-2 gap-3 px-5 pt-4 lg:grid-cols-5" onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
-          <Field label="Status">{(id) => <Select id={id} value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}><option value="OPEN">Unresolved</option><option value="ACTIVE">Active</option><option value="ACKNOWLEDGED">Acknowledged</option><option value="RESOLVED">Resolved</option><option value="ALL">All</option></Select>}</Field>
-          <Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => setPondId(e.target.value)}><option value="">All ponds</option>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
-          <Field label="Type">{(id) => <Select id={id} value={origin} onChange={(e) => setOrigin(e.target.value as typeof origin)}><option value="">Observed and forecast</option><option value="observed">Observed</option><option value="predicted">Forecast</option></Select>}</Field>
-          <Field label="Severity">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Any severity</option><option value="CRITICAL">Critical</option><option value="WARNING">Warning</option></Select>}</Field>
-          <Field label="Parameter">{(id) => <Select id={id} value={parameter} onChange={(e) => setParameter(e.target.value)}><option value="">Any parameter</option>{ALERT_PARAMETERS.map((p) => <option key={p} value={p}>{PARAM_LABEL[p] ?? p}</option>)}</Select>}</Field>
-        </form>
+        <CardHeader id="al-title" title="Alerts" description="Problems measured in your ponds, and possible problems the forecast expects. Marking a problem as seen does not close it." />
+        <div className="space-y-4 px-5 pb-2 pt-4">
+          <Segmented<Tab> label="Alert status" value={tab} onChange={setTab} options={[
+            { value: 'ACTIVE', label: `Active${count('ACTIVE') !== null ? ` (${count('ACTIVE')})` : ''}` },
+            { value: 'ACKNOWLEDGED', label: `Marked as seen${count('ACKNOWLEDGED') !== null ? ` (${count('ACKNOWLEDGED')})` : ''}` },
+            { value: 'RESOLVED', label: 'Resolved' },
+          ]} />
+          {open.error ? <Notice tone="warning">The counts could not be loaded. <button type="button" onClick={open.reload} className="underline">Retry</button></Notice>
+            : open.data ? <p className="text-xs text-ink-soft" data-testid="alert-breakdown">Right now: {current} current {current === 1 ? 'problem' : 'problems'} and {upcoming} possible upcoming {upcoming === 1 ? 'problem' : 'problems'} (forecasts, not measurements).</p> : null}
+          <form className="grid grid-cols-2 gap-3 lg:grid-cols-4" onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
+            <Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => setPondId(e.target.value)}><option value="">All ponds</option>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
+            <Field label="Water quality factor">{(id) => <Select id={id} value={parameter} onChange={(e) => setParameter(e.target.value)}><option value="">All factors</option>{ALERT_PARAMETERS.map((p) => <option key={p} value={p}>{PARAM_LABEL[p] ?? p}</option>)}</Select>}</Field>
+            <Field label="How serious">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Warning and critical</option><option value="CRITICAL">Critical only</option><option value="WARNING">Warning only</option></Select>}</Field>
+            <Field label="Type">{(id) => <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="">Current and possible upcoming</option><option value="observed">Current problems</option><option value="predicted">Possible upcoming problems</option></Select>}</Field>
+          </form>
+        </div>
 
-        <div aria-live="polite" className="px-5 pt-3">
+        <div aria-live="polite" className="px-5 pt-2">
           {feedback ? (
             <div role={feedback.kind === 'error' ? 'alert' : 'status'} className={cx('flex items-start gap-2 rounded-lg px-3.5 py-2.5 text-[13px]', feedback.kind === 'ok' ? 'bg-ok-bg text-ok-text' : 'bg-crit-bg text-crit-text')}>
               {feedback.kind === 'ok' ? <CheckCircle size={16} className="mt-px shrink-0" aria-hidden="true" /> : null}<span>{feedback.text}</span>
@@ -100,68 +99,16 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
           ) : null}
         </div>
 
-        <div className="pt-3">
-          {first.loading && !first.data ? <TableSkeleton rows={5} cols={6} />
+        <div className="px-5 pb-5 pt-3">
+          {first.loading && !first.data ? <div className="space-y-3" aria-label="Loading alerts"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
             : first.error ? <ErrorState error={first.error} title="Could not load alerts" onRetry={first.reload} />
-            : rows.length === 0 ? (
-              <EmptyState title={status === 'OPEN' && !pondId && !origin && !parameter && !severity ? 'No unresolved alerts' : 'No alerts found'}>
-                {status === 'OPEN' && !pondId && !origin && !parameter && !severity ? 'Every pond is currently within its dissolved-oxygen, pH and temperature limits, or has no recent data to evaluate. Alerts appear when a reading or forecast crosses a limit.' : 'Nothing matches the selected status, pond, type, severity and parameter. Try widening the filters.'}
-              </EmptyState>
-            ) : (
-              <Table caption="Alerts" className="min-w-[860px]">
-                <thead><tr><Th>Severity</Th><Th>Pond</Th><Th>Condition</Th><Th>Status</Th><Th>Created</Th><Th>Last update</Th><Th className="text-right"><span className="sr-only">Actions</span></Th></tr></thead>
-                <tbody>
-                  {rows.map((a) => {
-                    const isOpen = expanded === a.id;
-                    const unit = DEFAULT_UNIT[a.parameter] ?? '';
-                    return (
-                      <Fragment key={a.id}>
-                        <Tr>
-                          <Td><StatusPill tone={SEVERITY_TONE[a.severity]}>{a.severity === 'CRITICAL' ? 'Critical' : 'Warning'}</StatusPill></Td>
-                          <Td><Link href={`/ponds/${a.pondId}`} className="font-medium hover:text-olive-text hover:underline">{names[a.pondId] ?? 'Unknown pond'}</Link></Td>
-                          <Td>
-                            <p className="flex items-center gap-1.5 font-medium">{(() => { const I = PARAM_ICON[a.parameter]; return I ? <I size={15} className="shrink-0 text-ink-soft" aria-hidden="true" /> : null; })()}{alertTitle(a)}</p>
-                            <p className="mt-0.5 text-[13px] text-ink">{alertCondition(a)}</p>
-                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft"><span>{a.origin === 'predicted' ? 'Forecast' : 'Observed'}, {a.direction ? `${a.direction === 'high' ? 'upper' : 'lower'} limit` : 'threshold'} {a.parameter === 'temperature' ? a.threshold.toFixed(1) : fmtThreshold(a.threshold)} {unit}</span>{a.dataSource ? <SourceBadge source={a.dataSource} /> : null}</p>
-                          </Td>
-                          <Td><StatusPill tone={ALERT_STATUS_TONE[a.status]}>{ALERT_STATUS_LABEL[a.status]}</StatusPill></Td>
-                          <Td className="whitespace-nowrap tabular-nums text-ink-soft">{formatDateTime(a.createdAt)}</Td>
-                          <Td className="whitespace-nowrap tabular-nums text-ink-soft">{formatDateTime(a.lastTriggeredAt)}</Td>
-                          <Td className="text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {a.status === 'ACTIVE' ? <Button size="sm" variant="secondary" disabled={busy === a.id} onClick={() => acknowledge(a)}>{busy === a.id ? 'Acknowledging' : 'Acknowledge'}</Button> : null}
-                              <button type="button" aria-expanded={isOpen} aria-controls={`detail-${a.id}`} aria-label={`${isOpen ? 'Hide' : 'Show'} details for ${names[a.pondId] ?? 'alert'}`} onClick={() => setExpanded(isOpen ? null : a.id)} className="flex size-8 items-center justify-center rounded-lg text-ink-soft hover:bg-surface hover:text-ink"><CaretDown size={16} aria-hidden="true" className={cx('transition-transform duration-150', isOpen && 'rotate-180')} /></button>
-                            </div>
-                          </Td>
-                        </Tr>
-                        {isOpen ? (
-                          <tr id={`detail-${a.id}`} className="bg-surface/50">
-                            <td colSpan={7} className="border-b border-line/70 px-5 py-4">
-                              <p className="mb-3 text-[13px] text-ink">{a.message}</p>
-                              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs md:grid-cols-4">
-                                {[
-                                  ['Created', formatDateTime(a.createdAt)], ['Last triggered', formatDateTime(a.lastTriggeredAt)],
-                                  ['Acknowledged', a.acknowledgedAt ? formatDateTime(a.acknowledgedAt) : 'Not acknowledged'], ['Resolved', a.resolvedAt ? formatDateTime(a.resolvedAt) : 'Still open'],
-                                  ...(a.forecastFor ? [['Forecast for', formatDateTime(a.forecastFor)]] : []),
-                                ].map(([k, v]) => <div key={k}><dt className="text-ink-soft">{k}</dt><dd className="mt-0.5 tabular-nums text-ink">{v}</dd></div>)}
-                                <div><dt className="text-ink-soft">Data source</dt><dd className="mt-1">{a.dataSource ? <SourceBadge source={a.dataSource} /> : 'n/a'}</dd></div>
-                                <div><dt className="text-ink-soft">Alert ID</dt><dd className="mt-0.5 break-all font-mono text-[11px] text-ink">{a.id}</dd></div>
-                              </dl>
-                              <div className="mt-3"><Link href={`/ponds/${a.pondId}`} className={linkButtonClass('secondary', 'sm')}>Open pond</Link></div>
-                            </td>
-                          </tr>
-                        ) : null}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            )}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-xs text-ink-soft">
-            <span aria-live="polite">{loaded.length ? `Showing ${rows.length} alert${rows.length === 1 ? '' : 's'}${cursor ? ', more available' : ''}.` : ''}</span>
-            {cursor ? <Button size="sm" onClick={loadMore} disabled={moreLoading}>{moreLoading ? 'Loading' : 'Load more'}</Button> : null}
+            : loaded.length === 0 ? <EmptyState title={filtered ? 'No alerts match these filters' : EMPTY[tab].title}>{filtered ? 'Try widening the filters.' : EMPTY[tab].body}</EmptyState>
+            : <AlertCardList alerts={loaded} pondNames={names} showGuidance={tab !== 'RESOLVED'} onMarkSeen={markSeen} busy={busy !== null} />}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-xs text-ink-soft">
+            <span aria-live="polite">{loaded.length ? `Showing ${loaded.length} ${loaded.length === 1 ? 'alert' : 'alerts'}${tail.cursor ? ', more available' : ''}.` : ''}</span>
+            {tail.cursor ? <Button size="sm" onClick={loadMore} disabled={tail.loading}>{tail.loading ? 'Loading' : 'Show more'}</Button> : null}
           </div>
-          {moreError ? <div className="px-5 pb-4"><Notice tone="warning">More alerts could not be loaded. <button type="button" className="underline" onClick={loadMore}>Retry</button></Notice></div> : null}
+          {tail.error ? <div className="pt-2"><Notice tone="warning">More alerts could not be loaded. <button type="button" className="underline" onClick={loadMore}>Retry</button></Notice></div> : null}
         </div>
       </Card>
     </div>

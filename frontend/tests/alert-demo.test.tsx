@@ -92,7 +92,7 @@ describe('guided alert demo', () => {
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     await start();
     await screen.findByText(/Sequence complete/, undefined, { timeout: 5000 });
-    expect(screen.getAllByText(/expected Healthy/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/expected Normal/).length).toBeGreaterThan(0);
   });
 
   it('Stop halts the sequence', async () => {

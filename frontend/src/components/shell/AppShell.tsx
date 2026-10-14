@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Drop, List, X, Bell, ArrowsClockwise, MagnifyingGlass, CheckCircle, WarningCircle, Plugs } from '@phosphor-icons/react/dist/ssr';
-import { NAV, isActive, pageTitle } from '@/lib/nav';
+import { NAV_GROUPS, SYSTEM_PAGE, isActive, pageTitle } from '@/lib/nav';
 import { cx } from '@/components/ui/cx';
 import { RefreshProvider, useRefresh } from './RefreshContext';
 
@@ -11,10 +11,10 @@ export type SystemState = 'ok' | 'degraded' | 'down' | 'unreachable';
 interface ShellProps { children: ReactNode; openAlerts: number | null; openAlertsMore: boolean; system: SystemState }
 
 const SYSTEM: Record<SystemState, { label: string; cls: string; Icon: typeof CheckCircle }> = {
-  ok: { label: 'All services up', cls: 'text-ok-text', Icon: CheckCircle },
-  degraded: { label: 'Degraded', cls: 'text-warn-text', Icon: WarningCircle },
-  down: { label: 'Service down', cls: 'text-crit-text', Icon: WarningCircle },
-  unreachable: { label: 'API unreachable', cls: 'text-crit-text', Icon: Plugs },
+  ok: { label: 'System status: OK', cls: 'text-ink-soft', Icon: CheckCircle },
+  degraded: { label: 'System status: degraded', cls: 'text-warn-text', Icon: WarningCircle },
+  down: { label: 'System status: problem', cls: 'text-crit-text', Icon: WarningCircle },
+  unreachable: { label: 'System status: offline', cls: 'text-crit-text', Icon: Plugs },
 };
 
 function Brand({ compact }: { compact?: boolean }) {
@@ -28,37 +28,43 @@ function Brand({ compact }: { compact?: boolean }) {
 
 function NavLinks({ pathname, onNavigate, rail }: { pathname: string; onNavigate?: () => void; rail?: boolean }) {
   return (
-    <nav aria-label="Main" className="flex flex-col gap-1">
-      {NAV.map(({ href, label, icon: IconCmp }) => {
-        const active = isActive(pathname, href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={onNavigate}
-            aria-current={active ? 'page' : undefined}
-            title={label}
-            className={cx(
-              'flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150',
-              rail && 'md:justify-center md:px-0 lg:justify-start lg:px-3',
-              active ? 'bg-sage-pale text-olive-text' : 'text-ink-soft hover:bg-surface hover:text-ink',
-            )}
-          >
-            <IconCmp size={20} weight={active ? 'fill' : 'regular'} aria-hidden="true" className="shrink-0" />
-            <span className={cx(rail && 'md:sr-only lg:not-sr-only')}>{label}</span>
-          </Link>
-        );
-      })}
+    <nav aria-label="Main" className="flex flex-col gap-4">
+      {NAV_GROUPS.map((group, gi) => (
+        <div key={gi} className="flex flex-col gap-1">
+          {group.label ? <p className={cx('px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-ink-soft', rail && 'md:sr-only lg:not-sr-only')}>{group.label}</p> : null}
+          {group.items.map(({ href, label, icon: IconCmp }) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onNavigate}
+                aria-current={active ? 'page' : undefined}
+                title={label}
+                className={cx(
+                  'flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150',
+                  rail && 'md:justify-center md:px-0 lg:justify-start lg:px-3',
+                  active ? 'bg-sage-pale text-olive-text' : 'text-ink-soft hover:bg-surface hover:text-ink',
+                )}
+              >
+                <IconCmp size={20} weight={active ? 'fill' : 'regular'} aria-hidden="true" className="shrink-0" />
+                <span className={cx(rail && 'md:sr-only lg:not-sr-only')}>{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }
 
 function SystemStatus({ system, rail }: { system: SystemState; rail?: boolean }) {
   const s = SYSTEM[system];
+  const pathname = usePathname();
   return (
-    <Link href="/health" title={`System status: ${s.label}`} className={cx('flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-surface', rail && 'md:justify-center md:px-0 lg:justify-start lg:px-3', s.cls)}>
+    <Link href={SYSTEM_PAGE.href} title={s.label} aria-current={isActive(pathname, SYSTEM_PAGE.href) ? 'page' : undefined} className={cx('flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] hover:bg-surface', rail && 'md:justify-center md:px-0 lg:justify-start lg:px-3', s.cls)}>
       <s.Icon size={18} aria-hidden="true" className="shrink-0" />
-      <span className={cx(rail && 'md:sr-only lg:not-sr-only')}><span className="sr-only">System status: </span>{s.label}</span>
+      <span className={cx(rail && 'md:sr-only lg:not-sr-only')}>{s.label}</span>
     </Link>
   );
 }

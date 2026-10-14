@@ -1,5 +1,5 @@
 import type { ApiClient } from './api/client';
-import type { Alert, DataSource, Pond, PondSummary, RiskStatus } from './api/schemas';
+import type { DataSource, Pond, PondSummary, RiskStatus } from './api/schemas';
 import { RISK_ORDER } from './status';
 
 export interface FleetRow {
@@ -57,10 +57,6 @@ export function fleetStats(rows: FleetRow[]): FleetStats {
   }
   s.attention = s.warning + s.critical;
   return s;
-}
-
-export function alertSeverityCounts(alerts: Alert[]) {
-  return { critical: alerts.filter((a) => a.severity === 'CRITICAL').length, warning: alerts.filter((a) => a.severity === 'WARNING').length, acknowledged: alerts.filter((a) => a.status === 'ACKNOWLEDGED').length };
 }
 
 async function pool<T, R>(items: T[], size: number, fn: (x: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {

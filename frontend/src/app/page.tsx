@@ -1,123 +1,108 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Drop, CheckCircle, WarningCircle, Bell, ArrowRight } from '@phosphor-icons/react/dist/ssr';
+import { CheckCircle, WarningCircle, Binoculars } from '@phosphor-icons/react/dist/ssr';
 import { serverApi } from '@/lib/api/client';
-import { alertSeverityCounts, fleetStats, loadFleet, sortRows } from '@/lib/fleet';
-import { ALERT_PARAMETERS, alertBreakdown } from '@/lib/alerts';
-import { PARAM_LABEL, formatAge, formatDateTime } from '@/lib/format';
+import { fleetStats, loadFleet, sortRows } from '@/lib/fleet';
+import { formatAge, formatDateTime } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, CardHeader } from '@/components/ui/Card';
-import { KpiCard } from '@/components/ui/KpiCard';
-import { StatusPill } from '@/components/ui/StatusPill';
+import { Card } from '@/components/ui/Card';
 import { EmptyState, ErrorState, Notice } from '@/components/ui/states';
 import { linkButtonClass } from '@/components/ui/Button';
 import { RefreshButton } from '@/components/shell/RefreshButton';
-import { DistributionBar } from '@/components/charts/DistributionBar';
-import { MeasurementTrend, type TrendPond } from '@/components/features/MeasurementTrend';
-import { PondTable } from '@/components/features/PondTable';
-import { AlertList } from '@/components/features/AlertList';
+import { PondCard } from '@/components/features/PondCard';
+import { AlertFeed } from '@/components/features/AlertFeed';
+import { AlertCardList } from '@/components/features/AlertCard';
+import { FarmTwin } from '@/components/farm/FarmTwin';
+import { demoFarm } from '@/lib/farmDemo';
 
 export const metadata: Metadata = { title: 'Overview' };
 export const dynamic = 'force-dynamic';
 
-export default async function OverviewPage() {
-  const api = serverApi();
-  const [fleetR, alertsR, rulesR] = await Promise.allSettled([loadFleet(api), api.alerts({ status: 'OPEN', limit: 200 }), api.riskRules()]);
+const Section = ({ id, title, hint, action, children }: { id: string; title: string; hint?: string; action?: React.ReactNode; children: React.ReactNode }) => (
+  <section aria-labelledby={id} className="space-y-3">
+    <div className="flex flex-wrap items-end justify-between gap-2">
+      <div><h2 id={id} className="text-lg font-medium tracking-tight text-ink">{title}</h2>{hint ? <p className="mt-0.5 text-[13px] text-ink-soft">{hint}</p> : null}</div>
+      {action}
+    </div>
+    {children}
+  </section>
+);
 
-  if (fleetR.status === 'rejected') {
-    return (<><PageHeader title="Overview" description="Monitor pond health, water quality and forecasts." /><Card><ErrorState server error={fleetR.reason} title="Could not load ponds" /></Card></>);
-  }
+/** Is anything wrong? What? How serious? Could it get worse? Everything else on this page supports those four questions. */
+export default async function OverviewPage({ searchParams }: { searchParams: Promise<{ twin?: string | string[] }> }) {
+  const { twin } = await searchParams;
+  const demoTwin = (Array.isArray(twin) ? twin[0] : twin) === 'demo';
+  const api = serverApi();
+  const [fleetR, alertsR] = await Promise.allSettled([loadFleet(api), api.alerts({ status: 'OPEN', limit: 200 })]);
+  const header = (right?: React.ReactNode) => <PageHeader title="Overview" description="How your ponds are doing right now." actions={right} />;
+  if (fleetR.status === 'rejected') return (<>{header()}<Card><ErrorState server error={fleetR.reason} title="Could not load ponds" /></Card></>);
+
   const { rows } = fleetR.value;
   const stats = fleetStats(rows);
-  const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
-  const alerts = alertsR.status === 'fulfilled' ? alertsR.value : null;
-  const sev = alerts ? alertSeverityCounts(alerts.items) : null;
-  const brk = alerts ? alertBreakdown(alerts.items) : null;
+  const open = alertsR.status === 'fulfilled' ? alertsR.value.items : null;
   const names = Object.fromEntries(rows.map((r) => [r.pond.id, r.pond.name]));
-  const staleAfter = rules?.staleAfterMinutes ?? 60;
-  const freshnessStale = stats.latestAgeMinutes === null || stats.latestAgeMinutes > staleAfter;
+  const bySeverity = (a: { severity: string; status: string }, b: { severity: string; status: string }) => (a.severity === b.severity ? (a.status === b.status ? 0 : a.status === 'ACTIVE' ? -1 : 1) : a.severity === 'CRITICAL' ? -1 : 1);
+  const current = (open ?? []).filter((a) => a.origin === 'observed').sort(bySeverity);
+  // A forecast that only repeats a problem already happening (same pond and factor, same or worse) is not news: it stays in the Alerts list.
+  const covered = new Set(current.map((a) => `${a.pondId}:${a.parameter}:${a.severity === 'CRITICAL' ? 2 : 1}`));
+  const upcoming = (open ?? []).filter((a) => a.origin === 'predicted' && !covered.has(`${a.pondId}:${a.parameter}:${a.severity === 'CRITICAL' ? 2 : 1}`) && !(a.severity === 'WARNING' && covered.has(`${a.pondId}:${a.parameter}:2`))).sort(bySeverity);
+  const attentionPonds = new Set(current.map((a) => a.pondId)).size;
+  const quiet = stats.stale + stats.noData;
+  const ordered = sortRows(rows);
 
-  const trendPonds: TrendPond[] = rows.map((r) => ({ id: r.pond.id, name: r.pond.name, latestAt: r.latestAt, latestAgeMinutes: r.latestAgeMinutes, latestSource: r.latestSource }));
-  const defaultPond = [...rows].filter((r) => r.latestAt).sort((a, b) => Date.parse(b.latestAt!) - Date.parse(a.latestAt!))[0] ?? rows[0];
-  const tableRows = sortRows(rows).slice(0, 8);
+  const headline = !stats.total ? 'No ponds yet'
+    : stats.critical > 0 ? `${stats.critical} ${stats.critical === 1 ? 'pond is' : 'ponds are'} in a critical condition`
+    : stats.warning > 0 ? `${stats.warning} ${stats.warning === 1 ? 'pond needs' : 'ponds need'} attention`
+    : stats.healthy === stats.total ? (stats.total === 1 ? 'Your pond is healthy' : `All ${stats.total} ponds are healthy`)
+    : stats.healthy > 0 ? `${stats.healthy} of ${stats.total} ponds are healthy` : 'No recent readings from any pond';
+  const bad = stats.critical + stats.warning > 0;
+  const Icon = bad ? WarningCircle : CheckCircle;
 
   return (
     <>
-      <PageHeader
-        title="Overview"
-        description="Monitor pond health, water quality and forecasts."
-        actions={(
-          <>
-            <div className="mr-1 flex items-center gap-2 text-[13px] text-ink-soft" aria-live="polite">
-              <StatusPill tone={freshnessStale ? 'muted' : 'healthy'}>{stats.latestAt ? (freshnessStale ? 'Stale data' : 'Fresh data') : 'No data'}</StatusPill>
-              <span>{stats.latestAt ? `Latest reading ${formatDateTime(stats.latestAt)} (${formatAge(stats.latestAgeMinutes)})` : 'No readings recorded yet'}</span>
+      {header(<RefreshButton />)}
+      <div className="space-y-8">
+        {stats.failed > 0 ? <Notice tone="warning">{stats.failed} of {stats.total} ponds could not be loaded, so the figures below are incomplete.</Notice> : null}
+        {alertsR.status === 'rejected' ? <Notice tone="warning">Current problems could not be loaded, so this page may not show every problem. Try refreshing.</Notice> : null}
+
+        <section aria-label="Summary" className={bad ? (stats.critical > 0 ? 'rounded-xl border border-crit-text/40 bg-crit-bg p-5' : 'rounded-xl border border-warn-text/40 bg-warn-bg p-5') : 'rounded-xl border border-line bg-card p-5'}>
+          <div className="flex items-start gap-3">
+            <Icon size={28} weight="fill" className={stats.critical > 0 ? 'text-crit-text' : bad ? 'text-warn-text' : quiet === stats.total ? 'text-ink-soft' : 'text-ok-text'} aria-hidden="true" />
+            <div>
+              <p className="text-xl font-medium tracking-tight text-ink" data-testid="overview-headline">{headline}</p>
+              <p className="mt-1 text-[13px] text-ink-soft">
+                {stats.total ? `${stats.healthy} healthy · ${stats.warning} need attention · ${stats.critical} critical${quiet ? ` · ${quiet} with no recent reading` : ''}` : 'Ponds appear here once they are registered or imported.'}
+                {stats.latestAt ? <> · Latest reading {formatAge(stats.latestAgeMinutes)} <span className="text-ink-soft">({formatDateTime(stats.latestAt)})</span></> : null}
+              </p>
             </div>
-            <RefreshButton />
-          </>
-        )}
-      />
-
-      <div className="space-y-6">
-        {stats.failed > 0 ? <Notice tone="warning">{stats.failed} of {stats.total} ponds could not be loaded, so the totals below are incomplete.</Notice> : null}
-        {alertsR.status === 'rejected' ? <Notice tone="warning">Open alerts could not be loaded. Alert figures are unavailable.</Notice> : null}
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard icon={Drop} label="Total ponds" value={stats.total} context={stats.total ? `${stats.stale + stats.noData} with stale or no data` : 'No ponds registered'} />
-          <KpiCard icon={CheckCircle} label="Healthy ponds" value={stats.healthy} context="Dissolved oxygen, pH and temperature within limits, fresh data" />
-          <KpiCard icon={WarningCircle} label="Ponds requiring attention" value={stats.attention} context={`${stats.critical} critical, ${stats.warning} warning (each pond counted once)`} />
-          <KpiCard icon={Bell} label="Unresolved alerts" value={alerts ? `${alerts.count}${alerts.nextCursor ? '+' : ''}` : 'n/a'} context={sev ? `${sev.critical} critical, ${sev.warning} warning, ${sev.acknowledged} acknowledged` : 'Alert data unavailable'} />
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          {defaultPond ? <MeasurementTrend ponds={trendPonds} initialPondId={defaultPond.pond.id} rules={rules} title="Recent water-quality trend" /> : <Card><EmptyState title="No ponds yet">Ponds appear here once they are registered or imported.</EmptyState></Card>}
-          <Card aria-labelledby="dist-title" className="self-start">
-            <CardHeader id="dist-title" title="Pond health" description="Worst current status across dissolved oxygen, pH and temperature" />
-            <div className="px-5 pb-5 pt-4">
-              {stats.total === 0 ? <EmptyState title="No ponds to summarise" /> : (
-                <DistributionBar
-                  total={stats.total}
-                  unitLabel="ponds"
-                  segments={[
-                    { key: 'ok', label: 'Healthy', count: stats.healthy, bar: '#7D9274', text: '' },
-                    { key: 'warn', label: 'Warning', count: stats.warning, bar: '#A66D25', text: '' },
-                    { key: 'crit', label: 'Critical', count: stats.critical, bar: '#B64D43', text: '' },
-                    { key: 'stale', label: 'Stale data', count: stats.stale, bar: '#B9B8AD', text: '' },
-                    { key: 'nodata', label: 'No data', count: stats.noData + stats.unknown, bar: '#D8D6CB', text: '' },
-                    ...(stats.failed ? [{ key: 'err', label: 'Could not load', count: stats.failed, bar: '#E5E3D9', text: '' }] : []),
-                  ]}
-                />
-              )}
-              <div className="mt-5 border-t border-line pt-4">
-                <h3 className="text-[13px] font-medium text-ink">Unresolved alerts by severity</h3>
-                {sev && alerts ? (
-                  <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-                    {[['Critical', sev.critical, 'text-crit-text'], ['Warning', sev.warning, 'text-warn-text'], ['Acknowledged', sev.acknowledged, 'text-olive-text']].map(([label, n, cls]) => (
-                      <div key={String(label)} className="rounded-lg bg-surface px-2 py-2.5"><dd className={`text-xl font-medium tabular-nums ${cls}`}>{n}</dd><dt className="mt-0.5 text-[11px] text-ink-soft">{label}</dt></div>
-                    ))}
-                  </dl>
-                ) : <p className="mt-2 text-xs text-ink-soft">Alert data unavailable.</p>}
-                {alerts ? <p className="mt-2 text-xs text-ink-soft">{alerts.count}{alerts.nextCursor ? '+' : ''} unresolved. Acknowledged alerts are still unresolved.</p> : null}
-                {brk ? <p className="mt-2 text-xs text-ink-soft" data-testid="overview-breakdown">Observed: {ALERT_PARAMETERS.map((p) => `${PARAM_LABEL[p]} ${brk.byParameter[p] ?? 0}`).join(', ')}. Forecast-based: {brk.forecast}.</p> : null}
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <Card aria-labelledby="monitor-title">
-          <CardHeader id="monitor-title" title="Pond monitoring" description="Ponds needing attention are listed first." action={<Link href="/ponds" className={linkButtonClass('secondary', 'sm')}>View all ponds <ArrowRight size={14} aria-hidden="true" /></Link>} />
-          <div className="pt-3">
-            {tableRows.length ? <PondTable rows={tableRows} caption="Pond monitoring summary" /> : <EmptyState title="No ponds yet">Ponds appear here once they are registered or imported.</EmptyState>}
           </div>
-        </Card>
+        </section>
 
-        <Card aria-labelledby="alerts-title">
-          <CardHeader id="alerts-title" title="Recent alerts" description="Unresolved alerts, newest first." action={<Link href="/alerts" className={linkButtonClass('secondary', 'sm')}>Open alert center <ArrowRight size={14} aria-hidden="true" /></Link>} />
-          <div className="pt-2">
-            {alertsR.status === 'rejected' ? <ErrorState server error={alertsR.reason} title="Could not load alerts" />
-              : alerts && alerts.items.length ? <AlertList alerts={alerts.items.slice(0, 5)} pondNames={names} />
-              : <EmptyState title="No unresolved alerts">When a reading or forecast crosses a dissolved-oxygen, pH or temperature limit, the alert appears here until it recovers.</EmptyState>}
-          </div>
-        </Card>
+        {/* The farm view uses the very same pond data as everything else on this page; demo fixtures only on explicit request (?twin=demo). */}
+        {rows.length || demoTwin ? (() => { const demo = demoTwin ? demoFarm() : null; return <FarmTwin rows={demo ? demo.rows : rows} alerts={demo ? demo.alerts : open ?? []} mode={demo ? 'demo' : 'live'} loadedAt={new Date().toISOString()} />; })() : null}
+
+        <Section id="attention" title="Needs attention now" hint="Problems measured in your ponds right now, most serious first." action={current.length > 6 ? <Link href="/alerts" className={linkButtonClass('secondary', 'sm')}>See all {current.length}</Link> : undefined}>
+          {open === null ? <p className="text-[13px] text-ink-soft">Current problems are unavailable.</p>
+            : current.length === 0 ? (
+              <p className="flex items-start gap-2 rounded-xl border border-line bg-card px-4 py-4 text-[13px] text-ink">
+                <CheckCircle size={18} weight="fill" className="mt-px shrink-0 text-ok-text" aria-hidden="true" />
+                <span><span className="font-medium">No current problems.</span> {quiet && !stats.healthy ? 'No pond has sent a recent reading, so conditions are not known.' : 'Every pond with a recent reading is within the acceptable range.'}</span>
+              </p>
+            ) : <AlertFeed alerts={current.slice(0, 6)} pondNames={names} showGuidance />}
+          {attentionPonds > 1 ? <p className="text-xs text-ink-soft">{attentionPonds} ponds affected.</p> : null}
+        </Section>
+
+        <Section id="upcoming" title="Possible upcoming problems" hint="Forecasts, not measurements. They may not happen.">
+          {open === null ? <p className="text-[13px] text-ink-soft">Forecast warnings are unavailable.</p>
+            : upcoming.length === 0 ? <p className="flex items-center gap-2 text-[13px] text-ink-soft"><Binoculars size={16} aria-hidden="true" />No forecast warnings right now.</p>
+            : <AlertCardList alerts={upcoming.slice(0, 4)} pondNames={names} />}
+        </Section>
+
+        <Section id="ponds" title="Your ponds" hint="Most serious first." action={<Link href="/ponds" className={linkButtonClass('secondary', 'sm')}>See all ponds</Link>}>
+          {ordered.length ? <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Ponds">{ordered.slice(0, 9).map((r) => <li key={r.pond.id}><PondCard row={r} /></li>)}</ul>
+            : <Card><EmptyState title="No ponds yet">Ponds appear here once they are registered or imported.</EmptyState></Card>}
+          {ordered.length > 9 ? <p className="text-xs text-ink-soft">Showing 9 of {ordered.length} ponds.</p> : null}
+        </Section>
       </div>
     </>
   );

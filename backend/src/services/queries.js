@@ -88,7 +88,9 @@ export async function listPredictions(db, config, pondId, rawQuery) {
     filter.generatedAt = latest.generatedAt; filter.dataSource = latest.dataSource;
   }
   const items = await db.collection('predictions').find(filter).sort({ generatedAt: -1, parameter: 1, forecastFor: 1 }).limit(q.limit).toArray();
-  return { items: items.map(({ _id, ...r }) => ({ id: _id, ...r })), generatedAt: items[0]?.generatedAt ?? null, note: 'Model forecasts, not measurements.' };
+  // Each forecast value carries the backend's own risk classification, so clients never apply thresholds themselves.
+  const withRisk = ({ _id, ...r }) => { const c = classify(r.parameter, r.predictedValue); return { id: _id, ...r, risk: c.status, ...(c.direction ? { direction: c.direction } : {}) }; };
+  return { items: items.map(withRisk), generatedAt: items[0]?.generatedAt ?? null, note: 'Model forecasts, not measurements.' };
 }
 
 export async function listAlerts(db, config, rawQuery, pondId) {

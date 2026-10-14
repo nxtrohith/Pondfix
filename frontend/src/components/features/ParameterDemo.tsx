@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Notice } from '../ui/states';
 import { StatusPill } from '../ui/StatusPill';
 import { Table, Td, Th, Tr } from '../ui/Table';
-import { AlertList } from './AlertList';
+import { AlertCardList } from './AlertCard';
 import type { TrendPond } from './MeasurementTrend';
 
 type Param = 'dissolved_oxygen' | 'ph' | 'temperature';
@@ -128,7 +128,7 @@ export function ParameterDemo({ ponds }: { ponds: TrendPond[] }) {
           {alerts === null ? <p className="mt-2 text-xs text-ink-soft">Shown after the first reading is sent.</p>
             : 'error' in alerts ? <p role="alert" className="mt-2 text-xs text-crit-text">Could not load alerts: {alerts.error}</p>
             : alerts.length === 0 ? <p className="mt-2 text-xs text-ink-soft">No unresolved alerts for this pond.</p>
-            : <div className="mt-2 rounded-lg border border-line"><AlertList alerts={alerts} pondNames={{ [pondId]: pond?.name ?? '' }} /></div>}
+            : <div className="mt-2"><AlertCardList alerts={alerts} pondNames={{ [pondId]: pond?.name ?? '' }} /></div>}
         </div>
       </div>
 

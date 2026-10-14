@@ -195,10 +195,8 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
                   <pre className="mt-2 overflow-x-auto rounded-lg bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">{JSON.stringify({ request: sent, response: result }, null, 2)}</pre>
                 </details>
                 <div className="flex flex-wrap gap-2 border-t border-line px-5 py-4">
-                  <Link href={`/ponds/${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>Open pond</Link>
-                  <Link href={`/analytics`} className={linkButtonClass('secondary', 'sm')}>View analytics</Link>
-                  <Link href="/alerts" className={linkButtonClass('secondary', 'sm')}>View alerts</Link>
-                  <Link href={`/forecasts?pond=${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>View forecasts</Link>
+                  <Link href={`/ponds/${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>See this pond (problems and forecast)</Link>
+                  <Link href="/alerts" className={linkButtonClass('secondary', 'sm')}>See alerts</Link>
                 </div>
               </Card>
             ) : null}

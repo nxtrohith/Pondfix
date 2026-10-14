@@ -72,5 +72,5 @@ export function axisTicks(start: number, end: number, count = 5): number[] {
   return out;
 }
 
-export const RANGE_MS = { '24h': 24 * 3600_000, '3d': 3 * 86400_000, '7d': 7 * 86400_000 } as const;
+export const RANGE_MS = { '24h': 24 * 3600_000, '3d': 3 * 86400_000, '7d': 7 * 86400_000, '30d': 30 * 86400_000 } as const;
 export type RangeKey = keyof typeof RANGE_MS;
