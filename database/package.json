@@ -11,6 +11,7 @@
     "db:seed": "node scripts/seed-fixtures.js",
     "db:unseed": "node scripts/remove-fixtures.js",
     "db:verify": "node scripts/verify.js",
+    "db:standardize-names": "node scripts/standardize-pond-names.js",
     "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
   },
   "engines": {
