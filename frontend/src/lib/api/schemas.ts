@@ -52,11 +52,12 @@ export const catalogueEntry = z.object({
   notes: z.array(z.string()),
 });
 export type CatalogueEntry = z.infer<typeof catalogueEntry>;
-export const speciesCatalogueResponse = z.object({ items: z.array(catalogueEntry), policyVersion: z.string().nullable(), note: z.string() });
+export const speciesCatalogueResponse = z.object({ items: z.array(catalogueEntry), policyVersion: z.string().nullable(), note: z.string(),
+  compatibility: z.object({ levels: z.array(z.string()), items: z.array(z.object({ a: z.string(), b: z.string(), level: z.enum(['high', 'conditional', 'unverified', 'avoid']), reason: z.string() })), note: z.string() }).optional() });
 export type SpeciesRequest =
   | { mode: 'unconfigured' }
   | { mode: 'single'; speciesProfileId: string; customSpeciesName?: string }
-  | { mode: 'polyculture'; species: { speciesProfileId: string; proportionPercent?: number }[] };
+  | { mode: 'polyculture'; species: { speciesProfileId: string; proportionPercent?: number }[]; acknowledgeWarnings?: boolean; largerFishConfirmed?: boolean };
 
 export const pondSchema = z.object({
   id: z.string(),
