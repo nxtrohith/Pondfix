@@ -1,0 +1,17 @@
+{
+  "name": "aquaguard-database",
+  "private": true,
+  "type": "module",
+  "description": "AquaGuard MongoDB Atlas preparation tooling (no server code)",
+  "scripts": {
+    "db:ping": "node scripts/ping.js",
+    "db:init": "node scripts/init-collections.js",
+    "db:indexes": "node scripts/create-indexes.js",
+    "db:check": "node scripts/check.js",
+    "db:seed": "node scripts/seed-fixtures.js",
+    "db:unseed": "node scripts/remove-fixtures.js",
+    "db:verify": "node scripts/verify.js"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": { "mongodb": "^6.10.0" }
+}
