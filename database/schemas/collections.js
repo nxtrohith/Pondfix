@@ -137,9 +137,20 @@ export const collections = {
       // Snapshot of how the alert was last classified (so a later species change never rewrites it retroactively).
       ruleScope: oneOfEnum(['general', 'species']), rulesVersion: str(), speciesLabel: str(), speciesProfileId: str(), profileVersion: str(),
       referenceRange: { bsonType: 'object', properties: { min: { bsonType: ['double', 'int', 'long'] }, max: { bsonType: ['double', 'int', 'long'] }, above: { bsonType: ['double', 'int', 'long'] }, kind: str(), source: str(), unit: str() } },
+      // Written by the alert advisor (backend/src/services/ai): Jev priorities, sensor-fault flag, notify recommendation, guarded LLM solution.
+      advisory: { bsonType: 'object' }, incidentId: id,
       openKey: str({ description: 'pondId:origin:parameter while ACTIVE/ACKNOWLEDGED; $unset on RESOLVED. Unique-when-present => one open alert per condition.' }),
       demoRunId: str({ minLength: 1, description: 'Set only on alerts opened by the guided demo scenario.' }),
       fixtureTag,
+    },
+  },
+  farmerNotes: {
+    required: ['pondId', 'text', 'category', 'createdAt'],
+    properties: {
+      _id: id, pondId: id, text: str({ minLength: 3, maxLength: 500 }),
+      category: oneOfEnum(['unclassified', 'low_oxygen_signs', 'disease_signs', 'feeding_change', 'water_appearance', 'equipment_issue', 'routine_normal', 'other']),
+      categoryConfidence: { bsonType: ['double', 'int'] }, distress: { bsonType: ['double', 'int'] }, severityScore: { bsonType: ['double', 'int'] },
+      classifiedBy: str(), createdAt: date, fixtureTag,
     },
   },
   notificationDeliveries: {

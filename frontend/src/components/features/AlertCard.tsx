@@ -6,6 +6,7 @@ import { DEFAULT_UNIT, SOURCE_LABEL, formatDateTime, formatValue } from '@/lib/f
 import { RULE_SCOPE_LABEL, rangeText, REFERENCE_KIND } from '@/lib/species';
 import { ALERT_STATE_TEXT, alertKind, describeForecastProblem, describeProblem, guidanceFor, levelText } from '@/lib/terms';
 import { Button } from '../ui/Button';
+import { AlertAdvisory } from './AlertAdvisory';
 import { SourceBadge } from '../ui/StatusPill';
 import { cx } from '../ui/cx';
 
@@ -58,6 +59,7 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
       </dl>
       <p className="mt-1.5 text-[13px] text-ink-soft">{ALERT_STATE_TEXT[a.status]}{a.status === 'RESOLVED' && a.resolvedAt ? ` (${formatDateTime(a.resolvedAt)})` : ''}</p>
       {tip ? <p className="mt-2 rounded-md bg-surface px-3 py-2 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p> : null}
+      <AlertAdvisory alert={a} />
       <section className="mt-2 text-[13px]" aria-label="Why this alert, and which limits">
         <div className="space-y-1.5">
           {!resolved && a.explanation ? <p className="text-ink-soft">{a.explanation}</p> : null}

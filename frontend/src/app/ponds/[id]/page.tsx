@@ -18,6 +18,7 @@ import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
 import { DataSourceToggle } from '@/components/features/DataSourceToggle';
+import { PondNotes } from '@/components/features/PondNotes';
 import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
 
@@ -75,6 +76,8 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
               </p>
             )}
         </Section>
+
+        <PondNotes pondId={pond.id} />
 
         {summary ? (
           <Section id="now" title="Current water quality" hint="The latest reading of each factor.">

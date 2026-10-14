@@ -93,6 +93,28 @@ export interface AlertItem {
   raisedAt: string;
   resolvedAt: string | null;
   acknowledgedAt: string | null;
+  /** Backend alert advisor output (Jev analysis + guarded LLM solution); null when absent or malformed. Suggestions only. */
+  advisory?: AlertAdvisory | null;
+}
+
+export interface AlertAdvisory {
+  analysedBy: 'jev' | 'rules';
+  priorities: { parameter: string; status: 'WARNING' | 'CRITICAL'; urgency: number | null }[];
+  sensorFault: { probability: number; flagged: boolean } | null;
+  relatedParameters: string[];
+  channel: 'in_app' | 'push' | 'sms';
+  forecastActionable: { probability: number; actionable: boolean } | null;
+  solution: { source: 'llm' | 'rules'; summary: string; verifyFirst: string; steps: string[] } | null;
+  /** True when an AI-written answer was replaced by standard guidance because the safety check failed. */
+  aiHeldBack: boolean;
+}
+
+export interface FarmerNote {
+  id: string;
+  text: string;
+  category: string;
+  distress: number | null;
+  createdAt: string;
 }
 
 export interface ForecastPoint { minutesAhead: 15 | 60 | 180; value: number }

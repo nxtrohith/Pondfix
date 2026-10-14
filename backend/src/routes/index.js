@@ -10,6 +10,7 @@ import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
 import { publishAlertChanges } from '../services/alertEvents.js';
 import { allSnapshots, publishPondUpdate } from '../services/pondSync.js';
+import { addNote, listNotes } from '../services/ai/farmerNotes.js';
 import * as demoPond from '../services/demoPond.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
@@ -23,7 +24,7 @@ export function buildRouter(deps) {
     let ml = 'disabled';
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
-    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ml: { status: ml } });
+    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), llm: Boolean(deps.advisor && config.ai?.llm?.url) }, ml: { status: ml } });
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.
@@ -130,6 +131,10 @@ export function buildRouter(deps) {
   r.get('/ponds/:id/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query, (await requirePond(db, req.params.id))._id))));
   r.get('/ponds/:id/analytics', asyncHandler(async (req, res) => res.json(await pondAnalytics(db, config, await requirePond(db, req.params.id), req.query))));
   r.get('/analytics/compare', asyncHandler(async (req, res) => res.json(await comparePonds(db, config, req.query))));
+
+  // Farmer field notes, classified by Jev when configured. They inform the alert advisor; they never create or change alerts.
+  r.get('/ponds/:id/notes', asyncHandler(async (req, res) => res.json(await listNotes(db, await requirePond(db, req.params.id), Number.parseInt(req.query.limit, 10) || 20))));
+  r.post('/ponds/:id/notes', asyncHandler(async (req, res) => res.status(201).json(await addNote({ db, jev: deps.jev, now }, await requirePond(db, req.params.id), req.body))));
 
   r.get('/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query))));
   r.patch('/alerts/:id/acknowledge', asyncHandler(async (req, res) => {

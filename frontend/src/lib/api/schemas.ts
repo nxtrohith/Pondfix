@@ -149,6 +149,22 @@ export const predictionSchema = z.object({
 export type Prediction = z.infer<typeof predictionSchema>;
 export const predictionsResponse = z.object({ items: z.array(predictionSchema), generatedAt: iso.nullable(), note: z.string().optional() });
 
+/** Written by the backend alert advisor (Jev analysis + guarded LLM solution). Suggestions only: the alert itself comes from the safety limits. */
+export const advisorySchema = z.object({
+  analysedBy: z.enum(['jev', 'rules']),
+  priorities: z.array(z.object({ parameter: z.string(), status: z.enum(['WARNING', 'CRITICAL']), direction: z.enum(['low', 'high']).optional(), exceedance: z.number(), jevUrgency: z.number().optional(), jevConfidence: z.number().optional() })),
+  firstPriority: z.string().optional(),
+  sensorFault: z.object({ probability: z.number(), flagged: z.boolean() }).optional(),
+  incident: z.object({ id: z.string(), relatedParameters: z.array(z.string()) }).optional(),
+  notify: z.object({ channel: z.enum(['in_app', 'push', 'sms']), reasons: z.array(z.string()) }),
+  forecastActionable: z.object({ probability: z.number(), actionable: z.boolean() }).optional(),
+  solution: z.object({ source: z.enum(['llm', 'rules']), summary: z.string(), verifyFirst: z.string(), steps: z.array(z.string()) }).optional(),
+  guard: z.object({ passed: z.boolean(), reasons: z.array(z.string()) }).optional(),
+  jevModel: z.string().optional(), llmModel: z.string().optional(),
+  errors: z.array(z.string()).optional(),
+});
+export type Advisory = z.infer<typeof advisorySchema>;
+
 export const alertSchema = z.object({
   id: z.string(),
   pondId: z.string(),
@@ -177,6 +193,9 @@ export const alertSchema = z.object({
   referenceRange: referenceRange.optional(),
   explanation: z.string().optional(),
   recommendedAction: z.string().optional(),
+  /** A malformed advisory is dropped on its own; it must never make the whole alert list unreadable. */
+  advisory: advisorySchema.optional().catch(undefined),
+  incidentId: z.string().optional(),
 });
 export type Alert = z.infer<typeof alertSchema>;
 export const alertsResponse = z.object({ items: z.array(alertSchema), count: z.number(), nextCursor: z.string().nullable() });
@@ -224,6 +243,8 @@ export const healthResponse = z.object({
   database: z.object({ status: z.string(), target: z.enum(['atlas', 'non-atlas', 'unknown']).optional() }),
   // demo: whether the API accepts simulated readings (DEMO_ENABLED). Off by default; simulated readings are written to Atlas.
   demo: z.object({ enabled: z.boolean() }).optional(),
+  /** advisor: Jev analysis is configured; llm: a custom LLM endpoint is configured. Optional so an older API still parses. */
+  ai: z.object({ advisor: z.boolean(), llm: z.boolean() }).optional(),
   ml: z.object({ status: z.string() }),
 });
 export type HealthResponse = z.infer<typeof healthResponse>;
@@ -306,3 +327,10 @@ export const replayForecastResponse = z.object({
   errorCode: z.string().optional(), message: z.string().optional(), reason: z.string().optional(),
 });
 export type ReplayForecast = z.infer<typeof replayForecastResponse>;
+
+export const noteSchema = z.object({
+  id: z.string(), pondId: z.string(), text: z.string(), createdAt: iso,
+  category: z.string(), categoryConfidence: z.number().optional(), distress: z.number().optional(), severityScore: z.number().optional(),
+});
+export type FarmerNote = z.infer<typeof noteSchema>;
+export const notesResponse = z.object({ items: z.array(noteSchema), count: z.number() });

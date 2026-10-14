@@ -13,6 +13,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { ChemistryCard } from '@/components/ChemistryCard';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AppButton } from '@/components/AppButton';
+import { PondNotesPanel } from '@/components/PondNotesPanel';
 import { AlertCard } from '@/components/AlertCard';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { EmptyState } from '@/components/StateViews';
@@ -146,6 +147,8 @@ export default function PondDetailScreen() {
           </Panel>
         );
       })}
+
+      <PondNotesPanel pondId={pond.id} />
 
       <SectionHeader title="Tools" />
       <View style={styles.tools}>
