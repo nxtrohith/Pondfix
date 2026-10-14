@@ -7,6 +7,7 @@ import { pondAnalytics, comparePonds } from '../services/analytics.js';
 import { acknowledge } from '../services/alerts.js';
 import { demoMeasurement, SCENARIOS } from '../services/demo.js';
 import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
+import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
 export function buildRouter(deps) {
@@ -49,6 +50,24 @@ export function buildRouter(deps) {
     res.json({ items: ponds.map(serializePond), count: ponds.length });
   }));
   r.get('/ponds/:id', asyncHandler(async (req, res) => res.json(serializePond(await requirePond(db, req.params.id)))));
+  // Species catalogue and the status of each safety profile (reference ranges are context, not alert limits).
+  r.get('/species-profiles', (req, res) => res.json(serializeCatalogue()));
+  // Narrow, validated update: only the species fields (plus updatedAt) of an existing pond can change through this route.
+  r.patch('/ponds/:id/species', asyncHandler(async (req, res) => {
+    const pond = await requirePond(db, req.params.id);
+    const { set, unset } = buildSpeciesUpdate(req.body);
+    const at = now();
+    const update = { $set: { ...set, updatedAt: at, ...(Object.keys(set).length ? { speciesConfiguredAt: at } : {}) } };
+    const unsetFields = Object.keys(unset);
+    if (unsetFields.length) update.$unset = unset;
+    let saved;
+    try { saved = await db.collection('ponds').findOneAndUpdate({ _id: pond._id }, update, { returnDocument: 'after' }); } catch (e) {
+      if (e?.code === 121) throw new ApiError(503, 'SCHEMA_OUTDATED', 'the database does not accept species fields yet; run "npm run db:init -w database" to update the collection validators');
+      throw e;
+    }
+    if (!saved) throw new ApiError(404, 'NOT_FOUND', 'pond not found');
+    res.json(serializePond(saved));
+  }));
   r.get('/ponds/:id/summary', asyncHandler(async (req, res) => res.json(await pondSummary(db, config, await requirePond(db, req.params.id), now()))));
 
   r.get('/ponds/:id/measurements/latest', asyncHandler(async (req, res) => {

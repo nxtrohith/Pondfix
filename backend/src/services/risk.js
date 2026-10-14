@@ -102,14 +102,14 @@ export const THRESHOLDS = new Proxy({}, { get: (_, p) => active.rules[p], has: (
 export const RANK = Object.freeze({ UNKNOWN: 0, NORMAL: 1, WARNING: 2, CRITICAL: 3 });
 
 /** Sides ('low' / 'high') an active rule can fire on. */
-export const sidesOf = (parameter) => { const r = active.rules[parameter]; return r ? ['low', 'high'].filter((s) => r[`${s}_warn`] !== undefined) : []; };
+export const sidesOf = (parameter, rule = active.rules[parameter]) => (rule ? ['low', 'high'].filter((s) => rule[`${s}_warn`] !== undefined) : []);
 
 /**
  * -> { status, threshold, unit, direction?, rule, reason? }. UNKNOWN (never "healthy") when there is no enabled rule or the value
  * is missing, null, NaN or infinite. `direction` is 'low' or 'high' for WARNING/CRITICAL; `threshold` is the limit that was crossed.
  */
-export function classify(parameter, value) {
-  const th = active.rules[parameter];
+export function classify(parameter, value, rule = active.rules[parameter]) {
+  const th = rule; // the active general rule unless the caller resolved a pond-specific one (see speciesProfiles.js)
   if (!th) return { status: 'UNKNOWN', threshold: null, reason: 'no validated threshold configured for this parameter' };
   if (!th.enabled) return { status: 'UNKNOWN', threshold: null, reason: 'rule is disabled' };
   if (typeof value !== 'number' || !Number.isFinite(value)) return { status: 'UNKNOWN', threshold: null, reason: 'missing or non-numeric value' };
@@ -140,10 +140,10 @@ export function dataState(recordedAt, now, staleAfterMinutes) {
 }
 
 /** Risk status from one parameter's latest reading: CRITICAL|WARNING|NORMAL|STALE|NO_DATA|UNKNOWN. Defaults to dissolved oxygen. */
-export function pondRiskStatus(latest, now, staleAfterMinutes, parameter = 'dissolved_oxygen') {
+export function pondRiskStatus(latest, now, staleAfterMinutes, parameter = 'dissolved_oxygen', rule = active.rules[parameter]) {
   if (!latest) return 'NO_DATA';
   if (dataState(latest.recordedAt, now, staleAfterMinutes).state === 'STALE') return 'STALE';
-  return classify(parameter, latest.value).status;
+  return classify(parameter, latest.value, rule).status;
 }
 
 /**
@@ -151,10 +151,10 @@ export function pondRiskStatus(latest, now, staleAfterMinutes, parameter = 'diss
  * by a stale or healthy value elsewhere. With no excursion, dissolved oxygen stays the primary freshness signal (NORMAL, or STALE when
  * its last reading is old, so a fresh pH never masks stale oxygen data); a pond with no DO reading at all falls back to the others.
  */
-export function pondOverallStatus(latestByParameter, now, staleAfterMinutes) {
+export function pondOverallStatus(latestByParameter, now, staleAfterMinutes, ruleOf = (p) => active.rules[p]) {
   const ruled = RULE_PARAMETERS.filter((p) => active.rules[p].enabled && latestByParameter?.[p]);
   if (!ruled.length) return 'NO_DATA';
-  const per = Object.fromEntries(ruled.map((p) => [p, pondRiskStatus(latestByParameter[p], now, staleAfterMinutes, p)]));
+  const per = Object.fromEntries(ruled.map((p) => [p, pondRiskStatus(latestByParameter[p], now, staleAfterMinutes, p, ruleOf(p))]));
   const all = Object.values(per);
   if (all.includes('CRITICAL')) return 'CRITICAL';
   if (all.includes('WARNING')) return 'WARNING';

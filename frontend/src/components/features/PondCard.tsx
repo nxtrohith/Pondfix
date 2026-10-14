@@ -4,6 +4,7 @@ import type { FleetRow } from '@/lib/fleet';
 import { PARAM_ICON } from '@/lib/alerts';
 import { DEFAULT_UNIT, PARAM_SHORT, SOURCE_LABEL, formatValue, unitLabel } from '@/lib/format';
 import { POND_STATUS, describeProblem } from '@/lib/terms';
+import { isConfigured, speciesLine } from '@/lib/species';
 import { StatusBadge } from '../ui/StatusBadge';
 import { LastUpdated } from '../ui/LastUpdated';
 import { cx } from '../ui/cx';
@@ -23,6 +24,7 @@ export function PondCard({ row }: { row: FleetRow }) {
         <h3 className="min-w-0 truncate text-[15px] font-medium text-ink">{pond.name}</h3>
         <StatusBadge status={row.risk} scope="pond" />
       </div>
+      <p className={cx('mt-0.5 truncate text-xs', isConfigured(pond.speciesConfig) ? 'text-ink-soft' : 'text-warn-text')}>{speciesLine(pond.speciesConfig)}</p>
       {problems.length ? (
         <ul className="mt-2 space-y-0.5 text-[13px] font-medium text-ink">
           {problems.slice(0, 3).map((a) => <li key={a.id}>{describeProblem(a.parameter, a.direction, a.severity)}</li>)}

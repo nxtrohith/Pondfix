@@ -20,6 +20,6 @@ export default async function SimulationPage() {
     ? <Card><ErrorState server error={fleetR.reason} title="Could not load ponds" /></Card>
     : !fleetR.value.rows.length
       ? <Card><EmptyState title="No ponds to simulate">A simulated reading is attached to a pond. Import or register one first.</EmptyState></Card>
-      : <SimulationForm ponds={fleetR.value.rows.map((r) => ({ id: r.pond.id, name: r.pond.name, latestAt: r.latestAt, latestAgeMinutes: r.latestAgeMinutes, latestSource: r.latestSource }))} rules={rules} />;
+      : <SimulationForm ponds={fleetR.value.rows.map((r) => ({ id: r.pond.id, name: r.pond.name, species: r.pond.speciesConfig, latestAt: r.latestAt, latestAgeMinutes: r.latestAgeMinutes, latestSource: r.latestSource }))} rules={rules} />;
   return (<>{header}<SimulationWorkspace testReading={testReading} rules={rules} /></>);
 }

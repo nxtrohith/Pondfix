@@ -4,6 +4,7 @@
 // round tanks, a canal along the back, and a boundary fence. Nothing here depends on data except which pond sits in which slot.
 import type { FleetRow } from './fleet';
 import type { RiskStatus } from './api/schemas';
+import { isConfigured, speciesLine } from './species';
 
 export const FARM_POND_COUNT = 17;
 export const POND = 15;          // pond footprint (square, rounded corners)
@@ -175,7 +176,7 @@ function norm(v: [number, number, number]): [number, number, number] { const l =
 export const slotLabel = (slot: number) => `Pond ${slot + 1}`;
 
 export interface PondSnapshot {
-  id: string; name: string; sourceId?: string; risk: RiskStatus | 'ERROR'; tone: Tone;
+  id: string; name: string; sourceId?: string; species: string; speciesSet: boolean; risk: RiskStatus | 'ERROR'; tone: Tone;
   readings: { parameter: 'dissolved_oxygen' | 'ph' | 'temperature'; value: number; unit: string; risk: RiskStatus; recordedAt: string; ageMinutes: number | null }[];
   latestAt: string | null; latestAgeMinutes: number | null;
   /** Unresolved problems measured now (observed alerts), kept apart from forecast warnings. */
@@ -187,7 +188,7 @@ const FACTORS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
 export function snapshotOf(row: FleetRow): PondSnapshot {
   const s = row.summary;
   return {
-    id: row.pond.id, name: row.pond.name, sourceId: row.pond.sourceId, risk: row.risk, tone: toneOf(row.risk),
+    id: row.pond.id, name: row.pond.name, sourceId: row.pond.sourceId, species: speciesLine(row.pond.speciesConfig), speciesSet: isConfigured(row.pond.speciesConfig), risk: row.risk, tone: toneOf(row.risk),
     readings: FACTORS.flatMap((p) => { const r = s?.parameters[p]; return r ? [{ parameter: p, value: r.value, unit: r.unit, risk: r.risk, recordedAt: r.recordedAt, ageMinutes: r.ageMinutes }] : []; }),
     latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes,
     problems: (s?.openAlertItems ?? []).filter((a) => a.origin === 'observed').map((a) => ({ id: a.id, parameter: a.parameter, severity: a.severity, direction: a.direction, status: a.status })),

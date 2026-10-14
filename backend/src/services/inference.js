@@ -2,6 +2,7 @@
 import { ObjectId } from 'mongodb';
 import { classify, RANK } from './risk.js';
 import { applyCondition } from './alerts.js';
+import { alertContext, ruleFor } from './speciesProfiles.js';
 
 const TO_API = { do: 'dissolved_oxygen', ph: 'ph', temp: 'temperature' };
 const FROM_API = { dissolved_oxygen: 'do', ph: 'ph', temperature: 'temp' };
@@ -25,8 +26,8 @@ export async function buildHistory(db, pondId, source, upTo, hours) {
 
 
 /** Worst DO forecast across horizons (the one that drives a predicted-risk alert). Input: [{ value, horizonMinutes, forecastFor }]. */
-export function worstDoForecast(items) {
-  const scored = items.map((d) => ({ ...d, cls: classify('dissolved_oxygen', d.value) }));
+export function worstDoForecast(items, rule) {
+  const scored = items.map((d) => ({ ...d, cls: classify('dissolved_oxygen', d.value, rule) }));
   return scored.reduce((a, b) => (RANK[b.cls.status] > RANK[a.cls.status] ? b : a));
 }
 
@@ -93,12 +94,12 @@ export async function runInference({ db, ml, config, pond, measurement, now }) {
     let alert = { action: 'none' };
     const doForecasts = docs.filter((d) => d.parameter === 'dissolved_oxygen');
     if (doForecasts.length) {
-      const top = worstDoForecast(doForecasts.map((d) => ({ value: d.predictedValue, horizonMinutes: d.horizon.value, forecastFor: d.forecastFor })));
+      const top = worstDoForecast(doForecasts.map((d) => ({ value: d.predictedValue, horizonMinutes: d.horizon.value, forecastFor: d.forecastFor })), ruleFor(pond, 'dissolved_oxygen').rule);
       alert = await applyCondition(db, {
         pondId: pond._id, origin: 'predicted', parameter: 'dissolved_oxygen', dataSource: measurement.source, cls: top.cls,
         triggerValue: top.value, at: now, now,
         message: `FORECAST (not observed): dissolved oxygen predicted ${top.value} mg/L in ${top.horizonMinutes} min, below ${top.cls.threshold} mg/L`,
-        extra: { horizonMinutes: top.horizonMinutes, forecastFor: top.forecastFor },
+        extra: { horizonMinutes: top.horizonMinutes, forecastFor: top.forecastFor, ...alertContext(pond, 'dissolved_oxygen') },
       });
     }
     return { status: 'ok', runId, predictions: docs.length, warnings: out.warnings?.slice(0, 10) ?? [], predictedAlert: alert };

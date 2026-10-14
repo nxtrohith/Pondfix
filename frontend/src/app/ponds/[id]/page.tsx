@@ -17,6 +17,8 @@ import { WaterQualityCard } from '@/components/features/WaterQualityCard';
 import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
+import { SpeciesSettings } from '@/components/features/SpeciesSettings';
+import { isConfigured, speciesLine } from '@/lib/species';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> { return { title: `Pond ${(await params).id.slice(-6)}` }; }
@@ -53,7 +55,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
         title={row.pond.name}
-        description={POND_STATUS[row.risk].summary}
+        description={<>{POND_STATUS[row.risk].summary} <span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>Species: {speciesLine(pond.speciesConfig)}.</span></>}
         actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-[13px] text-ink-soft" /></>)}
       />
       <div className="space-y-8">
@@ -77,6 +79,8 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
               </p>
             )}
         </Section>
+
+        <SpeciesSettings pondId={pond.id} pondName={row.pond.name} initial={pond.speciesConfig} />
 
         <Section id="next" title="What may happen next?" hint="Estimates from the forecasting model for the next few hours. They are not measurements.">
           {predsR.status === 'rejected' ? <Card><ErrorState server error={predsR.reason} title="Could not load the forecast" /></Card>
@@ -102,7 +106,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
             {([
               ['Name', row.pond.name], ['Source identifier', pond.sourceId ? <span key="s" className="font-mono text-xs">{pond.sourceId}</span> : NOT_RECORDED],
               ['Data from', pond.sourceDataset ?? NOT_RECORDED], ['Monitoring', <span key="m" className="capitalize">{pond.status}</span>],
-              ['Species', pond.species ?? NOT_RECORDED], ['Area', pond.area ? `${pond.area.value} ${pond.area.unit}` : NOT_RECORDED],
+              ['Species', isConfigured(pond.speciesConfig) ? speciesLine(pond.speciesConfig) : NOT_RECORDED], ['Imported species note', pond.species ?? NOT_RECORDED], ['Area', pond.area ? `${pond.area.value} ${pond.area.unit}` : NOT_RECORDED],
               ['Location', pond.location?.description ?? NOT_RECORDED], ['Added', pond.createdAt ? formatDateTime(pond.createdAt) : NOT_RECORDED],
             ] as const).map(([k, v]) => (<div key={k}><dt className="text-ink-soft">{k}</dt><dd className="mt-0.5 break-words text-ink">{v}</dd></div>))}
           </dl>

@@ -15,6 +15,49 @@ export type RiskStatus = z.infer<typeof riskStatusSchema>;
 
 const iso = z.string();
 
+export const SAFETY_STATUS = ['validated', 'reference_only', 'not_validated'] as const;
+export const safetyProfileSchema = z.object({
+  status: z.enum(SAFETY_STATUS),
+  /** True only when approved species-specific alert limits exist. */
+  alertsEnabled: z.boolean(),
+  ruleScope: z.enum(['species', 'general']).optional(),
+  version: z.string().nullable(),
+  message: z.string(),
+});
+const compositionEntry = z.object({ speciesProfileId: z.string(), displayName: z.string(), scientificName: z.string().nullable(), proportionPercent: z.number().optional() });
+/** The pond's persisted species configuration, exactly as the API returns it. `unconfigured` is an explicit state. */
+export const speciesConfigSchema = z.object({
+  state: z.enum(['unconfigured', 'configured']),
+  mode: z.enum(['unconfigured', 'single', 'polyculture']),
+  label: z.string(),
+  speciesProfileId: z.string().optional(),
+  scientificName: z.string().nullable().optional(),
+  customSpeciesName: z.string().optional(),
+  cultureType: z.string().nullable(),
+  cultureLabel: z.string().nullable(),
+  composition: z.array(compositionEntry).optional(),
+  profileVersion: z.string().optional(),
+  configuredAt: iso.optional(),
+  safetyProfile: safetyProfileSchema,
+});
+export type SpeciesConfig = z.infer<typeof speciesConfigSchema>;
+
+const referenceRange = z.object({ min: z.number().optional(), max: z.number().optional(), above: z.number().optional(), kind: z.string().optional(), source: z.string().optional(), unit: z.string().optional() });
+export type ReferenceRange = z.infer<typeof referenceRange>;
+export const catalogueEntry = z.object({
+  id: z.string(), displayName: z.string(), scientificName: z.string().nullable(), scientificNameStatus: z.string().optional(),
+  cultureType: z.string(), cultureLabel: z.string(), requiresCustomName: z.boolean(),
+  safetyProfile: safetyProfileSchema.extend({ approvedBy: z.string().optional(), approvedAt: z.string().optional(), source: z.string().optional() }),
+  reference: z.record(z.string(), referenceRange.nullable()),
+  notes: z.array(z.string()),
+});
+export type CatalogueEntry = z.infer<typeof catalogueEntry>;
+export const speciesCatalogueResponse = z.object({ items: z.array(catalogueEntry), policyVersion: z.string().nullable(), note: z.string() });
+export type SpeciesRequest =
+  | { mode: 'unconfigured' }
+  | { mode: 'single'; speciesProfileId: string; customSpeciesName?: string }
+  | { mode: 'polyculture'; species: { speciesProfileId: string; proportionPercent?: number }[] };
+
 export const pondSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -22,6 +65,8 @@ export const pondSchema = z.object({
   sourceDataset: z.string().optional(),
   status: z.string(),
   species: z.string().optional(),
+  /** Optional so an older API (without species support) still parses; absent means unconfigured. */
+  speciesConfig: speciesConfigSchema.optional(),
   location: z.object({ description: z.string().optional(), latitude: z.number().optional(), longitude: z.number().optional() }).partial().optional(),
   area: z.object({ value: z.number(), unit: z.string() }).optional(),
   createdAt: iso.optional(),
@@ -117,6 +162,15 @@ export const alertSchema = z.object({
   forecastFor: iso.optional(),
   /** Which side of its limit the alert fired on (derived by the API). */
   direction: z.enum(['low', 'high']).optional(),
+  /** Which rules classified it, snapshotted when it was last evaluated: approved species limits or the general safety rules. */
+  ruleScope: z.enum(['species', 'general']).optional(),
+  speciesLabel: z.string().optional(),
+  speciesProfileId: z.string().optional(),
+  profileVersion: z.string().optional(),
+  rulesVersion: z.string().optional(),
+  referenceRange: referenceRange.optional(),
+  explanation: z.string().optional(),
+  recommendedAction: z.string().optional(),
 });
 export type Alert = z.infer<typeof alertSchema>;
 export const alertsResponse = z.object({ items: z.array(alertSchema), count: z.number(), nextCursor: z.string().nullable() });
@@ -192,7 +246,7 @@ export type ScenariosResponse = z.infer<typeof scenariosResponse>;
 export const ingestResponse = z.object({
   duplicate: z.boolean(),
   measurement: measurementSchema,
-  risk: z.record(z.string(), z.object({ value: z.number(), unit: z.string(), status: z.string(), direction: z.enum(['low', 'high']).optional(), threshold: z.number().optional(), note: z.string().optional() })),
+  risk: z.record(z.string(), z.object({ value: z.number(), unit: z.string(), status: z.string(), ruleScope: z.enum(['species', 'general']).optional(), direction: z.enum(['low', 'high']).optional(), threshold: z.number().optional(), note: z.string().optional() })),
   alerts: z.array(z.object({ parameter: z.string(), action: z.string(), alertId: z.string().optional(), direction: z.enum(['low', 'high']).optional() })),
   alertStateUpdated: z.boolean(),
   rejectedValues: z.array(z.object({ index: z.number(), parameter: z.string().nullable(), reason: z.string() })).optional(),

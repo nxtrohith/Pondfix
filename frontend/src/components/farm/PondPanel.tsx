@@ -30,6 +30,7 @@ export function PondPanel({ snap, alerts, readings, demo, onClose }: { snap: Pon
       <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div className="min-w-0">
           <h3 className="truncate text-[15px] font-medium text-ink">{snap.name}</h3>
+          <p className={snap.speciesSet ? 'mt-0.5 truncate text-xs text-ink-soft' : 'mt-0.5 truncate text-xs text-warn-text'}>{snap.species}</p>
           <p className="mt-0.5 truncate font-mono text-[11px] text-ink-soft">{snap.id}</p>
           <div className="mt-2"><StatusBadge status={snap.risk} scope="pond" /></div>
         </div>
