@@ -28,3 +28,7 @@ database/reports/
 next-env.d.ts
 *.tsbuildinfo
 *.pt
+
+# Model weights (large; not stored in git)
+aquaguard-vision/weights/
+aquaguard-vision/*.pt
