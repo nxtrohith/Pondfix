@@ -1,0 +1,5 @@
+# Versions the bundle was trained/verified with (see Preprocess artifacts manifest)
+scikit-learn==1.8.0
+numpy==2.4.3
+pandas==3.0.1
+joblib==1.5.3

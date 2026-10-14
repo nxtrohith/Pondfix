@@ -45,6 +45,21 @@ export async function withDb(fn) {
   }
 }
 
+let shared = null;
+/** Long-lived client for servers (reused, one per process). withDb() stays for one-shot scripts. */
+export async function getDb() {
+  if (!shared) {
+    const uri = requireUri();
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000, appName: 'aquaguard-backend' });
+    shared = client.connect().then(() => client, (err) => { shared = null; err.message = sanitize(err, uri); throw err; });
+  }
+  const client = await shared;
+  return client.db(DB_NAME);
+}
+export async function closeDb() {
+  if (shared) { const c = await shared.catch(() => null); shared = null; await c?.close(); }
+}
+
 export function run(main) {
   main().catch((err) => { console.error('FAILED:', sanitize(err)); process.exitCode = 1; });
 }
