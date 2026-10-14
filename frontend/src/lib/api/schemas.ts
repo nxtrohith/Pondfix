@@ -214,8 +214,10 @@ export const healthResponse = z.object({
   status: z.enum(['ok', 'degraded', 'down']),
   time: iso,
   uptimeSeconds: z.number(),
-  // target: whether the API's database is on this machine ('local'), elsewhere ('remote'), or unknown (older API).
-  database: z.object({ status: z.string(), target: z.enum(['local', 'remote', 'unknown']).optional() }),
+  // target: whether the API's database is the Atlas cluster ('atlas'), something else ('non-atlas'), or unknown (older API).
+  database: z.object({ status: z.string(), target: z.enum(['atlas', 'non-atlas', 'unknown']).optional() }),
+  // demo: whether the API accepts simulated readings (DEMO_ENABLED). Off by default; simulated readings are written to Atlas.
+  demo: z.object({ enabled: z.boolean() }).optional(),
   ml: z.object({ status: z.string() }),
 });
 export type HealthResponse = z.infer<typeof healthResponse>;

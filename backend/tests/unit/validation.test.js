@@ -29,7 +29,7 @@ test('structure rules: no empty/duplicate/unknown fields; timestamps need a zone
 });
 test('config defaults: demo off in production, secrets not part of config', () => {
   assert.equal(loadConfig({ NODE_ENV: 'production' }).demoEnabled, false);
-  assert.equal(loadConfig({}).demoEnabled, true);
+  assert.equal(loadConfig({}).demoEnabled, false);
   assert.ok(!JSON.stringify(loadConfig({ MONGODB_URI: 'mongodb://secret' })).includes('secret'));
 });
 test('config: default CORS origins cover localhost and 127.0.0.1 and contain no wildcard', () => {

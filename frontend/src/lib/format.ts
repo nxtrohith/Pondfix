@@ -7,7 +7,7 @@ export const PARAM_LABEL: Record<string, string> = {
   temperature: 'Temperature',
   water_level: 'Water level',
 };
-export const PARAM_SHORT: Record<string, string> = { dissolved_oxygen: 'DO', ph: 'pH', temperature: 'Temp', water_level: 'Level' };
+export const PARAM_SHORT: Record<string, string> = { dissolved_oxygen: 'Oxygen', ph: 'pH', temperature: 'Temp', water_level: 'Level' };
 
 export function unitLabel(unit?: string | null): string {
   if (!unit) return '';
@@ -27,13 +27,14 @@ export function formatValue(value: number | null | undefined, parameter: string,
 function parts(date: Date, opts: Intl.DateTimeFormatOptions, tz = DISPLAY_TIMEZONE) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: tz, ...opts }).format(date);
 }
-const tzLabel = (tz: string) => (tz === 'UTC' ? 'UTC' : tz.split('/').pop()?.replace('_', ' ') ?? tz);
+/** "UTC" or an unambiguous offset such as "GMT+5:30" (city names differ between browsers: Kolkata vs Calcutta). */
+const tzLabel = (tz: string, d: Date) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'short' }).formatToParts(d).find((x) => x.type === 'timeZoneName')?.value ?? tz;
 
 export function formatDateTime(iso: string | null | undefined, tz = DISPLAY_TIMEZONE): string {
   if (!iso) return 'n/a';
   const d = new Date(iso);
   if (Number.isNaN(+d)) return 'n/a';
-  return `${parts(d, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }, tz)} ${tzLabel(tz)}`;
+  return `${parts(d, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }, tz)} ${tzLabel(tz, d)}`;
 }
 export function formatDate(iso: string | null | undefined, tz = DISPLAY_TIMEZONE): string {
   if (!iso) return 'n/a';
@@ -58,7 +59,7 @@ export function formatAge(minutes: number | null | undefined): string {
   return `${Math.round(minutes / 43200)} months ago`;
 }
 
-export const SOURCE_LABEL: Record<DataSource, string> = { historical: 'Historical data', simulated: 'Simulation', live: 'Live data' };
+export const SOURCE_LABEL: Record<DataSource, string> = { historical: 'Historical data', simulated: 'Test data', live: 'Live data' };
 export const horizonLabel = (minutes?: number) => (minutes === undefined ? 'n/a' : minutes % 60 === 0 ? `${minutes / 60} h` : `${minutes} min`);
 
 export const isParameter = (p: string): p is Parameter => p in PARAM_LABEL;

@@ -21,7 +21,10 @@ import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
 
 export const dynamic = 'force-dynamic';
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> { return { title: `Pond ${(await params).id.slice(-6)}` }; }
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try { const pond = await serverApi().pond(id); return { title: toRow(pond, null).pond.name }; } catch { return { title: 'Pond' }; }
+}
 
 const NOT_RECORDED = <span className="text-ink-soft">Not recorded</span>;
 const Section = ({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) => (
@@ -55,19 +58,11 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
         title={row.pond.name}
-        description={<>{POND_STATUS[row.risk].summary} <span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>Species: {speciesLine(pond.speciesConfig)}.</span></>}
+        description={<>{POND_STATUS[row.risk].summary} <span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>{isConfigured(pond.speciesConfig) ? `Species: ${speciesLine(pond.speciesConfig)}.` : 'Species not set yet.'}</span></>}
         actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-[13px] text-ink-soft" /></>)}
       />
       <div className="space-y-8">
         {summaryR.status === 'rejected' ? <Card><ErrorState server error={summaryR.reason} title="Could not load the latest readings" /></Card> : null}
-
-        {summary ? (
-          <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {ALERT_PARAMETERS.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} />)}
-            </div>
-          </Section>
-        ) : null}
 
         <Section id="attention" title="What needs attention?">
           {openR.status === 'rejected' ? <Card><ErrorState server error={openR.reason} title="Could not load current problems" /></Card>
@@ -80,12 +75,13 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
             )}
         </Section>
 
-        <SpeciesSettings pondId={pond.id} pondName={row.pond.name} initial={pond.speciesConfig} />
-
-        <Section id="next" title="What may happen next?" hint="Estimates from the forecasting model for the next few hours. They are not measurements.">
-          {predsR.status === 'rejected' ? <Card><ErrorState server error={predsR.reason} title="Could not load the forecast" /></Card>
-            : <ForecastOutlook predictions={preds ?? []} readings={summary?.parameters ?? {}} />}
-        </Section>
+        {summary ? (
+          <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {ALERT_PARAMETERS.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} />)}
+            </div>
+          </Section>
+        ) : null}
 
         {row.latestAt && summary ? (
           <Section id="trends" title="Water quality over time">
@@ -93,12 +89,20 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
           </Section>
         ) : null}
 
+        <Section id="next" title="What may happen next?" hint="Estimates from the forecasting model for the next few hours. They are not measurements.">
+          {predsR.status === 'rejected' ? <Card><ErrorState server error={predsR.reason} title="Could not load the forecast" /></Card>
+            : <ForecastOutlook predictions={preds ?? []} readings={summary?.parameters ?? {}} />}
+        </Section>
+
         <Section id="past" title="Earlier problems" hint="The five most recent that have been resolved.">
           {pastR.status === 'rejected' ? <Card><ErrorState server error={pastR.reason} title="Could not load earlier problems" /></Card>
             : past.length === 0 ? <p className="text-[13px] text-ink-soft">No resolved problems for this pond yet.</p>
             : <AlertCardList alerts={past} compact />}
           <p className="text-[13px]"><Link href={`/alerts?pond=${pond.id}`} className="text-olive-text underline-offset-2 hover:underline">See every alert for this pond</Link></p>
         </Section>
+
+        <SpeciesSettings pondId={pond.id} pondName={row.pond.name} initial={pond.speciesConfig} />
+
 
         <details className="rounded-xl border border-line bg-card">
           <summary className="cursor-pointer px-5 py-3.5 text-sm font-medium text-ink">Pond details</summary>

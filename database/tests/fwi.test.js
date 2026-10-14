@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 import { mapRow, parseIstTimestamp, pondObjectId, fingerprint } from '../lib/fwi-mapping.js';
+import { requireUri, DB_NAME } from '../lib/connect.js';
 
 const row = (o = {}) => ({ 'Date/Time (IST)': '2025-12-14 02:15:00', 'DO (mg/L)': '5.69', pH: '8.53', 'Temperature (°C)': '25.2', QC_Flag_DateTime: '', QC_Flag_DO: '', QC_Flag_pH: '', ...o });
 const map = (o, extra = {}) => mapRow({ pondSourceId: 'ara2_t1', file: 'ara2_t1.csv', rowNumber: 2, row: row(o), receivedAt: new Date('2026-03-01T00:00:00Z'), ...extra });
@@ -45,8 +45,9 @@ test('repeated timestamps get distinct deterministic keys', () => {
   assert.equal(fingerprint(map({}).doc), fingerprint(map({}).doc));
 });
 
-// ---------------- integration: CLI importer + setup scripts against an EPHEMERAL local mongod (never Atlas) ----------------
-let mongod; let uri; let dir; const DB = 'aquaguard_import_test';
+// ---------------- integration: CLI importer + setup scripts against a separate test database on the Atlas cluster ----------------
+let uri; let dir; const DB = 'aquaguard_import_test';
+if (DB === DB_NAME) throw new Error('the import test database must differ from MONGODB_DB');
 const HEADER = 'Date/Time (IST),DO (mg/L),pH,Temperature (°C),QC_Flag_DateTime,QC_Flag_DO,QC_Flag_pH';
 // Async on purpose: a blocking spawn would stall the event loop that drains the in-memory mongod's log pipe.
 const cli = (script, args = [], env = {}) => new Promise((resolve) => {
@@ -55,7 +56,8 @@ const cli = (script, args = [], env = {}) => new Promise((resolve) => {
     (err, stdout, stderr) => resolve({ code: err ? (err.code ?? 1) : 0, out: stdout + stderr }));
 });
 before(async () => {
-  mongod = await MongoMemoryServer.create(); uri = mongod.getUri();
+  uri = requireUri();
+  const c = new MongoClient(uri); await c.connect(); await c.db(DB).dropDatabase(); await c.close();
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fwi-'));
   fs.writeFileSync(path.join(dir, 'ara2_aaaa0001.csv'), [HEADER,
     '2025-12-14 02:15:00,5.69,8.53,25.2,,,', '2025-12-14 02:30:00,0,8.50,25.1,,DO_<0.1,', '2025-12-14 02:45:00,0,0,0,,,',
@@ -63,7 +65,10 @@ before(async () => {
   fs.writeFileSync(path.join(dir, 'ara2_bbbb0002.csv'), [HEADER, '2025-12-14 02:15:00,6.0,8.0,26.0,,,'].join('\n'));
   fs.writeFileSync(path.join(dir, 'README.md'), 'ignored');
 });
-after(async () => { await mongod.stop(); fs.rmSync(dir, { recursive: true, force: true }); });
+after(async () => {
+  const c = new MongoClient(uri); await c.connect(); await c.db(DB).dropDatabase(); await c.close();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
 
 test('existing setup scripts work end to end: init, indexes, check, seed (rerun-safe), verify', async () => {
   for (const s of ['init-collections.js', 'create-indexes.js', 'init-collections.js', 'create-indexes.js']) assert.equal((await cli(s)).code, 0, s);
@@ -113,6 +118,6 @@ test('importer: dry run writes nothing; --write imports; rerun is idempotent; co
 });
 
 test('errors never print the connection URI or password', async () => {
-  const r = await cli('ping.js', [], { MONGODB_URI: 'mongodb://user:Sup3rS3cret@127.0.0.1:1/?serverSelectionTimeoutMS=500' });
+  const r = await cli('ping.js', [], { MONGODB_URI: 'mongodb://user:Sup3rS3cret@ac-fake-00-00.invalid.mongodb.net:27017/?serverSelectionTimeoutMS=500' });
   assert.notEqual(r.code, 0); assert.ok(!r.out.includes('Sup3rS3cret') && !r.out.includes('mongodb://user'), r.out);
 });

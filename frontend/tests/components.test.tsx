@@ -15,7 +15,7 @@ import { toRow } from '@/lib/fleet';
 describe('ui primitives', () => {
   it('status pills carry their text (colour is never the only signal)', () => {
     render(<><StatusPill tone="critical">Critical</StatusPill><SourceBadge source="simulated" /><SourceBadge source="historical" /></>);
-    expect(screen.getByText('Critical')).toBeInTheDocument(); expect(screen.getByText('Simulation')).toBeInTheDocument(); expect(screen.getByText('Historical data')).toBeInTheDocument();
+    expect(screen.getByText('Critical')).toBeInTheDocument(); expect(screen.getByText('Test data')).toBeInTheDocument(); expect(screen.getByText('Historical data')).toBeInTheDocument();
   });
   it('empty state explains how to proceed', () => { render(<EmptyState title="No ponds yet">Import one.</EmptyState>); expect(screen.getByText('No ponds yet')).toBeInTheDocument(); expect(screen.getByText('Import one.')).toBeInTheDocument(); });
   it('error state is announced and offers retry only for recoverable errors', () => {

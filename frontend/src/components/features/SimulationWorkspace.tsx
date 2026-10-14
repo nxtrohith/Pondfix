@@ -13,7 +13,7 @@ export function SimulationWorkspace({ testReading, rules }: { testReading: React
     <div className="space-y-6">
       <div className="rounded-xl border border-dashed border-olive/60 bg-sage-pale px-4 py-3 text-[13px] text-olive-text" role="note">
         <span className="mr-2 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold tracking-wide">DEMO</span>
-        This is not live monitoring. Replaying history only reads recorded data; test readings are saved as clearly marked simulations and never describe your real ponds.
+        This is not live monitoring. Replaying history only reads recorded data. A test reading is saved to the pond you choose and labelled “Test data” wherever it appears, so you can tell it apart from real readings.
       </div>
       <Segmented<Mode> label="Demo type" value={mode} onChange={setMode} options={[{ value: 'replay', label: 'Replay history' }, { value: 'test', label: 'Test an alert' }]} />
       {mode === 'replay' ? <HistoricalReplay rules={rules} /> : testReading}

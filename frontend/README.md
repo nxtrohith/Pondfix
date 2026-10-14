@@ -6,17 +6,19 @@ Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind CSS v4, with
 
 The dashboard needs the API running. **Start the backend first, in its own terminal, then the frontend in a second one.** The dashboard does not start the API for you; if it is not running, every page shows "Could not reach the AquaGuard API".
 
-| Step | Atlas (real data) | Isolated local database |
-|---|---|---|
-| 0. Install once | `npm install` (repo root) and `pip install -r ml/requirements.txt` | same |
-| 1. Configure | `backend/.env` with `MONGODB_URI` (copy `backend/.env.example`; see root README). The frontend needs no configuration for local development. | none |
-| 2. Terminal 1: API | `npm start` | `npm run dev:local` (~20 s: starts an in-memory MongoDB and imports the historical CSVs from `~/Preprocess/csv`; data is discarded on exit) |
-| 3. Check the API | `curl http://127.0.0.1:4000/api/health` should return `"status":"ok"` with `"database":{"status":"up"}` | same |
-| 4. Terminal 2: dashboard | `npm run dev:frontend` | same |
-| 5. Open | http://localhost:3000 (or http://127.0.0.1:3000) | same |
-| 6. Stop | `Ctrl+C` in each terminal | same |
+The API runs against MongoDB Atlas only; there is no local database mode.
 
-Use the local-database workflow for anything that writes (the Simulation page, acknowledging alerts): it never touches Atlas. Production build: `npm run build:frontend && npm run start -w frontend` (also http://localhost:3000).
+| Step | Command |
+|---|---|
+| 0. Install once | `npm install` (repo root) and `pip install -r ml/requirements.txt` (in a virtualenv) |
+| 1. Configure | `backend/.env` with `MONGODB_URI` pointing to your Atlas cluster (copy `backend/.env.example`; see root README). The frontend needs no configuration for local development. |
+| 2. Terminal 1: API | `npm start` |
+| 3. Check the API | `curl http://127.0.0.1:4000/api/health` should return `"status":"ok"` with `"database":{"status":"up","target":"atlas"}` |
+| 4. Terminal 2: dashboard | `npm run dev:frontend` |
+| 5. Open | http://localhost:3000 (or http://127.0.0.1:3000) |
+| 6. Stop | `Ctrl+C` in each terminal |
+
+Everything the dashboard writes (acknowledging alerts, and the Simulation page when demo mode is on) is stored in Atlas. Production build: `npm run build:frontend && npm run start -w frontend` (also http://localhost:3000).
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -28,8 +30,10 @@ Put overrides in `frontend/.env.local` (git-ignored; template: `frontend/.env.ex
 
 ### Hackathon demo: the alert lifecycle
 
-1. **Terminal 1:** `npm run dev:local` and wait for `AquaGuard API listening ... (database: LOCAL ...)`. Do not run `npm start` at the same time: both use port 4000, and `npm start` connects to Atlas.
-2. **Check it is isolated:** `curl http://127.0.0.1:4000/api/health` must show `"database":{"status":"up","target":"local"}`.
+The demo and the Simulation page save simulated readings (marked "Simulated") to the Atlas database, so they are **off by default**. Use them only when you accept that.
+
+1. **Enable demo mode:** set `DEMO_ENABLED=true` in `backend/.env`, then **Terminal 1:** `npm start` and wait for `AquaGuard API listening ... (database: ATLAS ...)`.
+2. **Check it:** `curl http://127.0.0.1:4000/api/health` must show `"database":{"status":"up","target":"atlas"}` and `"demo":{"enabled":true}`.
 3. **Terminal 2:** `npm run dev:frontend`, then open http://localhost:3000.
 4. Open **Alerts** in one browser tab (it should say "No active problems") and **Demo & simulation** in another (choose **Test an alert**).
 5. Under **Guided alert demo**, pick a pond and press **Start demo**, then confirm. Four simulated readings go out 5 seconds apart:
@@ -43,20 +47,20 @@ Put overrides in `frontend/.env.local` (git-ignored; template: `frontend/.env.ex
 
 6. After each step, refresh the Alerts tab (or press the refresh button) to see the state change. The demo table and the "Alerts for this pond" list below it show the server's actual responses and the alert's ID.
 7. To show "Mark as seen": after step 2 or 3, press **Mark as seen** on the Alerts page. The problem moves to the *Marked as seen* tab but stays open until a normal reading arrives.
-8. Stop both terminals with `Ctrl+C`. Everything written is discarded.
+8. Stop both terminals with `Ctrl+C`, and set `DEMO_ENABLED=false` again. The simulated readings and alerts stay in Atlas (marked as simulated).
 
-The Guided demo is **disabled unless the API reports a local database** (`database.target` is `local`). Against Atlas it shows why and tells you to use `npm run dev:local`. If a step fails, the sequence pauses on that step; **Retry step N** re-sends the same reading and nothing is skipped.
+The Guided demo is **disabled unless the API reports demo mode on** (`demo.enabled` is `true` in `/api/health`). Otherwise it shows why. If a step fails, the sequence pauses on that step; **Retry step N** re-sends the same reading and nothing is skipped.
 
 ### Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
-| Every page says "Could not reach the AquaGuard API" and the sidebar says "API unreachable" | The backend is not running, or is on another port. Run `curl http://127.0.0.1:4000/api/health`. If it is refused, start it with `npm start` (or `npm run dev:local`). If it uses another `PORT`, set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to match. |
+| Every page says "Could not reach the AquaGuard API" and the sidebar says "API unreachable" | The backend is not running, or is on another port. Run `curl http://127.0.0.1:4000/api/health`. If it is refused, start it with `npm start`. If it uses another `PORT`, set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to match. |
 | Pages load but charts, forecasts, Alerts or Simulation never fill in | Browser-side requests are blocked. Open the dashboard as `http://localhost:3000` or `http://127.0.0.1:3000`; for any other host (for example a LAN address) add its origin to the API's `CORS_ORIGINS` and, for `next dev`, to `allowedDevOrigins` in `next.config.ts`. |
 | Health shows "Degraded", forecasts say "unavailable" | The API is up but the Python worker is not: install `ml/requirements.txt` (scikit-learn 1.8.0) and check `PYTHON_BIN`. Measurements and alerts keep working. |
 | Health shows the database as unreachable, or the API exits at start-up | `MONGODB_URI` is missing or wrong, or your IP is not allowed in Atlas Network Access. The API prints a sanitized error. |
 | "The API returned a response in an unexpected format" | The frontend and backend versions differ. Update both and restart. |
-| "The demo is disabled" on the Simulation page, or an alert you did not expect on the dashboard | The API on port 4000 is connected to Atlas (it was started with `npm start`). Check `curl http://127.0.0.1:4000/api/health`: `"target":"remote"` means Atlas. Stop that process and start `npm run dev:local`. |
+| "The demo is disabled" on the Simulation page | Demo mode is off on the API. Set `DEMO_ENABLED=true` in `backend/.env` and restart `npm start`; `curl http://127.0.0.1:4000/api/health` then shows `"demo":{"enabled":true}`. Simulated readings are saved to Atlas. |
 | `FATAL: port 4000 is already in use` | Another AquaGuard API is running. Find it with `lsof -nP -iTCP:4000 -sTCP:LISTEN`, check what it is connected to, then stop it with `Ctrl+C` in its terminal. |
 | Everything shows "Stale" | Expected: the imported data ends in January 2026, so it is historical, not live. |
 

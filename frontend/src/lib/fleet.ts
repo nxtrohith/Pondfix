@@ -36,6 +36,17 @@ export const POND_DISPLAY_NAMES: Readonly<Record<string, string>> = Object.freez
   Object.fromEntries(POND_SOURCE_IDS.map((id, index) => [id, `Pond ${index + 1}`]))
 );
 
+/**
+ * A pond with an open measured problem is never shown as "no recent reading", even when its newest reading is old:
+ * the open problem is the more useful (and more honest) headline. Healthy and attention states are left as the API reports them.
+ */
+function effectiveRisk(summary: PondSummary | null): FleetRow['risk'] {
+  if (!summary) return 'ERROR';
+  if (summary.riskStatus !== 'STALE' && summary.riskStatus !== 'NO_DATA' && summary.riskStatus !== 'UNKNOWN') return summary.riskStatus;
+  const open = (summary.openAlertItems ?? []).filter((a) => a.origin === 'observed');
+  return open.some((a) => a.severity === 'CRITICAL') ? 'CRITICAL' : open.length ? 'WARNING' : summary.riskStatus;
+}
+
 export function toRow(pond: Pond, summary: PondSummary | null): FleetRow {
   const friendlyName = POND_DISPLAY_NAMES[pond.sourceId ?? ''] ?? POND_DISPLAY_NAMES[pond.name] ?? pond.name;
   const normalizedPond = friendlyName !== pond.name ? { ...pond, name: friendlyName } : pond;
@@ -46,7 +57,7 @@ export function toRow(pond: Pond, summary: PondSummary | null): FleetRow {
     if (!latestAt || Date.parse(p.recordedAt) > Date.parse(latestAt)) { latestAt = p.recordedAt; latestSource = p.source; }
     if (p.ageMinutes !== null && (age === null || p.ageMinutes < age)) age = p.ageMinutes;
   }
-  return { pond: normalizedPond, summary, latestAt, latestAgeMinutes: age, latestSource, risk: summary ? summary.riskStatus : 'ERROR' };
+  return { pond: normalizedPond, summary, latestAt, latestAgeMinutes: age, latestSource, risk: effectiveRisk(summary) };
 }
 
 export const sortRows = (rows: FleetRow[]) =>

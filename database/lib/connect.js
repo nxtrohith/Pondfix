@@ -13,16 +13,16 @@ for (const envFile of [path.join(root, 'backend', '.env'), path.join(root, '.env
 export const DB_NAME = process.env.MONGODB_DB || 'aquaguard';
 
 /**
- * Classifies a connection string WITHOUT exposing it: 'local' only if every host is loopback; anything else
- * (including mongodb+srv and any parse failure) is 'remote'. Used to guard test-data workflows and to label /api/health.
+ * Classifies a connection string WITHOUT exposing it: 'atlas' only if every host is a MongoDB Atlas host (*.mongodb.net);
+ * anything else is 'non-atlas', and a missing URI is 'unknown'. The API only ever connects to Atlas (see requireUri).
  */
 export function describeTarget(uri) {
   try {
-    if (!uri || /^mongodb\+srv:/i.test(uri)) return 'remote';
-    const hostPart = uri.replace(/^mongodb:\/\//i, '').split('@').pop().split('/')[0].split('?')[0];
+    if (!uri) return 'unknown';
+    const hostPart = uri.replace(/^mongodb(\+srv)?:\/\//i, '').split('@').pop().split('/')[0].split('?')[0];
     const hosts = hostPart.split(',').map((h) => h.trim().replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase());
-    return hosts.length > 0 && hosts.every((h) => ['127.0.0.1', 'localhost', '::1'].includes(h)) ? 'local' : 'remote';
-  } catch { return 'remote'; }
+    return hosts.length > 0 && hosts.every((h) => h.endsWith('.mongodb.net')) ? 'atlas' : 'non-atlas';
+  } catch { return 'non-atlas'; }
 }
 export const getTarget = () => (process.env.MONGODB_URI ? describeTarget(process.env.MONGODB_URI) : 'unknown');
 
@@ -42,6 +42,8 @@ export function requireUri() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is not set (expected in backend/.env).');
   if (/<db_password>|<password>/.test(uri)) throw new Error('MONGODB_URI still contains a password placeholder.');
+  // Atlas only: there is no local database to fall back to.
+  if (describeTarget(uri) !== 'atlas') throw new Error('MONGODB_URI must point to a MongoDB Atlas cluster (*.mongodb.net).');
   return uri;
 }
 

@@ -29,7 +29,7 @@ export function PondCard({ row }: { row: FleetRow }) {
         <ul className="mt-2 space-y-0.5 text-[13px] font-medium text-ink">
           {problems.slice(0, 3).map((a) => <li key={a.id}>{describeProblem(a.parameter, a.direction, a.severity)}</li>)}
         </ul>
-      ) : <p className="mt-2 text-[13px] text-ink-soft">{POND_STATUS[row.risk].summary}</p>}
+      ) : row.risk === 'NORMAL' || row.risk === 'ERROR' ? <p className="mt-2 text-[13px] text-ink-soft">{POND_STATUS[row.risk].summary}</p> : null}
       {upcoming.length ? <p className="mt-1 text-xs text-olive-text">Forecast warning: {upcoming.length === 1 ? 'a problem may develop soon' : `${upcoming.length} problems may develop soon`}</p> : null}
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
         {PARAMS.map((p) => {
@@ -47,7 +47,7 @@ export function PondCard({ row }: { row: FleetRow }) {
         })}
       </dl>
       <p className="mt-3 flex items-center justify-between gap-2 text-xs text-ink-soft">
-        <span><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} />{row.latestSource && row.latestSource !== 'live' ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5">{SOURCE_LABEL[row.latestSource]}</span> : null}</span>
+        <span><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className={row.risk === 'STALE' ? 'text-warn-text' : undefined} />{row.latestSource && row.latestSource !== 'live' ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5">{SOURCE_LABEL[row.latestSource]}</span> : null}</span>
         <CaretRight size={14} aria-hidden="true" />
       </p>
     </Link>
