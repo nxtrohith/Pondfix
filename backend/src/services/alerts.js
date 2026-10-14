@@ -2,19 +2,21 @@
 //   openKey = "<pondId>:<origin>:<parameter>:<dataSource>" exists only while ACTIVE/ACKNOWLEDGED, so at most one
 //   open alert per condition; RESOLVED alerts drop openKey and remain as history.
 // Every write is a single-document atomic operation, so a retry after a partial failure converges (idempotent).
-import { RANK } from './risk.js';
+import { RANK, sidesOf } from './risk.js';
 import { ApiError } from '../utils/errors.js';
 
-export const openKeyFor = (pondId, origin, parameter, dataSource) => `${pondId}:${origin}:${parameter}:${dataSource}`;
+// One open alert per pond + origin + parameter + data source. Parameters that can fire on both sides (pH, temperature) get one
+// identity per side, so a low excursion and a high excursion are separate alerts. Dissolved oxygen's key is unchanged.
+export const openKeyFor = (pondId, origin, parameter, dataSource, direction) => `${pondId}:${origin}:${parameter}${direction && parameter !== 'dissolved_oxygen' ? `.${direction}` : ''}:${dataSource}`;
 const SOURCE_FOR_ALERT = { historical: 'historical', simulated: 'simulated', live: 'live' };
 
 /**
  * Apply one classification to the alert state. `cls` = result of risk.classify.
  * Returns { action: 'opened'|'updated'|'escalated'|'resolved'|'none', alertId? }.
  */
-export async function applyCondition(db, { pondId, origin, parameter, dataSource, cls, triggerValue, at, now, message, extra = {} }) {
+export async function applyCondition(db, { pondId, origin, parameter, dataSource, cls, triggerValue, at, now, message, extra = {}, direction }) {
   const alerts = db.collection('alerts');
-  const openKey = openKeyFor(pondId, origin, parameter, dataSource);
+  const openKey = openKeyFor(pondId, origin, parameter, dataSource, direction);
   if (cls.status === 'UNKNOWN') return { action: 'none' };
 
   if (cls.status === 'NORMAL') {
@@ -55,4 +57,21 @@ export async function acknowledge(db, alertId, now) {
   if (!cur) throw new ApiError(404, 'NOT_FOUND', 'alert not found');
   if (cur.status === 'RESOLVED') throw new ApiError(409, 'CONFLICT', 'alert is already resolved and cannot be acknowledged');
   return { alert: cur, changed: false }; // already acknowledged: idempotent
+}
+
+/**
+ * Applies one observed classification to every side of the parameter. An excursion opens/updates/escalates the alert for its own
+ * side and resolves any open alert on the opposite side (the value can no longer be on both); NORMAL resolves every open side;
+ * UNKNOWN changes nothing. Returns [{ direction, action, alertId? }] (always at least one entry).
+ */
+export async function applyReading(db, { parameter, cls, ...rest }) {
+  if (cls.status === 'UNKNOWN') return [{ action: 'none' }];
+  const sides = sidesOf(parameter);
+  const out = [];
+  for (const side of sides.length ? sides : ['low']) {
+    const own = cls.status !== 'NORMAL' && cls.direction === side;
+    const r = await applyCondition(db, { ...rest, parameter, direction: side, cls: own ? cls : { status: 'NORMAL' } });
+    if (own || r.action !== 'none') out.push({ direction: side, ...r });
+  }
+  return out.length ? out : [{ action: 'none' }];
 }

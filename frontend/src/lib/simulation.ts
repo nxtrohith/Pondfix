@@ -6,8 +6,8 @@ export const SIM_PARAMS: SimParam[] = ['dissolved_oxygen', 'ph', 'temperature'];
 export const SIM_BOUNDS: Record<SimParam, [number, number]> = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60] };
 export const SIM_LABEL: Record<SimParam, string> = { dissolved_oxygen: 'Dissolved oxygen', ph: 'pH', temperature: 'Water temperature' };
 export const SIM_UNIT: Record<SimParam, string> = { dissolved_oxygen: 'mg/L', ph: 'pH', temperature: '°C' };
-/** Example values for quick tests. They are illustrations, not measurements, and imply no health judgement for pH or temperature. */
-export const SIM_PRESETS: Record<'ph' | 'temperature', number[]> = { ph: [6.5, 7.4, 8.5], temperature: [24, 28, 32] };
+/** Example values for quick tests: illustrations, not measurements. The backend decides how each one is classified; the spread covers low and high excursions of the provisional demo limits. */
+export const SIM_PRESETS: Record<'ph' | 'temperature', number[]> = { ph: [5.5, 6.2, 6.5, 7.4, 8.5, 8.8, 9.4], temperature: [12, 18, 24, 28, 32, 34, 37] };
 
 export interface ParamInput {
   include: boolean;

@@ -18,6 +18,8 @@ import { SourceBadge, StatusPill } from '../ui/StatusPill';
 import { Skeleton } from '../ui/Skeleton';
 import { cx } from '../ui/cx';
 import { AlertDemoRunner } from './AlertDemoRunner';
+import { ParameterDemo } from './ParameterDemo';
+import { acceptableText } from '@/lib/alerts';
 
 const SCENARIO_LABEL: Record<Scenario, string> = { healthy: 'Healthy example', warning: 'Warning example', critical: 'Critical example' };
 const ACTION_TEXT: Record<string, string> = { opened: 'Opened a new alert', updated: 'Updated the open alert', escalated: 'Escalated the open alert', resolved: 'Resolved the open alert', none: 'No alert change' };
@@ -79,15 +81,16 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
 
   return (
     <div className="space-y-6">
-      <Notice tone="warning"><strong className="font-medium">This page saves test data.</strong> A simulation stores a real record marked &quot;Simulated&quot;, can open or resolve dissolved-oxygen alerts, and can create forecasts. Nothing changes until you confirm, and it only runs against a local test database. There is no delete action, so saved simulated readings remain in that database.</Notice>
+      <Notice tone="warning"><strong className="font-medium">This page saves test data.</strong> A simulation stores a real record marked &quot;Simulated&quot;, can open or resolve dissolved-oxygen, pH and temperature alerts, and can create forecasts. Nothing changes until you confirm, and it only runs against a local test database. There is no delete action, so saved simulated readings remain in that database.</Notice>
       {!db.loading && !db.canWrite ? <Notice tone="warning"><strong className="font-medium">Simulation is disabled.</strong> {db.error ? 'The API\'s database could not be checked.' : db.target === 'remote' ? 'This API is connected to a remote database, so a simulation would write test records there.' : 'This API did not report which database it uses.'} Stop it and start the isolated one with <code className="font-mono text-xs">npm run dev:local</code>.</Notice> : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="p-5"><p className="text-sm font-medium text-ink">Simulated reading</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">One reading with dissolved oxygen, pH and temperature, sent as a single request. Use the form further down. Only dissolved oxygen can raise alerts.</p></Card>
+        <Card className="p-5"><p className="text-sm font-medium text-ink">Simulated reading</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">One reading with dissolved oxygen, pH and temperature, sent as a single request. Use the form further down. Each parameter is checked against its own alert rule.</p></Card>
         <Card className="p-5"><p className="text-sm font-medium text-ink">Guided alert demo</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">Four dissolved-oxygen readings in sequence (3.5, 2.5, 1.5, 3.5 mg/L) that open, escalate and resolve one alert. It sends dissolved oxygen only.</p></Card>
       </div>
 
       <AlertDemoRunner ponds={ponds} />
+      <ParameterDemo ponds={ponds} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card aria-labelledby="sim-form">
@@ -124,7 +127,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
                         ) : err ? <p role="alert" className="text-xs text-crit-text">{err}</p> : null}
                       </div>
                       <p className="mt-2.5 text-xs leading-snug text-ink-soft">
-                        {p === 'dissolved_oxygen' && rules ? `Alerts: below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} is critical, ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} to ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} is a warning.` : p === 'dissolved_oxygen' ? 'Drives alerts.' : 'Stored and charted. No validated alert rule exists, so it never raises an alert.'}
+                        {rules?.parameters?.[p] ? `Acceptable ${acceptableText(rules.parameters[p]!)}. Outside it is a warning; beyond the critical limit is critical.${rules.parameters[p]!.source === 'provisional_demo' ? ' Provisional demo limits.' : ''}` : p === 'dissolved_oxygen' && rules ? `Alerts: below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} is critical, ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} to ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} is a warning.` : 'Alert rules unavailable. The server makes the classification.'}
                       </p>
                     </div>
                   );
@@ -182,7 +185,8 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
                           {known ? <StatusPill tone={RISK_TONE[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}>{RISK_LABEL[r.status as 'NORMAL' | 'WARNING' | 'CRITICAL']}</StatusPill> : <StatusPill tone="muted">No alert rule</StatusPill>}</dd></div>
                     );
                   })}
-                  <div className="flex justify-between gap-4"><dt className="text-ink-soft">Alerts</dt><dd className="text-right">{result.alerts.length ? result.alerts.map((a) => ACTION_TEXT[a.action] ?? a.action).join(', ') : 'No alert change'}{!result.alertStateUpdated ? <span className="block text-xs text-ink-soft">Older than the newest reading, so alert state was not changed.</span> : null}</dd></div>
+                  {result.rejectedValues?.length ? <div role="alert" className="rounded-lg bg-warn-bg px-3 py-2 text-xs text-warn-text">Not saved (the server rejected these values): {result.rejectedValues.map((r) => `${r.parameter ?? 'unknown'}: ${r.reason}`).join('; ')}</div> : null}
+                  <div className="flex justify-between gap-4"><dt className="text-ink-soft">Alerts</dt><dd className="text-right">{result.alerts.some((a) => a.action !== 'none') ? result.alerts.filter((a) => a.action !== 'none').map((a, i) => <span key={i} className="block"><span className="text-ink-soft">{SIM_LABEL[a.parameter as SimParam] ?? a.parameter}{a.direction && a.parameter !== 'dissolved_oxygen' ? ` (${a.direction})` : ''}: </span><span>{ACTION_TEXT[a.action] ?? a.action}</span></span>) : 'No alert change'}{!result.alertStateUpdated ? <span className="block text-xs text-ink-soft">Older than the newest reading, so alert state was not changed.</span> : null}</dd></div>
                   <div><dt className="text-ink-soft">Forecast</dt><dd className="mt-0.5">{INFERENCE_TEXT[result.inference.status] ?? result.inference.status}{result.inference.predictions ? ` (${result.inference.predictions} values)` : ''}</dd></div>
                   {result.inference.warnings?.length ? <div><dt className="text-ink-soft">Notes from the model</dt><dd className="mt-0.5 text-xs text-ink-soft">{result.inference.warnings.join(' ')}</dd></div> : null}
                 </dl>
@@ -205,7 +209,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
       <ConfirmDialog open={confirm !== null && confirm.ok} title="Save this simulated reading?" confirmLabel="Save simulated reading" busy={busy} onConfirm={run} onCancel={() => !busy && setConfirm(null)}>
         <p>This permanently stores one reading for <strong className="font-medium text-ink">{pond?.name}</strong>, marked as simulated, on the connected local test database:</p>
         <ul className="list-disc space-y-0.5 pl-5">{previewRows.map((r) => <li key={r.param}><strong className="font-medium text-ink">{SIM_LABEL[r.param]}</strong>: {r.text}</li>)}</ul>
-        <p>A dissolved-oxygen value can open, update or resolve an alert and may create forecasts. It cannot be deleted from this interface.</p>
+        <p>A dissolved-oxygen, pH or temperature value can open, update or resolve an alert and may create forecasts. It cannot be deleted from this interface.</p>
         {pond?.latestAt && !input.useNow ? <p className="text-xs">This pond&apos;s recorded history ends {formatAge(pond.latestAgeMinutes)}.</p> : null}
       </ConfirmDialog>
     </div>

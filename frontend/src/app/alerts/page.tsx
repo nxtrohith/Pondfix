@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AlertsPage({ searchParams }: { searchParams: Promise<{ pond?: string }> }) {
   const { pond } = await searchParams;
-  const header = <PageHeader title="Alerts" description="Review, filter and acknowledge dissolved-oxygen alerts." />;
+  const header = <PageHeader title="Alerts" description="Review, filter and acknowledge dissolved-oxygen, pH and temperature alerts." />;
   const result = await serverApi().ponds().then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e }));
   if (!result.ok) return (<>{header}<Card><ErrorState server error={result.e} title="Could not load ponds" /></Card></>);
   const items = result.v.items;

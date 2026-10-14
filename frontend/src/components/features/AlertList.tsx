@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Alert } from '@/lib/api/schemas';
-import { DEFAULT_UNIT, PARAM_LABEL, fmtThreshold, formatDateTime, horizonLabel, formatValue } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { PARAM_ICON, alertCondition, alertTitle } from '@/lib/alerts';
 import { ALERT_STATUS_LABEL, ALERT_STATUS_TONE, SEVERITY_TONE } from '@/lib/status';
 import { SourceBadge, StatusPill } from '../ui/StatusPill';
 
@@ -13,11 +14,9 @@ export function AlertList({ alerts, pondNames }: { alerts: Alert[]; pondNames: R
           <div className="min-w-0 flex-1 basis-56">
             <p className="truncate text-[13px] font-medium text-ink">
               <Link href={`/ponds/${a.pondId}`} className="hover:text-olive-text hover:underline">{pondNames[a.pondId] ?? 'Unknown pond'}</Link>
-              <span className="font-normal text-ink-soft"> / {PARAM_LABEL[a.parameter] ?? a.parameter}</span>
+              <span className="inline-flex items-center gap-1 font-normal text-ink-soft"> / {(() => { const I = PARAM_ICON[a.parameter]; return I ? <I size={13} aria-hidden="true" /> : null; })()}{alertTitle(a)}</span>
             </p>
-            <p className="mt-0.5 text-xs text-ink-soft">
-              {a.origin === 'predicted' ? `Forecast ${formatValue(a.triggerValue, a.parameter)} ${DEFAULT_UNIT[a.parameter] ?? ''} in ${horizonLabel(a.horizonMinutes)}` : `Observed ${formatValue(a.triggerValue, a.parameter)} ${DEFAULT_UNIT[a.parameter] ?? ''}`}, threshold {fmtThreshold(a.threshold)} {DEFAULT_UNIT[a.parameter] ?? ''}
-            </p>
+            <p className="mt-0.5 text-xs text-ink-soft">{alertCondition(a)}</p>
           </div>
           <div className="flex items-center gap-2">
             {a.dataSource ? <SourceBadge source={a.dataSource} /> : null}

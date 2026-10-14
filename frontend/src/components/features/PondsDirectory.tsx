@@ -52,7 +52,7 @@ export function PondsDirectory({ rows, initialQuery = '' }: { rows: FleetRow[]; 
           <PondTable rows={shown} caption="All ponds with latest measurements and status" />
         )}
       </div>
-      <p className="px-5 pb-4 pt-3 text-xs text-ink-soft">Status is based on the latest dissolved-oxygen reading and its age. Open a pond for pH, temperature, forecasts and alert history. <Link href="/alerts" className="text-olive-text underline-offset-2 hover:underline">View all alerts</Link></p>
+      <p className="px-5 pb-4 pt-3 text-xs text-ink-soft">Status is the worst current state across dissolved oxygen, pH and temperature, and a pond with only old readings shows as stale. Open a pond for forecasts and alert history. <Link href="/alerts" className="text-olive-text underline-offset-2 hover:underline">View all alerts</Link></p>
     </Card>
   );
 }

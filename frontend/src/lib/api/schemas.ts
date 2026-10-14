@@ -49,6 +49,8 @@ export const pondSummarySchema = z.object({
   staleAfterMinutes: z.number(),
   parameters: z.record(z.string(), paramSummarySchema),
   openAlerts: z.record(z.string(), z.number()),
+  /** Unresolved alerts for the pond, observed and forecast kept apart. */
+  openAlertItems: z.array(z.object({ id: z.string(), origin: z.enum(['observed', 'predicted']), parameter: z.string(), severity: z.enum(['WARNING', 'CRITICAL']), status: z.string(), direction: z.enum(['low', 'high']).optional() })).optional(),
   latestPredictionGeneratedAt: iso.nullable(),
 });
 export type PondSummary = z.infer<typeof pondSummarySchema>;
@@ -110,6 +112,8 @@ export const alertSchema = z.object({
   dataSource: sourceSchema.optional(),
   horizonMinutes: z.number().optional(),
   forecastFor: iso.optional(),
+  /** Which side of its limit the alert fired on (derived by the API). */
+  direction: z.enum(['low', 'high']).optional(),
 });
 export type Alert = z.infer<typeof alertSchema>;
 export const alertsResponse = z.object({ items: z.array(alertSchema), count: z.number(), nextCursor: z.string().nullable() });
@@ -159,8 +163,17 @@ export const healthResponse = z.object({
 });
 export type HealthResponse = z.infer<typeof healthResponse>;
 
+export const ruleSchema = z.object({
+  label: z.string(), unit: z.string(), enabled: z.boolean(), source: z.string(),
+  acceptableRange: z.object({ min: z.number().nullable(), max: z.number().nullable() }),
+  lowWarning: z.number().optional(), lowCritical: z.number().optional(), highWarning: z.number().optional(), highCritical: z.number().optional(),
+});
+export type Rule = z.infer<typeof ruleSchema>;
 export const riskRulesResponse = z.object({
   dissolvedOxygen: z.object({ unit: z.string(), criticalBelow: z.number(), warningBelow: z.number() }),
+  /** Every active rule, straight from the backend. Optional so an older API still parses. */
+  parameters: z.record(z.string(), ruleSchema).optional(),
+  mode: z.string().optional(), version: z.string().optional(), boundaries: z.string().optional(),
   unclassifiedParameters: z.array(z.string()),
   staleAfterMinutes: z.number(),
   note: z.string(),
@@ -176,9 +189,10 @@ export type ScenariosResponse = z.infer<typeof scenariosResponse>;
 export const ingestResponse = z.object({
   duplicate: z.boolean(),
   measurement: measurementSchema,
-  risk: z.record(z.string(), z.object({ value: z.number(), unit: z.string(), status: z.string(), threshold: z.number().optional(), note: z.string().optional() })),
-  alerts: z.array(z.object({ parameter: z.string(), action: z.string(), alertId: z.string().optional() })),
+  risk: z.record(z.string(), z.object({ value: z.number(), unit: z.string(), status: z.string(), direction: z.enum(['low', 'high']).optional(), threshold: z.number().optional(), note: z.string().optional() })),
+  alerts: z.array(z.object({ parameter: z.string(), action: z.string(), alertId: z.string().optional(), direction: z.enum(['low', 'high']).optional() })),
   alertStateUpdated: z.boolean(),
+  rejectedValues: z.array(z.object({ index: z.number(), parameter: z.string().nullable(), reason: z.string() })).optional(),
   inference: z.object({ status: z.string(), reason: z.string().optional(), errorCode: z.string().optional(), predictions: z.number().optional(), warnings: z.array(z.string()).optional(), predictedAlert: z.object({ action: z.string() }).optional() }),
   demo: z.object({ simulated: z.boolean(), scenario: z.string().nullable(), note: z.string() }).optional(),
 });
@@ -205,7 +219,7 @@ export const replayCoverageResponse = z.object({
 export type ReplayCoverage = z.infer<typeof replayCoverageResponse>;
 export const replayRecordSchema = z.object({
   recordedAt: iso, sourceTimestamp: z.string().optional(), sourceTimezone: z.string().optional(), qcFlags: z.array(z.string()),
-  values: z.array(measurementValueSchema), risk: z.record(z.string(), z.object({ status: riskStatus, threshold: z.number().optional() })), gapBeforeMinutes: z.number().nullable(),
+  values: z.array(measurementValueSchema), risk: z.record(z.string(), z.object({ status: riskStatus, direction: z.enum(['low', 'high']).optional(), threshold: z.number().optional() })), gapBeforeMinutes: z.number().nullable(),
 });
 export type ReplayRecord = z.infer<typeof replayRecordSchema>;
 export const replayWindowResponse = z.object({

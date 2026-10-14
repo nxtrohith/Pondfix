@@ -7,6 +7,7 @@ import { DEFAULT_SPEED, FORECAST_EVERY_MS, SPEEDS, deriveAlerts, idlePlayback, o
 import { gapThreshold } from '@/lib/chart';
 import { isoToUtcInput, utcInputToIso } from '@/lib/simulation';
 import { PARAM_LABEL, fmtThreshold, formatDateTime, formatValue, horizonLabel, unitLabel } from '@/lib/format';
+import { alertTitle } from '@/lib/alerts';
 import { RISK_LABEL, RISK_TONE } from '@/lib/status';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Input, Select } from '../ui/Field';
@@ -104,12 +105,28 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
   const latestFc = [...fcList].reverse().find((e) => 'data' in e.v) as { t: number; key: string; v: { data: ReplayForecast } } | undefined;
   const latestFcEntry = fcList.at(-1);
   const alerts = useMemo(() => {
-    const observed = deriveAlerts(items.slice(0, count).map((i) => ({ t: Date.parse(i.recordedAt), status: i.risk.dissolved_oxygen?.status ?? 'UNKNOWN', value: i.values.find((v) => v.parameter === 'dissolved_oxygen')?.value ?? NaN })), 'observed');
-    const predicted = deriveAlerts(fcList.flatMap((e) => ('data' in e.v && e.v.data.predictedRisk ? [{ t: e.t, status: e.v.data.predictedRisk.status, value: e.v.data.predictedRisk.value, detail: `${horizonLabel(e.v.data.predictedRisk.horizonMinutes)} ahead` }] : [])), 'predicted');
+    // Same lifecycle per parameter and side (low/high) as the backend; a record without the parameter changes nothing.
+    const observed = PARAMS.flatMap((p) => (['low', 'high'] as const).flatMap((side) => deriveAlerts(items.slice(0, count).map((i) => {
+      const r = i.risk[p]; const v = i.values.find((x) => x.parameter === p)?.value ?? NaN;
+      const status = !r || r.status === 'UNKNOWN' ? 'UNKNOWN' : r.status === 'NORMAL' || (r.direction ?? 'low') !== side ? 'NORMAL' : r.status;
+      return { t: Date.parse(i.recordedAt), status: status as 'NORMAL' | 'WARNING' | 'CRITICAL' | 'UNKNOWN', value: v };
+    }), 'observed', { parameter: p, direction: side })));
+    const predicted = deriveAlerts(fcList.flatMap((e) => ('data' in e.v && e.v.data.predictedRisk ? [{ t: e.t, status: e.v.data.predictedRisk.status, value: e.v.data.predictedRisk.value, detail: `${horizonLabel(e.v.data.predictedRisk.horizonMinutes)} ahead` }] : [])), 'predicted', { parameter: 'dissolved_oxygen', direction: 'low' });
     return [...observed, ...predicted].sort((a, b) => a.t - b.t);
   }, [items, count, fcList]);
 
-  const thresholds: Threshold[] = rules ? [{ y: rules.dissolvedOxygen.warningBelow, label: `Warning below ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} mg/L`, tone: 'warn' }, { y: rules.dissolvedOxygen.criticalBelow, label: `Critical below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} mg/L`, tone: 'crit' }] : [];
+  // Limit lines come from the backend's active rules; nothing is hardcoded here.
+  const thresholdsFor = (p: string): Threshold[] => {
+    const r = rules?.parameters?.[p];
+    if (r) {
+      const sfx = unitLabel(r.unit) ? ` ${unitLabel(r.unit)}` : '';
+      return [
+        ...(r.lowWarning !== undefined ? [{ y: r.lowWarning, label: `Warning below ${r.lowWarning}${sfx}`, tone: 'warn' as const }] : []), ...(r.highWarning !== undefined ? [{ y: r.highWarning, label: `Warning above ${r.highWarning}${sfx}`, tone: 'warn' as const }] : []),
+        ...(r.lowCritical !== undefined ? [{ y: r.lowCritical, label: `Critical below ${r.lowCritical}${sfx}`, tone: 'crit' as const }] : []), ...(r.highCritical !== undefined ? [{ y: r.highCritical, label: `Critical above ${r.highCritical}${sfx}`, tone: 'crit' as const }] : []),
+      ];
+    }
+    return p === 'dissolved_oxygen' && rules ? [{ y: rules.dissolvedOxygen.warningBelow, label: `Warning below ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} mg/L`, tone: 'warn' }, { y: rules.dissolvedOxygen.criticalBelow, label: `Critical below ${fmtThreshold(rules.dissolvedOxygen.criticalBelow)} mg/L`, tone: 'crit' }] : [];
+  };
   const chartSeries = (param: string) => {
     const obs = observedSeries(items, param, count, gapMs);
     const out: Series[] = [{ key: 'obs', label: 'Observed (historical record)', points: obs.points, color: SERIES_COLOR.observed }];
@@ -213,8 +230,8 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
             <div className="space-y-6">
               {PARAMS.map((p) => { const { series, unit } = chartSeries(p); return (
                 <Card key={p} aria-labelledby={`rp-${p}`}>
-                  <CardHeader id={`rp-${p}`} title={`${PARAM_LABEL[p]}${unitLabel(unit) ? ` (${unitLabel(unit)})` : ''}`} description={p === 'dissolved_oxygen' ? 'Observed record versus model forecasts. Dashed line: forecasts made 60 minutes earlier, drawn at the time they predicted.' : 'Observed record versus model forecasts. No alert rule exists for this parameter.'} />
-                  <div className="px-3 pb-4 pt-3"><TrendChart series={series} parameter={p} unit={unit} thresholds={p === 'dissolved_oxygen' ? thresholds : []} domain={[pb.from, pb.to]} cursorAt={pb.position} summaryLabel={`${PARAM_LABEL[p]} during historical replay`} height={220} /></div>
+                  <CardHeader id={`rp-${p}`} title={`${PARAM_LABEL[p]}${unitLabel(unit) ? ` (${unitLabel(unit)})` : ''}`} description="Observed record versus model forecasts. Dashed line: forecasts made 60 minutes earlier, drawn at the time they predicted." />
+                  <div className="px-3 pb-4 pt-3"><TrendChart series={series} parameter={p} unit={unit} thresholds={thresholdsFor(p)} domain={[pb.from, pb.to]} cursorAt={pb.position} summaryLabel={`${PARAM_LABEL[p]} during historical replay`} height={220} /></div>
                 </Card>
               ); })}
             </div>
@@ -226,7 +243,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
                   {current ? PARAMS.map((p) => { const v = current.values.find((x) => x.parameter === p); const r = current.risk[p]?.status; return (
                     <div key={p} className="flex items-center justify-between gap-4"><dt className="text-ink-soft">{PARAM_LABEL[p]}</dt>
                       <dd className="flex items-center gap-2"><span className="tabular-nums">{v ? formatValue(v.value, p, true, v.unit) : 'no reading'}</span>
-                        {p === 'dissolved_oxygen' && r && r !== 'UNKNOWN' ? <StatusPill tone={RISK_TONE[r]}>{RISK_LABEL[r]}</StatusPill> : p !== 'dissolved_oxygen' ? <StatusPill tone="muted">No alert rule</StatusPill> : null}</dd></div>
+{r && r !== 'UNKNOWN' ? <StatusPill tone={RISK_TONE[r]}>{RISK_LABEL[r]}</StatusPill> : v ? <StatusPill tone="muted">No alert rule</StatusPill> : null}</dd></div>
                   ); }) : <p className="text-ink-soft">No reading has been reached yet.</p>}
                 </dl>
               </Card>
@@ -244,20 +261,20 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
               </Card>
 
               <Card aria-labelledby="rp-alerts">
-                <CardHeader id="rp-alerts" title="Replay alert timeline" description="Dissolved-oxygen rules only. Not stored, separate from live alerts." />
+                <CardHeader id="rp-alerts" title="Replay alert timeline" description="Same rules as live readings. Not stored, separate from live alerts." />
                 <div className="px-5 pb-5 pt-4 text-[13px]">
                   {alerts.length ? (
                     <ol className="space-y-2.5" data-testid="alert-timeline">
                       {alerts.map((a, i) => (
                         <li key={i} className="flex items-start justify-between gap-3">
-                          <div><p className="text-ink">{ACTION_LABEL[a.action]}{a.severity ? ` · ${a.severity === 'CRITICAL' ? 'Critical' : 'Warning'}` : ''} <span className="text-ink-soft">{a.origin === 'observed' ? '(observed reading)' : `(model forecast${a.detail ? `, ${a.detail}` : ''}, not observed)`}</span></p>
+                          <div><p className="text-ink"><span className="font-medium">{a.parameter ? alertTitle({ parameter: a.parameter, direction: a.parameter === 'dissolved_oxygen' ? undefined : a.direction }) : ''}</span> {ACTION_LABEL[a.action]}{a.severity ? ` · ${a.severity === 'CRITICAL' ? 'Critical' : 'Warning'}` : ''} <span className="text-ink-soft">{a.origin === 'observed' ? '(observed reading)' : `(model forecast${a.detail ? `, ${a.detail}` : ''}, not observed)`}</span></p>
                             <p className="text-xs tabular-nums text-ink-soft">{formatDateTime(new Date(a.t).toISOString())} · {formatValue(a.value, 'dissolved_oxygen', true, 'mg/L')}</p></div>
                           <StatusPill tone={a.origin === 'observed' ? 'neutral' : 'muted'}>{a.origin === 'observed' ? 'Observed' : 'Forecast'}</StatusPill>
                         </li>
                       ))}
                     </ol>
                   ) : <p className="text-ink-soft">No alert conditions reached so far.</p>}
-                  <p className="mt-3 text-xs leading-relaxed text-ink-soft">Forecast alerts are evaluated only when a forecast is made (about once per replayed hour). The source dataset contains no historical alerts.</p>
+                  <p className="mt-3 text-xs leading-relaxed text-ink-soft">Forecast alerts exist for dissolved oxygen only and are evaluated when a forecast is made (about once per replayed hour). The source dataset contains no historical alerts.</p>
                 </div>
               </Card>
             </div>

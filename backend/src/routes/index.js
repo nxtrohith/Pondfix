@@ -6,7 +6,7 @@ import { listMeasurements, latestByParameter, pondSummary, listPredictions, list
 import { pondAnalytics, comparePonds } from '../services/analytics.js';
 import { acknowledge } from '../services/alerts.js';
 import { demoMeasurement, SCENARIOS } from '../services/demo.js';
-import { THRESHOLDS } from '../services/risk.js';
+import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
 export function buildRouter(deps) {
@@ -23,12 +23,25 @@ export function buildRouter(deps) {
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.
-  r.get('/risk-rules', (req, res) => res.json({
-    dissolvedOxygen: { unit: THRESHOLDS.dissolved_oxygen.unit, criticalBelow: THRESHOLDS.dissolved_oxygen.low_crit, warningBelow: THRESHOLDS.dissolved_oxygen.low_warn },
-    unclassifiedParameters: ['ph', 'temperature', 'water_level'],
-    staleAfterMinutes: config.staleAfterMinutes,
-    note: 'Project default thresholds, not validated species-specific limits. pH, temperature and water level have no validated rules.',
-  }));
+  r.get('/risk-rules', (req, res) => {
+    const { rules, mode, version } = getActiveRules();
+    const parameters = Object.fromEntries(Object.entries(rules).map(([p, r]) => [p, {
+      label: PARAMETER_LABEL[p], unit: r.unit, enabled: r.enabled, source: r.source,
+      acceptableRange: { min: r.low_warn ?? null, max: r.high_warn ?? null },
+      ...(r.low_warn !== undefined ? { lowWarning: r.low_warn, lowCritical: r.low_crit } : {}),
+      ...(r.high_warn !== undefined ? { highWarning: r.high_warn, highCritical: r.high_crit } : {}),
+    }]));
+    const o = rules.dissolved_oxygen;
+    res.json({
+      dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
+      parameters, mode, version,
+      unclassifiedParameters: ['water_level'],
+      staleAfterMinutes: config.staleAfterMinutes,
+      boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
+      note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
+        : 'Dissolved oxygen is the project default. pH and temperature are PROVISIONAL DEMO limits for software testing, not validated species-specific aquaculture limits.',
+    });
+  });
 
   r.get('/ponds', asyncHandler(async (req, res) => {
     const ponds = await db.collection('ponds').find({}).sort({ name: 1 }).limit(200).toArray();

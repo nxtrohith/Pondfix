@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { Drop, CheckCircle, WarningCircle, Bell, ArrowRight } from '@phosphor-icons/react/dist/ssr';
 import { serverApi } from '@/lib/api/client';
 import { alertSeverityCounts, fleetStats, loadFleet, sortRows } from '@/lib/fleet';
-import { fmtThreshold, formatAge, formatDateTime } from '@/lib/format';
+import { ALERT_PARAMETERS, alertBreakdown } from '@/lib/alerts';
+import { PARAM_LABEL, formatAge, formatDateTime } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -31,6 +32,7 @@ export default async function OverviewPage() {
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
   const alerts = alertsR.status === 'fulfilled' ? alertsR.value : null;
   const sev = alerts ? alertSeverityCounts(alerts.items) : null;
+  const brk = alerts ? alertBreakdown(alerts.items) : null;
   const names = Object.fromEntries(rows.map((r) => [r.pond.id, r.pond.name]));
   const staleAfter = rules?.staleAfterMinutes ?? 60;
   const freshnessStale = stats.latestAgeMinutes === null || stats.latestAgeMinutes > staleAfter;
@@ -61,15 +63,15 @@ export default async function OverviewPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard icon={Drop} label="Total ponds" value={stats.total} context={stats.total ? `${stats.stale + stats.noData} with stale or no data` : 'No ponds registered'} />
-          <KpiCard icon={CheckCircle} label="Healthy ponds" value={stats.healthy} context={rules ? `Dissolved oxygen at or above ${fmtThreshold(rules.dissolvedOxygen.warningBelow)} ${rules.dissolvedOxygen.unit}, fresh data` : 'Dissolved oxygen within limits, fresh data'} />
-          <KpiCard icon={WarningCircle} label="Ponds requiring attention" value={stats.attention} context={`${stats.critical} critical, ${stats.warning} warning`} />
+          <KpiCard icon={CheckCircle} label="Healthy ponds" value={stats.healthy} context="Dissolved oxygen, pH and temperature within limits, fresh data" />
+          <KpiCard icon={WarningCircle} label="Ponds requiring attention" value={stats.attention} context={`${stats.critical} critical, ${stats.warning} warning (each pond counted once)`} />
           <KpiCard icon={Bell} label="Unresolved alerts" value={alerts ? `${alerts.count}${alerts.nextCursor ? '+' : ''}` : 'n/a'} context={sev ? `${sev.critical} critical, ${sev.warning} warning, ${sev.acknowledged} acknowledged` : 'Alert data unavailable'} />
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           {defaultPond ? <MeasurementTrend ponds={trendPonds} initialPondId={defaultPond.pond.id} rules={rules} title="Recent water-quality trend" /> : <Card><EmptyState title="No ponds yet">Ponds appear here once they are registered or imported.</EmptyState></Card>}
           <Card aria-labelledby="dist-title" className="self-start">
-            <CardHeader id="dist-title" title="Pond health" description="Latest dissolved-oxygen status per pond" />
+            <CardHeader id="dist-title" title="Pond health" description="Worst current status across dissolved oxygen, pH and temperature" />
             <div className="px-5 pb-5 pt-4">
               {stats.total === 0 ? <EmptyState title="No ponds to summarise" /> : (
                 <DistributionBar
@@ -95,6 +97,7 @@ export default async function OverviewPage() {
                   </dl>
                 ) : <p className="mt-2 text-xs text-ink-soft">Alert data unavailable.</p>}
                 {alerts ? <p className="mt-2 text-xs text-ink-soft">{alerts.count}{alerts.nextCursor ? '+' : ''} unresolved. Acknowledged alerts are still unresolved.</p> : null}
+                {brk ? <p className="mt-2 text-xs text-ink-soft" data-testid="overview-breakdown">Observed: {ALERT_PARAMETERS.map((p) => `${PARAM_LABEL[p]} ${brk.byParameter[p] ?? 0}`).join(', ')}. Forecast-based: {brk.forecast}.</p> : null}
               </div>
             </div>
           </Card>
@@ -112,7 +115,7 @@ export default async function OverviewPage() {
           <div className="pt-2">
             {alertsR.status === 'rejected' ? <ErrorState server error={alertsR.reason} title="Could not load alerts" />
               : alerts && alerts.items.length ? <AlertList alerts={alerts.items.slice(0, 5)} pondNames={names} />
-              : <EmptyState title="No unresolved alerts">When a reading or forecast crosses a dissolved-oxygen threshold, the alert appears here until it recovers.</EmptyState>}
+              : <EmptyState title="No unresolved alerts">When a reading or forecast crosses a dissolved-oxygen, pH or temperature limit, the alert appears here until it recovers.</EmptyState>}
           </div>
         </Card>
       </div>

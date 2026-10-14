@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import { buildRouter } from './routes/index.js';
+import { setActiveRules } from './services/risk.js';
 import { requestLogger, notFoundHandler, errorHandler } from './middleware/index.js';
 
 /** deps: { db, config, ml?, now?, log? }. Everything is injected so tests can use isolated databases and fake workers. */
 export function createApp({ db, config, ml = null, now = () => new Date(), log = console.log, dbTarget = 'unknown' }) {
+  if (config.risk) setActiveRules(config.risk);
   const app = express();
   app.disable('x-powered-by');
   app.use(requestLogger(log));

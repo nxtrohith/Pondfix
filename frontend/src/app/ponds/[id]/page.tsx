@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { acceptableText, alertTitle } from '@/lib/alerts';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
 import { ApiError, serverApi } from '@/lib/api/client';
@@ -38,7 +39,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
         title={pond.name}
-        description={summary ? `Latest dissolved-oxygen status, readings, forecasts and alert history.` : 'Readings are currently unavailable for this pond.'}
+        description={summary ? `Latest status, readings, active alerts, forecasts and alert history.` : 'Readings are currently unavailable for this pond.'}
         actions={summary ? <StatusPill tone={RISK_TONE[summary.riskStatus]}>{RISK_LABEL[summary.riskStatus]}</StatusPill> : <StatusPill tone="muted">Unavailable</StatusPill>}
       />
       <div className="space-y-6">
@@ -51,13 +52,14 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
               return (
                 <Card key={p} className="p-5">
                   <div className="flex items-start justify-between gap-2"><p className="text-[13px] text-ink-soft">{PARAM_LABEL[p]}</p>
-                    {v ? (p === 'dissolved_oxygen' ? <StatusPill tone={RISK_TONE[v.risk]}>{RISK_LABEL[v.risk]}</StatusPill> : <StatusPill tone="muted">No rule</StatusPill>) : <StatusPill tone="muted">No data</StatusPill>}
+                    {v ? (v.risk === 'UNKNOWN' ? <StatusPill tone="muted">No alert rule</StatusPill> : <StatusPill tone={RISK_TONE[v.risk]}>{RISK_LABEL[v.risk]}</StatusPill>) : <StatusPill tone="muted">Unavailable</StatusPill>}
                   </div>
                   <p className="mt-3 text-3xl font-medium leading-none tracking-tight tabular-nums">{v ? formatValue(v.value, p) : 'n/a'}<span className="ml-1.5 text-sm font-normal text-ink-soft">{v ? unitLabel(v.unit) : DEFAULT_UNIT[p]}</span></p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft">
                     {v ? (<><span className="tabular-nums">{formatDateTime(v.recordedAt)}</span><span>({formatAge(v.ageMinutes)})</span><SourceBadge source={v.source} /></>) : <span>No {PARAM_LABEL[p]?.toLowerCase()} readings recorded</span>}
                   </div>
-                  {p !== 'dissolved_oxygen' ? <p className="mt-2 text-xs text-ink-soft">Shown for reference. No validated alert rule exists for this parameter.</p> : null}
+                  {rules?.parameters?.[p] ? <p className="mt-2 text-xs text-ink-soft">{rules.parameters[p]!.enabled ? `Acceptable ${acceptableText(rules.parameters[p]!)}${rules.parameters[p]!.source === 'provisional_demo' ? ' (provisional demo limits)' : ''}` : 'Alert rule disabled'}</p> : null}
+                  {summary.openAlertItems?.filter((a) => a.parameter === p && a.origin === 'observed').map((a) => <p key={a.id} className="mt-2 text-xs font-medium text-warn-text">Active alert: {alertTitle({ parameter: p, direction: a.direction })}, {a.severity === 'CRITICAL' ? 'critical' : 'warning'}{a.status === 'ACKNOWLEDGED' ? ' (acknowledged)' : ''}</p>)}
                 </Card>
               );
             })}
@@ -98,7 +100,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
           <CardHeader id="pa-title" title="Alert history" description="Most recent 20 alerts for this pond, including resolved ones." action={<Link href={`/alerts?pond=${pond.id}`} className={linkButtonClass('secondary', 'sm')}>Open alert center</Link>} />
           <div className="pt-2">
             {alertsR.status === 'rejected' ? <ErrorState server error={alertsR.reason} title="Could not load alerts" />
-              : alertsR.value.items.length === 0 ? <EmptyState title="No alerts for this pond">No reading or forecast has crossed a dissolved-oxygen threshold for this pond.</EmptyState>
+              : alertsR.value.items.length === 0 ? <EmptyState title="No alerts for this pond">No reading or forecast has crossed a dissolved-oxygen, pH or temperature limit for this pond.</EmptyState>
               : <AlertList alerts={alertsR.value.items} pondNames={{ [pond.id]: pond.name }} />}
           </div>
         </Card>
