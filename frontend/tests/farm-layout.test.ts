@@ -33,12 +33,16 @@ describe('the farm plan', () => {
     for (const b of FARM.bridges) for (const p of ponds) expect(overlaps(b, p)).toBe(false);
     for (const t of FARM.tanks) for (const p of ponds) expect(overlaps({ x: t.x - t.r, z: t.z - t.r, w: 2 * t.r, d: 2 * t.r }, p)).toBe(false);
     for (const h of FARM.houses) for (const p of ponds) expect(overlaps({ x: h.x - 1.4, z: h.z - 1.4, w: 2.8, d: 2.8 }, p)).toBe(false);
-    for (const p of ponds) expect(overlaps(FARM.office, p)).toBe(false);
-    // and the tanks do not run into the office
-    for (const t of FARM.tanks) expect(overlaps({ x: t.x - t.r, z: t.z - t.r, w: 2 * t.r, d: 2 * t.r }, FARM.office)).toBe(false);
+    for (const b of FARM.buildings) {
+      expect(FARM.buildings.filter((o) => o !== b && overlaps(o, b))).toHaveLength(0);
+      for (const t of FARM.tanks) expect(overlaps({ x: t.x - t.r, z: t.z - t.r, w: 2 * t.r, d: 2 * t.r }, b)).toBe(false);
+      for (const h of FARM.houses) expect(overlaps({ x: h.x - 1.4, z: h.z - 1.4, w: 2.8, d: 2.8 }, b)).toBe(false);
+    }
+    // the building in block C's sixth place stays inside that place; the others sit on platforms
+    expect(FARM.buildings.every((b) => FARM.platforms.some((pl) => b.x >= pl.x && b.z >= pl.z && b.x + b.w <= pl.x + pl.w && b.z + b.d <= pl.z + pl.d))).toBe(true);
   });
   it('lies entirely inside the ground, so nothing hangs in the air or outside the fence', () => {
-    for (const r of [...FARM.platforms, ...FARM.bridges, FARM.canal, FARM.office]) expect(inside(r.x + r.w / 2, r.z + r.d / 2, 0, FARM.ground) && r.x >= FARM.ground.x && r.z >= FARM.ground.z && r.x + r.w <= FARM.ground.x + FARM.ground.w && r.z + r.d <= FARM.ground.z + FARM.ground.d).toBe(true);
+    for (const r of [...FARM.platforms, ...FARM.bridges, ...FARM.roads, FARM.canal, ...FARM.buildings]) expect(inside(r.x + r.w / 2, r.z + r.d / 2, 0, FARM.ground) && r.x >= FARM.ground.x && r.z >= FARM.ground.z && r.x + r.w <= FARM.ground.x + FARM.ground.w && r.z + r.d <= FARM.ground.z + FARM.ground.d).toBe(true);
     expect(FARM.canal.z + FARM.canal.d).toBeLessThan(0);                       // canal is behind the platforms, not under them
   });
 });
@@ -58,6 +62,23 @@ function projected(viewport: { w: number; h: number }, view: { azimuth: number; 
   }
   return { ex, ey, zoom };
 }
+describe('scenery', () => {
+  it('has pipes only on platforms, and a road ring that never touches a pond or a building', () => {
+    for (const pi of FARM.pipes) expect(FARM.platforms.some((pl) => pi.x >= pl.x && pi.z >= pl.z && pi.x + pi.w <= pl.x + pl.w && pi.z + pi.d <= pl.z + pl.d)).toBe(true);
+    for (const r of FARM.roads) { for (const p of FARM.ponds) expect(overlaps(r, pondRect(p))).toBe(false); for (const b of FARM.buildings) expect(overlaps(r, b)).toBe(false); }
+  });
+  it('plants a fixed set of trees clear of ponds, platforms, roads, bridges, the canal, buildings, tanks and pump houses', () => {
+    expect(FARM.trees.length).toBeGreaterThan(100);
+    const obstacles: Rect[] = [...FARM.platforms, ...FARM.roads, ...FARM.bridges, FARM.canal, ...FARM.buildings, ...FARM.ponds.map(pondRect), ...FARM.tanks.map((t) => ({ x: t.x - t.r, z: t.z - t.r, w: 2 * t.r, d: 2 * t.r })), ...FARM.houses.map((h) => ({ x: h.x - 1.4, z: h.z - 1.4, w: 2.8, d: 2.8 }))];
+    for (const t of FARM.trees) {
+      const box: Rect = { x: t.x - t.r, z: t.z - t.r, w: 2 * t.r, d: 2 * t.r };
+      expect(obstacles.some((o) => overlaps(o, box)), `tree at ${t.x.toFixed(1)},${t.z.toFixed(1)}`).toBe(false);
+      expect(inside(t.x, t.z, t.r, FARM.ground)).toBe(true);
+    }
+  });
+  it('is identical on every load', async () => { expect(JSON.stringify((await import('@/lib/farm')).FARM.trees)).toBe(JSON.stringify(FARM.trees)); });
+});
+
 describe('default camera framing', () => {
   it.each([[1440, 520], [1100, 480], [716, 400], [316, 430], [260, 600], [2000, 700]])('fits the whole farm in a %ix%i frame', (w, h) => {
     const { ex, ey } = projected({ w, h }, viewFor(w, h));

@@ -3,8 +3,7 @@ import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { CORNER, FARM, POND, TALL, TONE_COLOR, cameraOffset, fitZoom, viewFor, type Tone } from '@/lib/farm';
-export const LABEL_HEIGHT = 2.6;
+import { CORNER, FARM, POND, RIM_COLOR, TALL, cameraOffset, fitZoom, viewFor, type Building, type Rect, type Tone } from '@/lib/farm';
 
 export interface ScenePond { id: string; slot: number; x: number; z: number; tone: Tone; label: string; attention: boolean; empty: boolean }
 export interface SceneProps {
@@ -18,14 +17,14 @@ export interface SceneProps {
   zoomCommand: { n: number; dir: 1 | -1 } | null;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
-  /** Overlay label elements by pond id. The scene writes their screen position every frame (no React state involved). */
+  /** Overlay tag elements by pond id. The scene writes their screen position every frame (no React state involved). */
   labelRefs: React.RefObject<Map<string, HTMLElement>>;
 }
+export const LABEL_HEIGHT = 0.5;
+const TOP = 0.6;            // platform surface height
+const WATER_Y = TOP + 0.5;  // pond water surface
 
-const LANE = '#b9bbb3'; const CURB = '#979a92'; const BANK = '#dcdfdd'; const GROUND = '#e8e4d5'; const WATER = '#559db1';
-const AERATOR = '#f6f3ea';
-const TOP = 0.6;                                   // platform surface height
-
+// ---- geometry helpers ------------------------------------------------------------------------------------------------
 function roundedRect(w: number, d: number, r: number, hole?: { w: number; d: number; r: number }) {
   const path = (s: THREE.Path | THREE.Shape, W: number, D: number, R: number) => {
     const x = -W / 2; const y = -D / 2;
@@ -37,148 +36,184 @@ function roundedRect(w: number, d: number, r: number, hole?: { w: number; d: num
   return shape;
 }
 const extrude = (shape: THREE.Shape, depth: number) => { const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 10 }); g.rotateX(-Math.PI / 2); return g; };
-const flat = (shape: THREE.Shape) => { const g = new THREE.ShapeGeometry(shape, 10); g.rotateX(-Math.PI / 2); return g; };
+/** A flat shape whose texture coordinates span it exactly once (used for the water gradient). */
+function flatTextured(shape: THREE.Shape, size: number) {
+  const g = new THREE.ShapeGeometry(shape, 10);
+  const pos = g.attributes.position!; const uv = g.attributes.uv!;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / size + 0.5, pos.getY(i) / size + 0.5);
+  g.rotateX(-Math.PI / 2); return g;
+}
+function gableRoof(span: number, length: number, rise: number) {
+  const tri = new THREE.Shape(); tri.moveTo(-span / 2, 0); tri.lineTo(span / 2, 0); tri.lineTo(0, rise); tri.closePath();
+  const g = new THREE.ExtrudeGeometry(tri, { depth: length, bevelEnabled: false }); g.translate(0, 0, -length / 2); return g;
+}
+function seeded(seed: number) { let a = seed; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function canvasTexture(size: number, draw: (c: CanvasRenderingContext2D) => void, repeat = false) {
+  const c = document.createElement('canvas'); c.width = c.height = size; draw(c.getContext('2d')!);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; } return t;
+}
 
-/** Shared geometry and materials: built once, used by every pond. */
+/** Shared geometry, textures and materials: built once, used by every pond. */
 function useAssets() {
   return useMemo(() => {
+    const rnd = seeded(7);
+    const waterTex = canvasTexture(256, (c) => {
+      const g = c.createRadialGradient(128, 128, 8, 128, 128, 150); g.addColorStop(0, '#22a3a9'); g.addColorStop(0.5, '#33bdb0'); g.addColorStop(1, '#6ddcc2'); c.fillStyle = g; c.fillRect(0, 0, 256, 256);
+      c.lineWidth = 1.6; for (let i = 0; i < 46; i++) { c.strokeStyle = `rgba(255,255,255,${0.05 + rnd() * 0.09})`; c.beginPath(); c.arc(rnd() * 256, rnd() * 256, 8 + rnd() * 40, rnd() * 6, rnd() * 6 + 0.9 + rnd()); c.stroke(); }
+    });
+    const grassTex = canvasTexture(1024, (c) => {
+      c.fillStyle = '#86b95a'; c.fillRect(0, 0, 1024, 1024);
+      for (let i = 0; i < 1400; i++) { const r = 8 + rnd() * 34; c.fillStyle = rnd() > 0.5 ? `rgba(104,158,70,${0.16 + rnd() * 0.18})` : `rgba(160,203,106,${0.14 + rnd() * 0.16})`; c.beginPath(); c.arc(rnd() * 1024, rnd() * 1024, r, 0, 7); c.fill(); }
+    });
+    const seaTex = canvasTexture(512, (c) => {
+      c.fillStyle = '#64b3c9'; c.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 320; i++) { c.fillStyle = rnd() > 0.5 ? `rgba(255,255,255,${0.04 + rnd() * 0.07})` : `rgba(30,100,130,${0.05 + rnd() * 0.07})`; c.beginPath(); c.ellipse(rnd() * 512, rnd() * 512, 20 + rnd() * 70, 3 + rnd() * 9, rnd() * 0.5 - 0.25, 0, 7); c.fill(); }
+    }, true);
+    seaTex.repeat.set(10, 10);
     const geo = {
       bank: extrude(roundedRect(POND, POND, CORNER, { w: POND - 3.2, d: POND - 3.2, r: CORNER - 1 }), 0.95),
-      water: flat(roundedRect(POND - 3.0, POND - 3.0, CORNER - 0.9)),
-      ring: extrude(roundedRect(POND + 1.5, POND + 1.5, CORNER + 0.7, { w: POND + 0.1, d: POND + 0.1, r: CORNER + 0.05 }), 0.22),
-      ringThick: extrude(roundedRect(POND + 2.5, POND + 2.5, CORNER + 1.2, { w: POND + 0.1, d: POND + 0.1, r: CORNER + 0.05 }), 0.26),
-      hover: extrude(roundedRect(POND + 3.1, POND + 3.1, CORNER + 1.5, { w: POND + 1.6, d: POND + 1.6, r: CORNER + 0.7 }), 0.2),
-      selected: extrude(roundedRect(POND + 3.9, POND + 3.9, CORNER + 1.9, { w: POND + 2.6, d: POND + 2.6, r: CORNER + 1.2 }), 0.28),
+      water: flatTextured(roundedRect(POND - 3.0, POND - 3.0, CORNER - 0.9), POND - 3.0),
+      rim: extrude(roundedRect(POND - 3.2, POND - 3.2, CORNER - 1, { w: POND - 5.2, d: POND - 5.2, r: Math.max(0.3, CORNER - 2.6) }), 0.1),
+      rimThick: extrude(roundedRect(POND - 3.2, POND - 3.2, CORNER - 1, { w: POND - 6.2, d: POND - 6.2, r: 0.3 }), 0.1),
+      hover: extrude(roundedRect(POND + 2.6, POND + 2.6, CORNER + 1.3, { w: POND + 0.2, d: POND + 0.2, r: CORNER + 0.1 }), 0.2),
+      selected: extrude(roundedRect(POND + 3.6, POND + 3.6, CORNER + 1.8, { w: POND + 1.4, d: POND + 1.4, r: CORNER + 0.9 }), 0.26),
+      dim: new THREE.ShapeGeometry(roundedRect(POND, POND, CORNER), 10).rotateX(-Math.PI / 2),
       hit: new THREE.BoxGeometry(POND + 1.6, 0.4, POND + 1.6),
+      cone: new THREE.ConeGeometry(1.3, 2.4, 14, 1, true), spray: new THREE.RingGeometry(1.7, 3.3, 28).rotateX(-Math.PI / 2),
+      foliage: new THREE.IcosahedronGeometry(1, 1),
     };
-    const water = (tone: Tone, dim: boolean) => {
-      const base = new THREE.Color(WATER);
-      if (tone === 'warning') base.lerp(new THREE.Color(TONE_COLOR.warning), 0.12);
-      if (tone === 'critical') base.lerp(new THREE.Color(TONE_COLOR.critical), 0.16);
-      if (tone === 'unknown') base.lerp(new THREE.Color('#9aa5a8'), 0.55);
-      return new THREE.MeshStandardMaterial({ color: base, roughness: 0.28, metalness: 0.08, transparent: dim, opacity: dim ? 0.4 : 1 });
-    };
-    const ring = (tone: Tone, dim: boolean) => new THREE.MeshStandardMaterial({ color: TONE_COLOR[tone], emissive: TONE_COLOR[tone], emissiveIntensity: tone === 'critical' ? 0.45 : tone === 'warning' ? 0.25 : 0.1, roughness: 0.6, transparent: dim, opacity: dim ? 0.3 : 1 });
+    const tint: Record<Tone, string> = { healthy: '#ffffff', warning: '#ffffff', critical: '#8a7480', unknown: '#a8b4b4' };
+    const water = (t: Tone) => new THREE.MeshStandardMaterial({ map: waterTex, color: tint[t], emissive: '#0c8088', emissiveIntensity: 0.42, roughness: 0.18, metalness: 0.1 });
+    const rim = (t: Tone) => new THREE.MeshStandardMaterial({ color: RIM_COLOR[t], emissive: RIM_COLOR[t], emissiveIntensity: t === 'critical' ? 0.7 : t === 'warning' ? 0.5 : 0.35, roughness: 0.5 });
     const tones: Tone[] = ['healthy', 'warning', 'critical', 'unknown'];
+    const std = (color: string, roughness = 0.9) => new THREE.MeshStandardMaterial({ color, roughness });
     const mats = {
-      water: Object.fromEntries(tones.flatMap((t) => [[`${t}`, water(t, false)], [`${t}-dim`, water(t, true)]])) as Record<string, THREE.MeshStandardMaterial>,
-      ring: Object.fromEntries(tones.flatMap((t) => [[`${t}`, ring(t, false)], [`${t}-dim`, ring(t, true)]])) as Record<string, THREE.MeshStandardMaterial>,
-      bank: new THREE.MeshStandardMaterial({ color: BANK, roughness: 0.85 }), bankDim: new THREE.MeshStandardMaterial({ color: BANK, roughness: 0.85, transparent: true, opacity: 0.45 }),
-      pad: new THREE.MeshStandardMaterial({ color: '#cfd1ca', roughness: 0.95 }),
-      hover: new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.55, roughness: 1 }),
-      selected: new THREE.MeshStandardMaterial({ color: '#34372f', roughness: 0.8 }),
+      water: Object.fromEntries(tones.map((t) => [t, water(t)])) as Record<Tone, THREE.MeshStandardMaterial>,
+      rim: Object.fromEntries(tones.map((t) => [t, rim(t)])) as Record<Tone, THREE.MeshStandardMaterial>,
+      bank: std('#eceae0', 0.85), pad: std('#d3d1c6', 0.95), dim: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.62, depthWrite: false }),
+      hover: new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.7, roughness: 1 }), selected: std('#34372f', 0.8),
       hit: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
-      lane: new THREE.MeshStandardMaterial({ color: LANE, roughness: 0.95 }), curb: new THREE.MeshStandardMaterial({ color: CURB, roughness: 0.95 }),
-      ground: new THREE.MeshStandardMaterial({ color: GROUND, roughness: 1 }), fence: new THREE.MeshStandardMaterial({ color: '#b3b0a2', roughness: 0.9 }),
-      canal: new THREE.MeshStandardMaterial({ color: '#6fa8b9', roughness: 0.3, metalness: 0.05 }), canalBank: new THREE.MeshStandardMaterial({ color: '#cbc6b6', roughness: 0.95 }),
-      tank: new THREE.MeshStandardMaterial({ color: '#c9d3d7', roughness: 0.8 }), tankRoof: new THREE.MeshStandardMaterial({ color: '#eceff0', roughness: 0.7 }),
-      house: new THREE.MeshStandardMaterial({ color: '#ebe7da', roughness: 0.9 }), houseRoof: new THREE.MeshStandardMaterial({ color: '#5f7480', roughness: 0.8 }),
-      office: new THREE.MeshStandardMaterial({ color: '#efebe0', roughness: 0.9 }), officeRoof: new THREE.MeshStandardMaterial({ color: '#8c7b58', roughness: 0.85 }),
-      aerator: new THREE.MeshStandardMaterial({ color: AERATOR, roughness: 0.6 }),
+      lane: std('#e2dfd2', 0.95), curb: std('#bdb9a9', 0.95), road: std('#d6d3c6', 0.95), pipe: std('#c6d4db', 0.5),
+      grass: new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 }), soil: std('#9d977f', 1), sea: new THREE.MeshStandardMaterial({ map: seaTex, roughness: 0.35, metalness: 0.05 }),
+      wall: std('#cfccbf', 0.95), wallCap: std('#e4e1d5', 0.9), canal: new THREE.MeshStandardMaterial({ color: '#5fb1c6', roughness: 0.25, metalness: 0.05 }), canalBank: std('#cfc9b6', 0.95),
+      tank: std('#f0f1ee', 0.8), tankRoof: std('#f7f8f6', 0.7), houseBody: std('#7ba5d8', 0.8), houseRoof: std('#eef2f6', 0.8),
+      spray: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }), sprayRing: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.4, depthWrite: false }),
+      foliage: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true }),
     };
-    return { geo, mats };
+    const kinds = { blue: { wall: std('#ece9e0'), roof: std('#3f72b8', 0.8) }, brown: { wall: std('#e6dfd0'), roof: std('#8b6b46', 0.85) }, white: { wall: std('#f2f0ea'), roof: std('#8d969c', 0.85) } };
+    return { geo, mats, kinds };
   }, []);
 }
 type Assets = ReturnType<typeof useAssets>;
 
+// ---- ponds -------------------------------------------------------------------------------------------------------------
 const Pond = memo(function Pond({ p, a, hovered, selected, dim, onHover, onSelect }: { p: ScenePond; a: Assets; hovered: boolean; selected: boolean; dim: boolean; onHover: (id: string | null) => void; onSelect: (id: string) => void }) {
-  const key = dim ? `${p.tone}-dim` : p.tone;
-  const interactive = !p.empty;
   return (
     <group position={[p.x, 0, p.z]}>
-      {!p.empty ? <mesh geometry={p.tone === 'critical' ? a.geo.ringThick : a.geo.ring} material={a.mats.ring[key]} position={[0, TOP, 0]} /> : null}
       {hovered ? <mesh geometry={a.geo.hover} material={a.mats.hover} position={[0, TOP, 0]} /> : null}
       {selected ? <mesh geometry={a.geo.selected} material={a.mats.selected} position={[0, TOP, 0]} /> : null}
-      <mesh geometry={a.geo.bank} material={p.empty ? a.mats.pad : dim ? a.mats.bankDim : a.mats.bank} position={[0, TOP, 0]} />
-      {!p.empty ? <mesh geometry={a.geo.water} material={a.mats.water[key]} position={[0, TOP + 0.5, 0]} /> : null}
-      {interactive ? (
-        <mesh
-          geometry={a.geo.hit} material={a.mats.hit} position={[0, TOP + 1.2, 0]}
-          onPointerOver={(e) => { e.stopPropagation(); onHover(p.id); }}
-          onPointerOut={() => onHover(null)}
-          onClick={(e) => { e.stopPropagation(); onSelect(p.id); }}
-        />
+      <mesh geometry={a.geo.bank} material={p.empty ? a.mats.pad : a.mats.bank} position={[0, TOP, 0]} castShadow receiveShadow />
+      {!p.empty ? (
+        <>
+          <mesh geometry={a.geo.water} material={a.mats.water[p.tone]} position={[0, WATER_Y, 0]} receiveShadow />
+          <mesh geometry={p.tone === 'critical' ? a.geo.rimThick : a.geo.rim} material={a.mats.rim[p.tone]} position={[0, WATER_Y + 0.03, 0]} />
+          {dim ? <mesh geometry={a.geo.dim} material={a.mats.dim} position={[0, TOP + 1.1, 0]} renderOrder={5} /> : null}
+          <mesh
+            geometry={a.geo.hit} material={a.mats.hit} position={[0, TOP + 1.2, 0]}
+            onPointerOver={(e) => { e.stopPropagation(); onHover(p.id); }} onPointerOut={() => onHover(null)} onClick={(e) => { e.stopPropagation(); onSelect(p.id); }}
+          />
+        </>
       ) : null}
     </group>
   );
 });
 
-function Aerators({ ponds, a }: { ponds: ScenePond[]; a: Assets }) {
-  const ref = useRef<THREE.InstancedMesh>(null);
+/** One aerator fountain per pond: a spray cone and a ripple ring, each in a single draw call. */
+function Fountains({ ponds, a }: { ponds: ScenePond[]; a: Assets }) {
+  const cones = useRef<THREE.InstancedMesh>(null); const rings = useRef<THREE.InstancedMesh>(null);
   const live = useMemo(() => ponds.filter((p) => !p.empty), [ponds]);
   useLayoutEffect(() => {
-    const m = ref.current; if (!m) return;
-    const o = new THREE.Object3D(); let i = 0;
-    for (const p of live) {
-      for (const dx of [-4.2, -2.1, 0, 2.1, 4.2]) { o.position.set(p.x + dx, TOP + 1.2, p.z); o.rotation.set(0, 0, 0); o.updateMatrix(); m.setMatrixAt(i++, o.matrix); }
-      for (const dz of [-4.2, -2.1, 2.1, 4.2]) { o.position.set(p.x, TOP + 1.2, p.z + dz); o.rotation.set(0, Math.PI / 2, 0); o.updateMatrix(); m.setMatrixAt(i++, o.matrix); }
-    }
-    m.count = i; m.instanceMatrix.needsUpdate = true;
+    const o = new THREE.Object3D();
+    live.forEach((p, i) => {
+      o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1);
+      o.position.set(p.x, WATER_Y + 1.2, p.z); o.updateMatrix(); cones.current?.setMatrixAt(i, o.matrix);
+      o.position.set(p.x, WATER_Y + 0.06, p.z); o.updateMatrix(); rings.current?.setMatrixAt(i, o.matrix);
+    });
+    for (const m of [cones.current, rings.current]) if (m) { m.count = live.length; m.instanceMatrix.needsUpdate = true; }
   }, [live]);
-  return <instancedMesh ref={ref} args={[undefined, undefined, Math.max(1, live.length * 9)]} material={a.mats.aerator}><boxGeometry args={[1.6, 0.34, 0.6]} /></instancedMesh>;
+  const n = Math.max(1, live.length);
+  return (<>
+    <instancedMesh ref={cones} args={[a.geo.cone, a.mats.spray, n]} />
+    <instancedMesh ref={rings} args={[a.geo.spray, a.mats.sprayRing, n]} />
+  </>);
 }
 
-function Fence({ a }: { a: Assets }) {
+// ---- landscape ---------------------------------------------------------------------------------------------------------
+function Trees({ a }: { a: Assets }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const g = FARM.ground; const inset = 1.6;
-  const x0 = g.x + inset; const x1 = g.x + g.w - inset; const z0 = g.z + inset; const z1 = g.z + g.d - inset;
-  const posts = useMemo(() => {
-    const out: [number, number][] = [];
-    for (let x = x0; x <= x1 + 0.01; x += 6) { out.push([x, z0], [x, z1]); }
-    for (let z = z0 + 6; z < z1 - 0.01; z += 6) { out.push([x0, z], [x1, z]); }
-    return out;
-  }, [x0, x1, z0, z1]);
   useLayoutEffect(() => {
-    const m = ref.current; if (!m) return; const o = new THREE.Object3D();
-    posts.forEach(([x, z], i) => { o.position.set(x, 0.55, z); o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
-    m.instanceMatrix.needsUpdate = true;
-  }, [posts]);
-  const rail = (key: string, cx: number, cz: number, w: number, d: number) => <mesh key={key} position={[cx, 0.85, cz]} material={a.mats.fence}><boxGeometry args={[w, 0.12, d]} /></mesh>;
+    const m = ref.current; if (!m) return; const o = new THREE.Object3D(); const col = new THREE.Color();
+    FARM.trees.forEach((t, i) => {
+      o.position.set(t.x, t.r * 0.95, t.z); o.scale.set(t.r, t.r * 1.15, t.r); o.rotation.set(0, t.shade * 6, 0); o.updateMatrix(); m.setMatrixAt(i, o.matrix);
+      m.setColorAt(i, col.setHSL(0.26 + t.shade * 0.07, 0.42 + t.shade * 0.18, 0.27 + t.shade * 0.16));
+    });
+    m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  }, []);
+  return <instancedMesh ref={ref} args={[a.geo.foliage, a.mats.foliage, FARM.trees.length]} castShadow receiveShadow />;
+}
+
+const box = (r: Rect, y: number, h: number, mat: THREE.Material, key: string, shadow = true) => (
+  <mesh key={key} material={mat} position={[r.x + r.w / 2, y + h / 2, r.z + r.d / 2]} castShadow={shadow} receiveShadow><boxGeometry args={[r.w, h, r.d]} /></mesh>
+);
+
+function BuildingMesh({ b, a }: { b: Building; a: Assets }) {
+  const k = a.kinds[b.kind]; const along = b.w >= b.d; const span = Math.min(b.w, b.d) + 0.9; const length = Math.max(b.w, b.d) + 0.9;
+  const roof = useMemo(() => gableRoof(span, length, Math.min(span * 0.28, 2.2)), [span, length]);
   return (
-    <group>
-      <instancedMesh ref={ref} args={[undefined, undefined, posts.length]} material={a.mats.fence}><boxGeometry args={[0.3, 1.1, 0.3]} /></instancedMesh>
-      {rail('n', (x0 + x1) / 2, z0, x1 - x0, 0.12)}{rail('s', (x0 + x1) / 2, z1, x1 - x0, 0.12)}{rail('w', x0, (z0 + z1) / 2, 0.12, z1 - z0)}{rail('e', x1, (z0 + z1) / 2, 0.12, z1 - z0)}
+    <group position={[b.x + b.w / 2, TOP, b.z + b.d / 2]}>
+      <mesh material={k.wall} position={[0, b.h / 2, 0]} castShadow receiveShadow><boxGeometry args={[b.w, b.h, b.d]} /></mesh>
+      <mesh geometry={roof} material={k.roof} position={[0, b.h, 0]} rotation={[0, along ? Math.PI / 2 : 0, 0]} castShadow />
     </group>
   );
 }
 
-function Infrastructure({ a }: { a: Assets }) {
-  const groundGeo = useMemo(() => extrude(roundedRect(FARM.ground.w, FARM.ground.d, 8), 0.8), []);
-  const slab = (r: { x: number; z: number; w: number; d: number }, key: string) => (
-    <group key={key}>
-      <mesh material={a.mats.curb} position={[r.x + r.w / 2, 0.25, r.z + r.d / 2]}><boxGeometry args={[r.w + 1.4, 0.5, r.d + 1.4]} /></mesh>
-      <mesh material={a.mats.lane} position={[r.x + r.w / 2, TOP / 2, r.z + r.d / 2]}><boxGeometry args={[r.w, TOP, r.d]} /></mesh>
-    </group>
-  );
-  const c = FARM.canal;
+function Landscape({ a }: { a: Assets }) {
+  const g = FARM.ground; const c = FARM.canal; const inset = 1.3;
+  const wallSeg = (key: string, r: Rect) => (<group key={key}>{box(r, 0, 1.4, a.mats.wall, key + 'b')}{box({ x: r.x - 0.1, z: r.z - 0.1, w: r.w + 0.2, d: r.d + 0.2 }, 1.4, 0.2, a.mats.wallCap, key + 'c', false)}</group>);
+  const t = 0.8;
   return (
     <group>
-      <mesh geometry={groundGeo} material={a.mats.ground} position={[FARM.ground.x + FARM.ground.w / 2, -0.8, FARM.ground.z + FARM.ground.d / 2]} />
-      <Fence a={a} />
-      <mesh material={a.mats.canalBank} position={[c.x + c.w / 2, 0.2, c.z + c.d / 2]}><boxGeometry args={[c.w, 0.4, c.d]} /></mesh>
-      <mesh material={a.mats.canal} position={[c.x + c.w / 2, 0.42, c.z + c.d / 2]}><boxGeometry args={[c.w - 1.2, 0.08, c.d - 2.4]} /></mesh>
-      {FARM.platforms.map((r, i) => slab(r, `pl${i}`))}
-      {FARM.bridges.map((r, i) => (<mesh key={`br${i}`} material={a.mats.lane} position={[r.x + r.w / 2, TOP / 2, r.z + r.d / 2]}><boxGeometry args={[r.w, TOP, r.d]} /></mesh>))}
-      {FARM.tanks.map((t, i) => (
-        <group key={`tk${i}`} position={[t.x, TOP, t.z]}>
-          <mesh material={a.mats.tank} position={[0, 1.4, 0]}><cylinderGeometry args={[t.r, t.r, 2.8, 40]} /></mesh>
-          <mesh material={a.mats.tankRoof} position={[0, 2.8 + 1.2, 0]}><coneGeometry args={[t.r * 1.03, 2.4, 40]} /></mesh>
+      <mesh material={a.mats.sea} position={[FARM.center.x, -0.9, FARM.center.z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[1400, 1400]} /></mesh>
+      <mesh material={a.mats.soil} position={[g.x + g.w / 2, -0.8, g.z + g.d / 2]}><boxGeometry args={[g.w, 1.6, g.d]} /></mesh>
+      <mesh material={a.mats.grass} position={[g.x + g.w / 2, 0.001, g.z + g.d / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[g.w, g.d]} /></mesh>
+      {wallSeg('wn', { x: g.x + inset, z: g.z + inset, w: g.w - 2 * inset, d: t })}{wallSeg('ws', { x: g.x + inset, z: g.z + g.d - inset - t, w: g.w - 2 * inset, d: t })}
+      {wallSeg('ww', { x: g.x + inset, z: g.z + inset, w: t, d: g.d - 2 * inset })}{wallSeg('we', { x: g.x + g.w - inset - t, z: g.z + inset, w: t, d: g.d - 2 * inset })}
+      {box(c, 0, 0.7, a.mats.canalBank, 'canalb')}
+      <mesh material={a.mats.canal} position={[c.x + c.w / 2, 0.72, c.z + c.d / 2]}><boxGeometry args={[c.w - 1.2, 0.06, c.d - 2.2]} /></mesh>
+      {FARM.roads.map((r, i) => box(r, 0, 0.14, a.mats.road, `rd${i}`, false))}
+      {FARM.platforms.map((r, i) => (<group key={`pl${i}`}>{box({ x: r.x - 0.7, z: r.z - 0.7, w: r.w + 1.4, d: r.d + 1.4 }, 0, 0.5, a.mats.curb, `c${i}`, false)}{box(r, 0, TOP, a.mats.lane, `p${i}`)}</group>))}
+      {FARM.bridges.map((r, i) => box(r, 0, TOP, a.mats.lane, `br${i}`, false))}
+      {FARM.pipes.map((r, i) => box(r, TOP, 0.42, a.mats.pipe, `pp${i}`, false))}
+      {FARM.tanks.map((tk, i) => (
+        <group key={`tk${i}`} position={[tk.x, TOP, tk.z]}>
+          <mesh material={a.mats.tank} position={[0, 1.7, 0]} castShadow receiveShadow><cylinderGeometry args={[tk.r, tk.r, 3.4, 48]} /></mesh>
+          <mesh material={a.mats.tankRoof} position={[0, 3.4 + 0.8, 0]} castShadow><coneGeometry args={[tk.r * 1.02, 1.6, 48]} /></mesh>
         </group>
       ))}
       {FARM.houses.map((h, i) => (
-        <group key={`hs${i}`} position={[h.x, TOP, h.z]}>
-          <mesh material={a.mats.house} position={[0, 1.1, 0]}><boxGeometry args={[2.8, 2.2, 2.8]} /></mesh>
-          <mesh material={a.mats.houseRoof} position={[0, 2.2 + 0.7, 0]} rotation={[0, Math.PI / 4, 0]}><coneGeometry args={[2.7, 1.4, 4]} /></mesh>
+        <group key={`hs${i}`} position={[h.x, TOP + 0.42, h.z]}>
+          <mesh material={a.mats.houseBody} position={[0, 1.1, 0]} castShadow receiveShadow><boxGeometry args={[2.8, 2.2, 2.8]} /></mesh>
+          <mesh material={a.mats.houseRoof} position={[0, 2.35, 0]} castShadow><boxGeometry args={[3.2, 0.3, 3.2]} /></mesh>
         </group>
       ))}
-      <group position={[FARM.office.x + FARM.office.w / 2, TOP, FARM.office.z + FARM.office.d / 2]}>
-        <mesh material={a.mats.office} position={[0, 1.2, 0]}><boxGeometry args={[FARM.office.w, 2.4, FARM.office.d]} /></mesh>
-        <mesh material={a.mats.officeRoof} position={[0, 2.65, 0]}><boxGeometry args={[FARM.office.w + 1, 0.5, FARM.office.d + 1]} /></mesh>
-      </group>
+      {FARM.buildings.map((b, i) => <BuildingMesh key={`bd${i}`} b={b} a={a} />)}
+      <Trees a={a} />
     </group>
   );
 }
 
+// ---- camera, light, pulse ----------------------------------------------------------------------------------------------
 // Camera mutation lives in plain functions: three.js objects are mutable by design and are updated imperatively.
 function applyView(cam: THREE.OrthographicCamera, fit: number, view: { azimuth: number; polar: number }, controls: { target: THREE.Vector3; update: () => void } | null) {
   const c = FARM.center; const off = cameraOffset(view.azimuth, view.polar);
@@ -196,6 +231,30 @@ function clampPan(cam: THREE.OrthographicCamera, target: THREE.Vector3) {
   const g = FARM.ground;
   const nx = Math.min(g.x + g.w, Math.max(g.x, target.x)); const nz = Math.min(g.z + g.d, Math.max(g.z, target.z));
   if (nx !== target.x || nz !== target.z) { cam.position.x += nx - target.x; cam.position.z += nz - target.z; target.x = nx; target.z = nz; }
+}
+function aimSun(light: THREE.DirectionalLight, target: THREE.Object3D) {
+  const c = FARM.center; const g = FARM.ground; const reach = Math.max(g.w, g.d) * 0.62;
+  target.position.set(c.x, 0, c.z); target.updateMatrixWorld(); light.target = target;
+  light.position.set(c.x - 90, 150, c.z - 50);
+  Object.assign(light.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach, near: 10, far: 500 });
+  light.shadow.camera.updateProjectionMatrix(); light.shadow.bias = -0.0004;
+}
+/** The scenery never moves, so shadows are rendered once (and once more after everything has mounted) instead of every frame. */
+function bakeShadows(gl: THREE.WebGLRenderer) { gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true; }
+
+function Sun() {
+  const ref = useRef<THREE.DirectionalLight>(null); const target = useMemo(() => new THREE.Object3D(), []);
+  const gl = useThree((s) => s.gl); const invalidate = useThree((s) => s.invalidate);
+  useLayoutEffect(() => {
+    if (ref.current) aimSun(ref.current, target);
+    bakeShadows(gl); invalidate();
+    const t = setTimeout(() => { bakeShadows(gl); invalidate(); }, 500);
+    return () => clearTimeout(t);
+  }, [gl, invalidate, target]);
+  return (<>
+    <primitive object={target} />
+    <directionalLight ref={ref} color="#fff0d8" intensity={2.3} castShadow shadow-mapSize={[2048, 2048]} />
+  </>);
 }
 
 /** Frames the farm, owns the camera limits, and answers the Reset / zoom buttons. It never touches the camera when data refreshes. */
@@ -228,30 +287,30 @@ function Rig({ resetSignal, zoomCommand }: { resetSignal: number; zoomCommand: S
   );
 }
 
-function pulseMaterials(mats: Assets['mats'], t: number) {
-  mats.ring.critical!.emissiveIntensity = 0.5 + 0.35 * Math.sin((t * Math.PI * 2) / 2.6);
-  mats.ring.warning!.emissiveIntensity = 0.28 + 0.14 * Math.sin((t * Math.PI * 2) / 3.6);
-}
-/** Slow pulse on warning and critical rims. Skipped entirely when the user prefers reduced motion. */
-function Pulse({ a }: { a: Assets }) {
-  useFrame(({ clock }) => pulseMaterials(a.mats, clock.elapsedTime));
-  return null;
-}
-
 const _v = new THREE.Vector3();
 /** Writes each pond tag's screen position straight to its DOM element after every rendered frame. */
 function LabelProjector({ ponds, labelRefs }: { ponds: ScenePond[]; labelRefs: SceneProps['labelRefs'] }) {
   const invalidate = useThree((s) => s.invalidate);
   useLayoutEffect(() => { invalidate(); }, [ponds, invalidate]);
   useFrame(({ camera, size }) => {
+    const k = Math.min(1.15, Math.max(0.62, (camera as THREE.OrthographicCamera).zoom / 3.4));   // smaller tags on small screens so neighbours never overlap
     for (const p of ponds) {
       const el = labelRefs.current.get(p.id); if (!el) continue;
-      _v.set(p.x, TOP + LABEL_HEIGHT, p.z).project(camera);
-      const k = Math.min(1.15, Math.max(0.62, (camera as THREE.OrthographicCamera).zoom / 3.4));   // smaller tags on small screens so neighbours never overlap
+      _v.set(p.x, WATER_Y + LABEL_HEIGHT, p.z).project(camera);
       el.style.transform = `translate(${((_v.x * 0.5 + 0.5) * size.width).toFixed(1)}px, ${((-_v.y * 0.5 + 0.5) * size.height).toFixed(1)}px) scale(${k.toFixed(2)})`;
       el.style.visibility = 'visible';
     }
   });
+  return null;
+}
+
+function pulseMaterials(mats: Assets['mats'], t: number) {
+  mats.rim.critical.emissiveIntensity = 0.75 + 0.45 * Math.sin((t * Math.PI * 2) / 2.6);
+  mats.rim.warning.emissiveIntensity = 0.5 + 0.2 * Math.sin((t * Math.PI * 2) / 3.6);
+}
+/** Slow pulse on warning and critical rims. Skipped entirely when the user prefers reduced motion. */
+function Pulse({ a }: { a: Assets }) {
+  useFrame(({ clock }) => pulseMaterials(a.mats, clock.elapsedTime));
   return null;
 }
 
@@ -260,11 +319,10 @@ function Scene({ ponds, hoveredId, selectedId, dimHealthy, reducedMotion, resetS
   const attention = ponds.some((p) => p.attention);
   return (
     <>
-      <hemisphereLight args={['#fffdf6', '#c9c5b4', 0.95]} />
-      <directionalLight position={[-70, 140, 90]} intensity={1.5} />
-      <directionalLight position={[80, 60, -60]} intensity={0.35} />
-      <Infrastructure a={a} />
-      <Aerators ponds={ponds} a={a} />
+      <hemisphereLight args={['#dfeeff', '#9bb36f', 0.95]} />
+      <Sun />
+      <Landscape a={a} />
+      <Fountains ponds={ponds} a={a} />
       {ponds.map((p) => <Pond key={p.id} p={p} a={a} hovered={hoveredId === p.id} selected={selectedId === p.id} dim={dimHealthy && !p.attention && !p.empty} onHover={onHover} onSelect={onSelect} />)}
       {!reducedMotion && attention ? <Pulse a={a} /> : null}
       <Rig resetSignal={resetSignal} zoomCommand={zoomCommand} />
@@ -277,7 +335,7 @@ export default function FarmScene(props: SceneProps) {
   const animate = !props.reducedMotion && props.ponds.some((p) => p.attention);
   return (
     <Canvas
-      orthographic dpr={[1, 2]} frameloop={animate ? 'always' : 'demand'}
+      orthographic flat shadows="percentage" dpr={[1, 2]} frameloop={animate ? 'always' : 'demand'}
       gl={{ antialias: true, alpha: true, powerPreference: 'default' }}
       camera={{ zoom: 8, near: 1, far: 2000, position: [0, 200, 200] }}
       style={{ background: 'transparent' }}

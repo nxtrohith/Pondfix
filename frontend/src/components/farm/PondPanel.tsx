@@ -35,10 +35,10 @@ export function PondPanel({ snap, alerts, readings, demo, onClose }: { snap: Pon
         </div>
         <button type="button" onClick={onClose} aria-label="Close pond details" className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-surface hover:text-ink"><X size={18} aria-hidden="true" /></button>
       </div>
-      <div className="space-y-5 px-5 py-4 text-[13px]">
+      <div className="px-5 py-4 text-[13px]">
         <p className="text-ink-soft">{POND_STATUS[snap.risk].summary}</p>
-        {demo ? <p className="rounded-lg bg-sage-pale px-3 py-2 text-xs text-olive-text">Demo fixture. These values are made up for illustration and are not from any pond.</p> : null}
-
+        {demo ? <p className="mt-3 rounded-lg bg-sage-pale px-3 py-2 text-xs text-olive-text">Demo fixture. These values are made up for illustration and are not from any pond.</p> : null}
+        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section aria-label="Current readings">
           <h4 className="text-xs font-medium uppercase tracking-wide text-ink-soft">Current readings</h4>
           <ul className="mt-2 space-y-2">
@@ -69,6 +69,7 @@ export function PondPanel({ snap, alerts, readings, demo, onClose }: { snap: Pon
               : <ForecastOutlook predictions={preds.data?.items ?? []} readings={readings} columns={1} />}
           </div>
         </section>
+        </div>
       </div>
       <div className="border-t border-line px-5 py-4">
         {demo ? <p className="text-xs text-ink-soft">Demo ponds have no details page.</p>
