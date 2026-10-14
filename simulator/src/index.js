@@ -3,7 +3,7 @@
 import { createRunner } from './runner.js';
 
 const apiUrl = process.env.API_URL || 'http://127.0.0.1:4000/api';
-const intervalMinutes = Number(process.env.SIM_INTERVAL_MINUTES || 15);
+const intervalMinutes = Number(process.env.SIM_INTERVAL_MINUTES || 1);
 const backfillHours = Number(process.env.SIM_BACKFILL_HOURS || 6);
 if (!(intervalMinutes > 0) || !(backfillHours >= 0)) { console.error('SIM_INTERVAL_MINUTES must be > 0 and SIM_BACKFILL_HOURS >= 0'); process.exit(1); }
 
