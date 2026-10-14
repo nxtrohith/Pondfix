@@ -16,7 +16,7 @@ export function loadConfig(env = process.env) {
     speciesPolicies,
     production,
     port: int(env.PORT, 4000),
-    host: env.HOST || '127.0.0.1',
+    host: env.HOST || '0.0.0.0',
     // Local development origins for the web dashboard (3000), Vite (5173) and Expo web (8081). Both hostnames are
     // listed because a browser treats localhost and 127.0.0.1 as different origins.
     corsOrigins: (env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081').split(',').map((s) => s.trim()).filter(Boolean),
