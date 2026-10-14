@@ -5,6 +5,7 @@ import { PARAM_ICON } from '@/lib/alerts';
 import { DEFAULT_UNIT, SOURCE_LABEL, formatDateTime, formatValue } from '@/lib/format';
 import { RULE_SCOPE_LABEL, rangeText, REFERENCE_KIND } from '@/lib/species';
 import { ALERT_STATE_TEXT, alertKind, describeForecastProblem, describeProblem, guidanceFor, levelText } from '@/lib/terms';
+import { ActionGuide } from '../illustrations/ActionGuide';
 import { Button } from '../ui/Button';
 import { SourceBadge } from '../ui/StatusPill';
 import { cx } from '../ui/cx';
@@ -57,7 +58,12 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
         <div className={cx('font-medium', resolved ? 'text-ink-soft' : tone)}>{levelText(a.severity, a.direction, a.threshold, a.parameter)}</div>
       </dl>
       <p className="mt-1.5 text-[13px] text-ink-soft">{ALERT_STATE_TEXT[a.status]}{a.status === 'RESOLVED' && a.resolvedAt ? ` (${formatDateTime(a.resolvedAt)})` : ''}</p>
-      {tip ? <p className="mt-2 rounded-md bg-surface px-3 py-2 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p> : null}
+      {tip ? (
+        <div className="mt-2 flex items-center gap-3 rounded-md bg-surface px-3 py-2">
+          <ActionGuide parameter={a.parameter} direction={a.direction} severity={a.severity} />
+          <p className="min-w-0 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p>
+        </div>
+      ) : null}
       <section className="mt-2 text-[13px]" aria-label="Why this alert, and which limits">
         <div className="space-y-1.5">
           {!resolved && a.explanation ? <p className="text-ink-soft">{a.explanation}</p> : null}

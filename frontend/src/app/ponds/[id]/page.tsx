@@ -7,6 +7,7 @@ import { toRow } from '@/lib/fleet';
 import { ALERT_PARAMETERS } from '@/lib/alerts';
 import { formatDateTime } from '@/lib/format';
 import { POND_STATUS } from '@/lib/terms';
+import { PondScene } from '@/components/illustrations';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -17,6 +18,7 @@ import { WaterQualityCard } from '@/components/features/WaterQualityCard';
 import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
+import { EquipmentDemoPanel } from '@/components/features/EquipmentDemoPanel';
 import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
 
@@ -35,8 +37,10 @@ const Section = ({ id, title, hint, children }: { id: string; title: string; hin
 );
 
 /** Everything about one pond, top to bottom: how it is now, what is wrong, what may happen next, then the past. */
-export default async function PondDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PondDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ demo?: string | string[] }> }) {
   const { id } = await params;
+  const { demo } = await searchParams;
+  const showEquipmentDemo = (Array.isArray(demo) ? demo[0] : demo) === 'equipment';
   const api = serverApi();
   let pond;
   try { pond = await api.pond(id); } catch (e) {
@@ -58,6 +62,7 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
       <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
         title={row.pond.name}
+        visual={<PondScene health={row.risk} size={112} />}
         description={<>{POND_STATUS[row.risk].summary} <span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>{isConfigured(pond.speciesConfig) ? `Species: ${speciesLine(pond.speciesConfig)}.` : 'Species not set yet.'}</span></>}
         actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-[13px] text-ink-soft" /></>)}
       />
@@ -74,6 +79,8 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
               </p>
             )}
         </Section>
+
+        {showEquipmentDemo ? <EquipmentDemoPanel /> : null}
 
         {summary ? (
           <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
