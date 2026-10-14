@@ -2,10 +2,11 @@
 // POST /api/measurements with source "simulated" (the same pipeline hardware will use). On start it also fills the gap since the
 // pond's last stored reading, up to `backfillHours`, so charts are not empty. Slots are aligned to the interval and idempotent.
 import { createPondGenerator } from './generator.js';
+import { anomalyPlan, applyAnomaly } from './anomalies.js';
 
 const STATE_MAX_AGE_MIN = 360; // resume from the last stored reading only if it is this recent
 
-export function createRunner({ apiUrl, intervalMinutes = 15, backfillHours = 24, fetchImpl = fetch, now = () => new Date(), log = console.log }) {
+export function createRunner({ apiUrl, intervalMinutes = 15, backfillHours = 24, anomalies = false, fetchImpl = fetch, now = () => new Date(), log = console.log }) {
   const base = apiUrl.replace(/\/$/, '');
   const slotMs = intervalMinutes * 60000;
   const gens = new Map(); // pond id -> { gen, lastSlot }
@@ -29,7 +30,7 @@ export function createRunner({ apiUrl, intervalMinutes = 15, backfillHours = 24,
     }
     const earliest = current - backfillHours * 3600000;
     const firstSlot = Math.ceil(Math.max(earliest, newest + 1) / slotMs) * slotMs;
-    const entry = { gen: createPondGenerator(pond.sourceId ?? pond.id, initial), lastSlot: firstSlot - slotMs };
+    const entry = { gen: createPondGenerator(pond.sourceId ?? pond.id, initial), plan: anomalies ? anomalyPlan(pond.sourceId ?? pond.id) : null, lastSlot: firstSlot - slotMs };
     gens.set(pond.id, entry);
     return entry;
   }
@@ -41,12 +42,12 @@ export function createRunner({ apiUrl, intervalMinutes = 15, backfillHours = 24,
     if (behind > 1) log(`  ${pond.name}: catching up ${behind} readings`);
     let posted = 0; let failed = 0;
     for (let slot = entry.lastSlot + slotMs; slot <= currentSlot; slot += slotMs) {
-      const values = entry.gen.step(new Date(slot));
+      const values = applyAnomaly(entry.plan, slot, entry.gen.step(new Date(slot)));
       entry.lastSlot = slot;
       try {
         await api('/measurements', { method: 'POST', body: JSON.stringify({
           pondId: pond.id, recordedAt: new Date(slot).toISOString(), source: 'simulated', values,
-          idempotencyKey: `sim:${pond.sourceId ?? pond.id}:${slot / 1000}`,
+          idempotencyKey: `${anomalies ? 'simanom' : 'sim'}:${pond.sourceId ?? pond.id}:${slot / 1000}`,
         }) });
         posted += 1;
       } catch (e) { failed += 1; log(`  ${pond.name}: ${e.message}`); }

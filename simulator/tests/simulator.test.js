@@ -116,3 +116,18 @@ test('overlapping tick calls never run two passes at once (no duplicate or out-o
   assert.equal(api.posts.length, 8);
   assert.equal(new Set(api.posts.map((p) => p.idempotencyKey)).size, 8);
 });
+
+test('anomaly mode: some ponds reach critical ranges, normal mode never changes values', async () => {
+  const { anomalyPlan, applyAnomaly } = await import('../src/anomalies.js');
+  const limits = { low_oxygen: (v) => v.parameter === 'dissolved_oxygen' && v.value < 2, high_temperature: (v) => v.parameter === 'temperature' && v.value > 35, low_ph: (v) => v.parameter === 'ph' && v.value < 6, high_ph: (v) => v.parameter === 'ph' && v.value > 9 };
+  let planned = 0; let critical = 0;
+  for (const seed of seeds) {
+    const plan = anomalyPlan(seed); if (!plan) continue; planned += 1;
+    const g = createPondGenerator(seed);
+    const hit = Array.from({ length: 48 }, (_, i) => applyAnomaly(plan, T0 + i * STEP, g.step(new Date(T0 + i * STEP)))).some((vals) => vals.some(limits[plan.kind]));
+    if (hit) critical += 1;
+  }
+  assert.ok(planned > 0 && planned < seeds.length, 'some, not all, ponds are anomalous');
+  assert.equal(critical, planned, 'every anomalous pond reaches a critical reading within 12 h');
+  assert.equal(applyAnomaly(null, T0, [{ parameter: 'ph', value: 7 }])[0].value, 7);
+});
