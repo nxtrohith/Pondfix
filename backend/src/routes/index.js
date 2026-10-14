@@ -15,6 +15,7 @@ import { whatIf } from '../services/whatIf.js';
 import { pondDownstreamRisks } from '../services/downstream.js';
 import * as demoPond from '../services/demoPond.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
+import { buildSensorRoutes } from '../sensors/index.js';
 
 export function buildRouter(deps) {
   const { db, config, now, events, dbTarget = 'unknown' } = deps;
@@ -42,7 +43,7 @@ export function buildRouter(deps) {
     res.json({
       dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
       parameters, mode, version,
-      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'], // measured and shown, but no alert limits are defined
+      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'],
       staleAfterMinutes: config.staleAfterMinutes,
       boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
       note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
@@ -57,7 +58,6 @@ export function buildRouter(deps) {
   }));
   // One call for the whole fleet: every pond's snapshot (see services/pondSync.js). Registered before /ponds/:id.
   r.get('/ponds/summaries', asyncHandler(async (req, res) => res.json(await allSnapshots(db, config, now()))));
-  // Where readings come from: "sensor" (hardware) or "simulator" (the simulator service). One pond, or every active pond at once.
   const dataSourceBody = (body) => {
     const v = body?.dataSource;
     if (v !== 'sensor' && v !== 'simulator') throw validationError('request validation failed', [{ path: 'dataSource', message: 'must be "sensor" or "simulator"' }]);
@@ -116,9 +116,7 @@ export function buildRouter(deps) {
     }));
     res.json({ pondId: pond._id, parameters, staleAfterMinutes: config.staleAfterMinutes });
   }));
-  // Rule-of-thumb knock-on effects (e.g. rising temperature -> falling oxygen). Information only; never an alert.
   r.get('/ponds/:id/downstream-risks', asyncHandler(async (req, res) => res.json(await pondDownstreamRisks(db, await requirePond(db, req.params.id), now))));
-  // Hypothetical conditions in, classification + knock-on watch-outs out. Stateless: writes nothing.
   r.post('/what-if', (req, res) => res.json(whatIf(req.body)));
   r.get('/ponds/:id/measurements', asyncHandler(async (req, res) => res.json(await listMeasurements(db, config, (await requirePond(db, req.params.id))._id, req.query))));
 
@@ -126,6 +124,9 @@ export function buildRouter(deps) {
     const out = await ingestMeasurement(deps, req.body);
     res.status(out.status).json(out.body);
   }));
+
+  // Dedicated IoT / ESP32 sensor receiver endpoints
+  r.use('/sensors', buildSensorRoutes(deps));
 
   // Historical replay: read-only, never writes (see services/replay.js).
   r.get('/replay/ponds', asyncHandler(async (req, res) => res.json(await replayPonds(db))));
@@ -138,7 +139,6 @@ export function buildRouter(deps) {
   r.get('/ponds/:id/analytics', asyncHandler(async (req, res) => res.json(await pondAnalytics(db, config, await requirePond(db, req.params.id), req.query))));
   r.get('/analytics/compare', asyncHandler(async (req, res) => res.json(await comparePonds(db, config, req.query))));
 
-  // Farmer field notes, classified by Jev when configured. They inform the alert advisor; they never create or change alerts.
   r.get('/ponds/:id/notes', asyncHandler(async (req, res) => res.json(await listNotes(db, await requirePond(db, req.params.id), Number.parseInt(req.query.limit, 10) || 20))));
   r.post('/ponds/:id/notes', asyncHandler(async (req, res) => res.status(201).json(await addNote({ db, jev: deps.jev, now }, await requirePond(db, req.params.id), req.body))));
 
@@ -156,9 +156,6 @@ export function buildRouter(deps) {
       const out = await demoMeasurement(deps, req.body);
       res.status(out.status).json(out.body);
     }));
-
-    // Guided end-to-end demo on the dedicated AquaGuard Demo Pond (services/demoPond.js). No route takes a pond id: the demo pond is the
-    // only pond they can touch. Mutating routes also require a dedicated database (name contains "demo" or "test").
     r.get('/demo/pond', asyncHandler(async (req, res) => res.json(await demoPond.status(deps))));
     r.post('/demo/pond/setup', asyncHandler(async (req, res) => res.status(200).json(await demoPond.setup(deps, req.body))));
     r.post('/demo/pond/start', asyncHandler(async (req, res) => res.status(201).json(await demoPond.start(deps, req.body))));

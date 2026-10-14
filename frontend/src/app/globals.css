@@ -33,6 +33,11 @@
   --color-crit: #b64d43;
   --color-crit-text: #a5433a;
   --color-crit-bg: #f9eae7;
+  /* Illustration palette, sampled from the AquaGuard asset library (pond water, outline ink). Used for illustration wells only. */
+  --color-aqua: #35b8b0;
+  --color-aqua-deep: #1f8f93;
+  --color-aqua-pale: #e7f4f2;
+  --color-outline: #24474f;
   --color-stale: #77796f;
   --color-stale-text: #5e6057;
   --color-stale-bg: #ecebe5;
@@ -82,5 +87,9 @@
     .skeleton { animation: skeleton-pulse 1.6s ease-in-out infinite; }
   }
 }
+
+/* A changed pond status cross-fades its illustration instead of snapping (re-mounted via key). The global reduced-motion rule disables it. */
+.aq-illustration { animation: aq-illustration-in 240ms ease-out; }
+@keyframes aq-illustration-in { from { opacity: 0; } to { opacity: 1; } }
 
 @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }

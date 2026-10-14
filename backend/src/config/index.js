@@ -7,7 +7,7 @@ import { loadSpeciesPolicies } from '../services/speciesProfiles.js';
 
 const httpUrl = (v, name) => { try { const u = new URL(v); if (u.protocol === 'http:' || u.protocol === 'https:') return u.toString(); } catch { /* fall through */ } throw new Error(`${name} must be an http(s) URL`); };
 function aiConfig(env) {
-  const jevKey = env.JEV_API_KEY || env.TYPESAFE_API_KEY || ''; // TYPESAFE_API_KEY is the name the TypeSafe SDK uses
+  const jevKey = env.JEV_API_KEY || env.TYPESAFE_API_KEY || '';
   const llmUrl = env.LLM_ENDPOINT_URL ? httpUrl(env.LLM_ENDPOINT_URL, 'LLM_ENDPOINT_URL') : '';
   return {
     enabled: bool(env.AI_ADVISOR_ENABLED, Boolean(jevKey)) && Boolean(jevKey),
@@ -44,7 +44,7 @@ export function loadConfig(env = process.env) {
     speciesPolicies,
     production,
     port: int(env.PORT, 4000),
-    host: env.HOST || '127.0.0.1',
+    host: env.HOST || '0.0.0.0',
     // Local development origins for the web dashboard (3000), Vite (5173) and Expo web (8081). Both hostnames are
     // listed because a browser treats localhost and 127.0.0.1 as different origins.
     corsOrigins: (env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081').split(',').map((s) => s.trim()).filter(Boolean),
@@ -52,7 +52,6 @@ export function loadConfig(env = process.env) {
     // Demo endpoints write simulated readings into the connected database. The API is Atlas-only, so they are off unless
     // explicitly enabled.
     demoEnabled: bool(env.DEMO_ENABLED, false),
-    // The guided demo pond writes simulated data, so it insists on a dedicated database (name contains "demo" or "test") unless overridden.
     demoAllowAnyDb: bool(env.DEMO_ALLOW_ANY_DB, false),
     demoSpecies: env.DEMO_SPECIES || 'rohu',
     // A reading older than this is "stale", not healthy. 60 min mirrors the forecasting model's own MAX_AGE (4 x 15 min).
@@ -60,8 +59,6 @@ export function loadConfig(env = process.env) {
     maxFutureSkewMinutes: 5,
     maxQueryRangeDays: int(env.MAX_QUERY_RANGE_DAYS, 366),
     maxPageSize: 1000,
-    // Alert advisor (Jev analysis + custom LLM). Off unless JEV_API_KEY is set; the LLM step additionally needs LLM_ENDPOINT_URL.
-    // Keys stay server-side. Pin JEV_MODEL to a tested version (docs.typesafe.ai/models) once you have evaluated it; "jev-latest" can move.
     ai: aiConfig(env),
     ml: {
       enabled: bool(env.ML_ENABLED, true),
