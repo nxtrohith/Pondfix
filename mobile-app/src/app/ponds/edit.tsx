@@ -48,7 +48,7 @@ export default function PondEditScreen() {
     <ScreenContainer testID="pond-form">
       <AppHeader title="Pond species" subtitle={pond.displayName} />
       <ConnectionBanner />
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: 8 }}>
         <Text style={styles.label}>Species</Text>
         <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Species">
           {[{ id: null, displayName: 'Not set' }, ...CHOICES].map((s) => {
@@ -72,13 +72,13 @@ export default function PondEditScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnDark },
+  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnBackground },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { minHeight: 36, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
   chipSelected: { backgroundColor: colors.card, borderColor: colors.card },
   chipText: { fontSize: fontSize.secondary, color: colors.textPrimary, fontWeight: '600' },
   chipTextSelected: { color: colors.textPrimary, fontWeight: '700' },
-  hint: { fontSize: fontSize.metadata, color: colors.textOnDarkMuted },
-  error: { fontSize: fontSize.secondary, color: colors.textOnDark },
+  hint: { fontSize: fontSize.metadata, color: colors.textOnBackgroundMuted },
+  error: { fontSize: fontSize.secondary, color: colors.textOnBackground },
   actions: { gap: spacing.sm, marginTop: spacing.xs },
 });

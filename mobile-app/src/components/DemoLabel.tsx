@@ -6,7 +6,7 @@ import { colors } from '@/constants/colors';
 import { fontSize, spacing } from '@/constants/theme';
 
 export function DemoLabel({ text = 'Demo data · illustrative', tone = 'dark' }: { text?: string; tone?: 'dark' | 'light' }) {
-  const fg = tone === 'dark' ? colors.textOnDarkSecondary : colors.infoDark;
+  const fg = tone === 'dark' ? colors.textOnBackgroundSecondary : colors.infoDark;
   return (
     <View style={styles.row} accessibilityRole="text" accessibilityLabel={text}>
       <Ionicons name="information-circle-outline" size={14} color={fg} />

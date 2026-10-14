@@ -31,7 +31,7 @@ export function AdvisoryPanel({ advisory: a }: { advisory: AlertAdvisory }) {
       ) : null}
 
       {a.priorities.length >= 2 ? (
-        <View testID="advisory-priorities" style={{ gap: 2 }}>
+        <View testID="advisory-priorities" style={{ gap: 4 }}>
           <Text style={styles.bold}>Deal with these in this order</Text>
           {a.priorities.map((p, i) => (
             <Text key={p.parameter} style={styles.body}>
@@ -76,7 +76,7 @@ export function AdvisoryPanel({ advisory: a }: { advisory: AlertAdvisory }) {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs, flexWrap: 'wrap' },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary, flexShrink: 1 },
-  chip: { fontSize: fontSize.metadata, color: colors.textSecondary, borderWidth: 0.5, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 },
+  chip: { fontSize: fontSize.metadata, color: colors.textSecondary, borderWidth: 0.5, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 4 },
   warn: { flexDirection: 'row', gap: spacing.xs, alignItems: 'flex-start', backgroundColor: colors.warningSurface, borderRadius: radius.chip, padding: spacing.sm },
   solution: { gap: 4, backgroundColor: colors.inputBackground, borderRadius: radius.chip, padding: spacing.sm },
   source: { fontSize: fontSize.metadata, color: colors.textSecondary, fontWeight: '600' },

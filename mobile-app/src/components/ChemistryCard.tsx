@@ -2,7 +2,7 @@
 // alert limits for these, so the card must never look "healthy" or "unhealthy". Simulated values are labelled as such.
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { ageMinutes, CHEMISTRY_HINT, CHEMISTRY_LABEL, CHEMISTRY_UNIT } from '@/lib/status';
 import { extent } from '@/lib/chart';
 import { formatAge, formatTime, formatValue } from '@/lib/format';
@@ -45,7 +45,7 @@ export function ChemistryCard({ reading, asOf, staleAfterMinutes, testID }: { re
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, borderWidth: 0.5, borderColor: colors.border },
+  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   left: { flex: 1, gap: 4 },
   name: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   meta: { fontSize: fontSize.metadata, color: colors.textSecondary },

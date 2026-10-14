@@ -3,7 +3,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { PARAMETER_LABEL, PARAMETER_PRESENTATION, PARAMETER_UNIT } from '@/lib/status';
 import type { Parameter, ParameterStatus } from '@/types';
 import { formatAge, formatTime, formatValue } from '@/lib/format';
@@ -53,12 +53,12 @@ export function MetricCard({ parameter, value, status, recordedAt, ageMinutes, t
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, borderWidth: 0.5, borderColor: colors.border },
+  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   left: { flex: 1, gap: 4 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   time: { fontSize: fontSize.metadata, color: colors.textSecondary },
-  right: { alignItems: 'flex-end', gap: 6 },
+  right: { alignItems: 'flex-end', gap: 8 },
   value: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, fontVariant: ['tabular-nums'] },
   muted: { color: colors.textMuted },
   unit: { fontSize: fontSize.secondary, fontWeight: '500', color: colors.textSecondary },

@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -55,14 +55,14 @@ export default function DiagnosticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, paddingVertical: 2 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, paddingVertical: 4 },
   key: { flexShrink: 1, fontSize: fontSize.secondary, color: colors.textSecondary },
   value: { flex: 1, textAlign: 'right', fontSize: fontSize.secondary, fontWeight: '600', color: colors.textPrimary },
   logHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textOnDark },
-  log: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.sm, gap: 3 },
-  line: { fontSize: fontSize.metadata, color: colors.textOnDarkSecondary, fontFamily: 'Courier' },
-  err: { color: colors.textOnDark, fontWeight: '700' },
-  warn: { color: colors.textOnDark },
-  empty: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
+  heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textOnBackground },
+  log: { backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.card, padding: spacing.sm, gap: 4 },
+  line: { fontSize: fontSize.metadata, color: colors.textOnBackgroundSecondary, fontFamily: 'Courier' },
+  err: { color: colors.textOnBackground, fontWeight: '700' },
+  warn: { color: colors.textOnBackground },
+  empty: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
 });

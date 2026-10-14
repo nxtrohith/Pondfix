@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, fontSize, radius, shadow, spacing } from '../theme';
 
 export interface BehaviourEvent {
   id: string;
@@ -31,10 +32,10 @@ export function BehaviourEventsList({ events }: Props) {
       {events.map((e) => {
         const isAlert = e.type === 'MOTIONLESS_ALERT';
         const isWarn = e.type === 'INACTIVITY_WARNING';
-        const toneColor = isAlert ? '#ef5350' : isWarn ? '#ffd600' : '#78909c';
+        const toneColor = isAlert ? colors.criticalDark : isWarn ? colors.warningDark : colors.textSecondary;
 
         return (
-          <View key={e.id} style={[styles.item, { borderLeftColor: toneColor }]}>
+          <View key={e.id} style={styles.item}>
             <View style={styles.itemHeader}>
               <Text style={[styles.tag, { color: toneColor }]}>{e.type}</Text>
               <Text style={styles.time}>{e.timestamp}</Text>
@@ -50,43 +51,13 @@ export function BehaviourEventsList({ events }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 6,
-  },
-  empty: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#546e7a',
-    fontSize: 12,
-  },
-  item: {
-    backgroundColor: '#0d1f2d',
-    borderRadius: 6,
-    padding: 8,
-    borderLeftWidth: 3,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  tag: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  time: {
-    fontSize: 9,
-    color: '#546e7a',
-  },
-  detail: {
-    fontSize: 11,
-    color: '#b0bec5',
-  },
-  trackBold: {
-    fontWeight: '700',
-    color: '#eceff1',
-  },
+  container: { gap: spacing.xs },
+  empty: { padding: spacing.md, alignItems: 'center' },
+  emptyText: { color: colors.textOnBackgroundSecondary, fontSize: fontSize.secondary },
+  item: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 0.5, borderColor: colors.border, padding: spacing.sm, gap: spacing.xxs, ...shadow.card },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between' },
+  tag: { fontSize: fontSize.caption, fontWeight: '700', letterSpacing: 0.4 },
+  time: { fontSize: fontSize.caption, color: colors.textSecondary },
+  detail: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 18 },
+  trackBold: { fontWeight: '700', color: colors.textPrimary },
 });

@@ -1,7 +1,7 @@
 // Pill-style segmented control used for tabs and time ranges. Each option is a real radio-like button with state for screen readers.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/colors';
-import { fontSize, layout } from '@/constants/theme';
+import { fontSize, layout, radius, spacing } from '@/constants/theme';
 
 export interface Segment<T extends string> { value: T; label: string; testID?: string }
 
@@ -30,10 +30,10 @@ export function SegmentedControl<T extends string>({ label, value, options, onCh
 }
 
 const styles = StyleSheet.create({
-  track: { flexDirection: 'row', backgroundColor: colors.backgroundDeep, borderRadius: 999, padding: 3, alignSelf: 'flex-start', flexWrap: 'wrap' },
-  segment: { minHeight: 34, minWidth: 44, paddingHorizontal: 12, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  selected: { backgroundColor: colors.card },
-  text: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, fontWeight: '600' },
-  selectedText: { color: colors.textPrimary },
+  track: { flexDirection: 'row', backgroundColor: colors.primaryLight, borderRadius: radius.pill, padding: spacing.xxs, alignSelf: 'flex-start', flexWrap: 'wrap' },
+  segment: { minHeight: 34, minWidth: 44, paddingHorizontal: spacing.sm, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  selected: { backgroundColor: colors.primaryDark },
+  text: { fontSize: fontSize.secondary, color: colors.textOnBackground, fontWeight: '600' },
+  selectedText: { color: colors.textOnDark },
 });
 export const SEGMENT_MIN_HEIGHT = layout.minTouchTarget;

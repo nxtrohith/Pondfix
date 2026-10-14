@@ -18,6 +18,6 @@ export function StatusBadge(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.badge, alignSelf: 'flex-start' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.badge, alignSelf: 'flex-start' },
   text: { fontSize: fontSize.secondary, fontWeight: '700' },
 });

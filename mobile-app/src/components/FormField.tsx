@@ -31,11 +31,11 @@ export function FormField({ label, error, hint, multiline, testID, ...input }: P
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
-  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnDark },
+  wrap: { gap: spacing.xs },
+  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnBackground },
   input: { minHeight: layout.minTouchTarget, borderRadius: radius.control, backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: fontSize.body, color: colors.textPrimary },
   multiline: { minHeight: 96, paddingTop: spacing.sm },
   inputError: { borderColor: colors.critical, borderWidth: 1.5 },
-  error: { fontSize: fontSize.secondary, color: colors.criticalSurface, fontWeight: '600' },
-  hint: { fontSize: fontSize.secondary, color: colors.textOnDarkMuted },
+  error: { fontSize: fontSize.secondary, color: colors.criticalOnBackground, fontWeight: '700' },
+  hint: { fontSize: fontSize.secondary, color: colors.textOnBackgroundMuted },
 });

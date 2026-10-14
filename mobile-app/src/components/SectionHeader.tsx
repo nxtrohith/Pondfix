@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors } from '@/constants/colors';
-import { fontSize, spacing } from '@/constants/theme';
+import { fonts } from '@/constants/fonts';
+import { fontSize, layout, radius, shadow, spacing } from '@/constants/theme';
 
 export function SectionHeader({ title, action, hint }: { title: string; action?: React.ReactNode; hint?: string }) {
   return (
@@ -20,7 +21,7 @@ export function Panel({ children, style, testID }: { children: React.ReactNode; 
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  title: { fontSize: fontSize.sectionHeading, fontWeight: '700', color: colors.textOnDark, letterSpacing: -0.2 },
-  hint: { marginTop: 2, fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
-  panel: { backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
+  title: { fontSize: fontSize.sectionHeading, fontFamily: fonts.display, fontWeight: 'normal', color: colors.textOnBackground, letterSpacing: -0.3 },
+  hint: { marginTop: 4, fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
+  panel: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
 });

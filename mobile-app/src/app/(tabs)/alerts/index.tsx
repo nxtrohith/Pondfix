@@ -63,4 +63,4 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ note: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, lineHeight: 18 } });
+const styles = StyleSheet.create({ note: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, lineHeight: 18 } });

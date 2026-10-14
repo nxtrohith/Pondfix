@@ -1,14 +1,19 @@
-// Pond picture: a restrained aerial illustration (sage field, earth embankment, water with an organic shoreline).
-// No photographs are bundled, so this is the image for every pond and the fallback when an image is missing. The same motif and palette
-// are used for every pond, so the cards stay consistent. Replace with licensed photography when it is available.
-import { StyleSheet, View } from 'react-native';
-import Svg, { G, Path, Rect } from 'react-native-svg';
+// Pond picture: a crop of the same calm pond illustration used on the landing page, so list cards and the pond screen share one visual
+// language. It is a stand-in (every pond shows the same picture); replace it with the pond's own photograph when one exists.
+import { Image, StyleSheet, View } from 'react-native';
 import { colors } from '@/constants/colors';
 
-// One closed organic outline, centred in a 100 x 100 box. The embankment is the same shape scaled up slightly.
-const SHORE = 'M50 17 C70 15 84 30 83 50 C82 70 69 85 50 83 C31 85 17 71 17 52 C17 32 31 19 50 17 Z';
+const SOURCE = require('../../assets/hero-pond.jpg');
+const SOURCE_W = 1699;
+const SOURCE_H = 598;
+/** Horizontal crop position (0 = left, 1 = right). 0.72 frames the fish. */
+const FOCUS_X = 0.72;
 
 export function PondImage({ width = 96, height = 64, radius = 12, label }: { width?: number; height?: number; radius?: number; label?: string }) {
+  // Cover the frame at one scale, then offset so the crop is aimed at the fish rather than the centre.
+  const scale = Math.max(width / SOURCE_W, height / SOURCE_H);
+  const w = SOURCE_W * scale;
+  const h = SOURCE_H * scale;
   return (
     <View
       style={[styles.frame, { width, height, borderRadius: radius }]}
@@ -17,14 +22,7 @@ export function PondImage({ width = 96, height = 64, radius = 12, label }: { wid
       accessibilityRole={label ? 'image' : undefined}
       importantForAccessibility={label ? 'yes' : 'no-hide-descendants'}
     >
-      {/* Square viewBox. "slice" crops only the margins of rectangular frames, so the whole pond stays visible. */}
-      <Svg width={width} height={height} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
-        <Rect x="0" y="0" width="100" height="100" fill={colors.pondField} />
-        <G transform="translate(50 50) scale(1.07) translate(-50 -50)">
-          <Path d={SHORE} fill={colors.pondEmbankment} />
-        </G>
-        <Path d={SHORE} fill={colors.water} />
-      </Svg>
+      <Image source={SOURCE} resizeMode="stretch" style={{ position: 'absolute', width: w, height: h, left: -(w - width) * FOCUS_X, top: -(h - height) * 0.5 }} />
     </View>
   );
 }

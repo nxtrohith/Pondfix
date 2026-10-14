@@ -2,7 +2,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { formatDateTime, formatValue } from '@/lib/format';
 import { parameterLabel, parameterUnit } from '@/lib/status';
 import type { AlertItem } from '@/types';
@@ -47,12 +47,12 @@ export function AlertCard({ alert, pondName = alert.pondName ?? 'Unknown pond', 
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
-  sev: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.badge },
+  sev: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.badge },
   sevText: { fontSize: fontSize.secondary, fontWeight: '700' },
   status: { fontSize: fontSize.secondary, color: colors.textSecondary, fontWeight: '600' },
-  title: { fontSize: fontSize.cardHeading, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  title: { fontSize: fontSize.cardHeading, fontWeight: '600', color: colors.textPrimary, marginTop: 4 },
   meta: { fontSize: fontSize.secondary, color: colors.textSecondary },
   reading: { fontSize: fontSize.body, color: colors.textPrimary },
   time: { fontSize: fontSize.metadata, color: colors.textMuted },

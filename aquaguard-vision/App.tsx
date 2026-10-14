@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Ionicons } from '@expo/vector-icons';
 import { BoundingBoxOverlay } from './src/components/BoundingBoxOverlay';
 import {
   BehaviourEventsList,
@@ -28,6 +29,7 @@ import { computeStats, EMPTY_STATS, type FishStats } from './src/lib/fishStats';
 import { REFERENCE_FRAME_WIDTH } from './src/lib/behaviourConfig';
 import { runInference, getInferenceUrl } from './src/lib/inferenceService';
 import { createLogger } from './src/lib/inferenceLogger';
+import { BEHAVIOUR_COLOUR, colors, fontSize, radius, shadow, spacing } from './src/theme';
 
 const CAPTURE_INTERVAL_MS = 1500;
 const CAPTURE_QUALITY = 0.4;
@@ -222,7 +224,7 @@ function MainVisionScreen() {
   if (!permission) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#00e5ff" />
+        <ActivityIndicator size="large" color={colors.primaryDark} />
       </View>
     );
   }
@@ -230,13 +232,13 @@ function MainVisionScreen() {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.permissionContainer}>
-        <StatusBar barStyle="light-content" />
-        <Text style={styles.permTitle}>Camera Permission Required</Text>
+        <StatusBar barStyle="dark-content" />
+        <Text accessibilityRole="header" style={styles.permTitle}>Camera permission required</Text>
         <Text style={styles.permDesc}>
           PondFix Vision needs camera access to detect fish in real time and evaluate activity levels.
         </Text>
-        <Pressable style={styles.btnPrimary} onPress={requestPermission}>
-          <Text style={styles.btnText}>Grant Camera Access</Text>
+        <Pressable style={styles.btnPrimary} onPress={requestPermission} accessibilityRole="button" accessibilityLabel="Grant camera access">
+          <Text style={styles.btnPrimaryText}>Grant camera access</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -244,13 +246,13 @@ function MainVisionScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.appTitle}>PondFix Vision</Text>
-          <Text style={styles.appSubtitle}>Fish Tracking & Inactivity PoC</Text>
+          <Text accessibilityRole="header" style={styles.appTitle}>PondFix Vision</Text>
+          <Text style={styles.appSubtitle}>Fish tracking and inactivity proof of concept</Text>
         </View>
         <View style={styles.badgeWrap}>
           <View
@@ -259,15 +261,15 @@ function MainVisionScreen() {
               {
                 backgroundColor:
                   status === 'running'
-                    ? '#00ff88'
+                    ? colors.success
                     : status === 'error'
-                    ? '#ff4444'
-                    : '#78909c',
+                    ? colors.critical
+                    : colors.neutral,
               },
             ]}
           />
           <Text style={styles.statusBadgeText}>
-            {status === 'running' ? 'LIVE' : 'STANDBY'}
+            {status === 'running' ? 'Live' : 'Standby'}
           </Text>
         </View>
       </View>
@@ -300,35 +302,43 @@ function MainVisionScreen() {
 
         {/* Server Warning if unreachable */}
         {!serverReachable && monitoring && (
-          <View style={styles.warningBanner}>
-            <Text style={styles.warningText}>⚠️ Inference Server Offline</Text>
-            <Text style={styles.warningSubtext}>
-              Cannot connect to {getInferenceUrl()}. Ensure inference_server.py is running on your PC.
-            </Text>
+          <View style={[styles.banner, styles.bannerWarning]}>
+            <Ionicons name="cloud-offline-outline" size={20} color={colors.warningDark} />
+            <View style={styles.bannerBody}>
+              <Text style={[styles.bannerTitle, { color: colors.warningDark }]}>Inference server offline</Text>
+              <Text style={styles.bannerText}>
+                Cannot connect to {getInferenceUrl()}. Ensure inference_server.py is running on your PC.
+              </Text>
+            </View>
           </View>
         )}
 
         {/* Motionless Alert Banner */}
         {motionlessTracks.length > 0 && (
-          <View style={[styles.warningBanner, { borderColor: '#ff4444' }]}>
-            <Text style={[styles.warningText, { color: '#ff8a80' }]}>
-              🚨 {motionlessTracks.length} fish possibly motionless (visual inactivity only)
-            </Text>
-            <Text style={styles.warningSubtext}>
-              {motionlessTracks.map((t) => `${t.trackId} (${t.inactiveDurationSeconds.toFixed(0)}s)`).join(', ')}
-            </Text>
+          <View style={[styles.banner, styles.bannerCritical]}>
+            <Ionicons name="alert-circle" size={20} color={colors.criticalDark} />
+            <View style={styles.bannerBody}>
+              <Text style={[styles.bannerTitle, { color: colors.criticalDark }]}>
+                {motionlessTracks.length} fish possibly motionless (visual inactivity only)
+              </Text>
+              <Text style={styles.bannerText}>
+                {motionlessTracks.map((t) => `${t.trackId} (${t.inactiveDurationSeconds.toFixed(0)}s)`).join(', ')}
+              </Text>
+            </View>
           </View>
         )}
 
         {/* Action Controls */}
         <View style={styles.controlsRow}>
           {!monitoring ? (
-            <Pressable style={styles.btnStart} onPress={handleStart}>
-              <Text style={styles.btnText}>▶ Start Monitoring</Text>
+            <Pressable style={styles.btnStart} onPress={handleStart} accessibilityRole="button" accessibilityLabel="Start monitoring">
+              <Ionicons name="play" size={18} color={colors.primaryDark} />
+              <Text style={styles.btnStartText}>Start monitoring</Text>
             </Pressable>
           ) : (
-            <Pressable style={styles.btnStop} onPress={handleStop}>
-              <Text style={styles.btnText}>⏹ Stop Monitoring</Text>
+            <Pressable style={styles.btnStop} onPress={handleStop} accessibilityRole="button" accessibilityLabel="Stop monitoring">
+              <Ionicons name="stop" size={18} color={colors.textOnDark} />
+              <Text style={styles.btnText}>Stop monitoring</Text>
             </Pressable>
           )}
         </View>
@@ -347,25 +357,25 @@ function MainVisionScreen() {
         {/* Legend */}
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#00ff88' }]} />
-            <Text style={styles.legendText}>Active</Text>
+            <View style={[styles.legendDot, { backgroundColor: BEHAVIOUR_COLOUR.ACTIVE }]} />
+            <Text style={styles.legendText}>Normal</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#ffd600' }]} />
-            <Text style={styles.legendText}>Low Activity</Text>
+            <View style={[styles.legendDot, { backgroundColor: BEHAVIOUR_COLOUR.LOW_ACTIVITY }]} />
+            <Text style={styles.legendText}>Low activity</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#ff4444' }]} />
+            <View style={[styles.legendDot, { backgroundColor: BEHAVIOUR_COLOUR.POSSIBLY_MOTIONLESS }]} />
             <Text style={styles.legendText}>Possibly motionless</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#9e9e9e' }]} />
+            <View style={[styles.legendDot, { backgroundColor: BEHAVIOUR_COLOUR.TRACKING_UNCERTAIN }]} />
             <Text style={styles.legendText}>Uncertain</Text>
           </View>
         </View>
 
         {/* Activity Events */}
-        <Text style={styles.sectionHeader}>Activity Alerts & Events</Text>
+        <Text accessibilityRole="header" style={styles.sectionHeader}>Activity alerts and events</Text>
         <BehaviourEventsList events={events} />
       </ScrollView>
     </View>
@@ -373,207 +383,40 @@ function MainVisionScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#07121b',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#07121b',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#142533',
-  },
-  appTitle: {
-    color: '#eceff1',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  appSubtitle: {
-    color: '#78909c',
-    fontSize: 12,
-  },
-  badgeWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10202d',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 6,
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusBadgeText: {
-    color: '#cfd8dc',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  scroll: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  cameraContainer: {
-    width: SCREEN_W - 32,
-    height: PREVIEW_H,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-    position: 'relative',
-    marginBottom: 14,
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraOverlayStandby: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  standbyText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  controlsRow: {
-    marginBottom: 14,
-  },
-  btnStart: {
-    backgroundColor: '#00b0ff',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnStop: {
-    backgroundColor: '#d32f2f',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnPrimary: {
-    backgroundColor: '#00b0ff',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  btnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#0d1f2d',
-    borderRadius: 10,
-    padding: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1a3244',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  statLabel: {
-    fontSize: 9,
-    color: '#78909c',
-    fontWeight: '700',
-    marginTop: 2,
-    textTransform: 'uppercase',
-  },
-  infoRow: {
-    backgroundColor: '#0d1f2d',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    gap: 4,
-  },
-  infoText: {
-    color: '#78909c',
-    fontSize: 11,
-  },
-  warningBanner: {
-    backgroundColor: 'rgba(211, 47, 47, 0.2)',
-    borderWidth: 1,
-    borderColor: '#d32f2f',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-  },
-  warningText: {
-    color: '#ef5350',
-    fontWeight: '700',
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  warningSubtext: {
-    color: '#ffcdd2',
-    fontSize: 11,
-  },
-  legend: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    color: '#78909c',
-    fontSize: 11,
-  },
-  sectionHeader: {
-    color: '#eceff1',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  permissionContainer: {
-    flex: 1,
-    backgroundColor: '#07121b',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  permTitle: {
-    color: '#eceff1',
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  permDesc: {
-    color: '#78909c',
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 18,
-  },
+  root: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  appTitle: { color: colors.textOnBackground, fontSize: fontSize.heading, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
+  appSubtitle: { color: colors.textOnBackgroundSecondary, fontSize: fontSize.secondary, marginTop: spacing.xxs },
+  badgeWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.pill, gap: spacing.xs },
+  statusIndicator: { width: 8, height: 8, borderRadius: 4 },
+  statusBadgeText: { color: colors.textPrimary, fontSize: fontSize.caption, fontWeight: '700' },
+  scroll: { padding: spacing.md, paddingBottom: spacing.xl + spacing.md },
+  cameraContainer: { width: SCREEN_W - 32, height: PREVIEW_H, borderRadius: radius.cardLarge, overflow: 'hidden', backgroundColor: colors.video, position: 'relative', marginBottom: spacing.md },
+  camera: { flex: 1 },
+  cameraOverlayStandby: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.videoScrim, justifyContent: 'center', alignItems: 'center' },
+  standbyText: { color: colors.textOnDark, fontSize: fontSize.secondary, fontWeight: '600' },
+  controlsRow: { marginBottom: spacing.md },
+  btnStart: { backgroundColor: colors.surface, borderRadius: radius.pill, minHeight: 52, flexDirection: 'row', gap: spacing.xs, alignItems: 'center', justifyContent: 'center', ...shadow.button },
+  btnStartText: { color: colors.primaryDark, fontWeight: '700', fontSize: 16 },
+  btnStop: { backgroundColor: colors.critical, borderRadius: radius.pill, minHeight: 52, flexDirection: 'row', gap: spacing.xs, alignItems: 'center', justifyContent: 'center', ...shadow.button },
+  btnPrimary: { backgroundColor: colors.surface, borderRadius: radius.pill, minHeight: 52, paddingHorizontal: spacing.lg, alignItems: 'center', justifyContent: 'center', ...shadow.button },
+  btnPrimaryText: { color: colors.primaryDark, fontWeight: '700', fontSize: 16 },
+  btnText: { color: colors.textOnDark, fontWeight: '700', fontSize: 16 },
+  infoRow: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 0.5, borderColor: colors.border, padding: spacing.sm, marginBottom: spacing.md, gap: spacing.xxs },
+  infoText: { color: colors.textSecondary, fontSize: fontSize.caption },
+  banner: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderRadius: radius.card, padding: spacing.sm, marginBottom: spacing.md },
+  bannerWarning: { backgroundColor: colors.warningSurface },
+  bannerCritical: { backgroundColor: colors.criticalSurface },
+  bannerBody: { flex: 1, gap: spacing.xxs },
+  bannerTitle: { fontWeight: '700', fontSize: fontSize.secondary },
+  bannerText: { color: colors.textPrimary, fontSize: fontSize.caption, lineHeight: 17 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs + 2 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { color: colors.textOnBackgroundSecondary, fontSize: fontSize.caption, fontWeight: '600' },
+  sectionHeader: { color: colors.textOnBackground, fontSize: fontSize.section, fontWeight: '800', letterSpacing: -0.3, marginBottom: spacing.xs },
+  permissionContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
+  permTitle: { color: colors.textOnBackground, fontSize: fontSize.heading, fontWeight: '800', letterSpacing: -0.6, marginBottom: spacing.xs, textAlign: 'center' },
+  permDesc: { color: colors.textOnBackgroundSecondary, fontSize: fontSize.body, textAlign: 'center', marginBottom: spacing.lg, lineHeight: 22 },
 });

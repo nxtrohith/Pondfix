@@ -34,5 +34,5 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
-  content: { paddingHorizontal: 18, paddingTop: spacing.xs, gap: spacing.md, flexGrow: 1 },
+  content: { width: '100%', maxWidth: layout.maxContentWidth, alignSelf: 'center', paddingHorizontal: layout.screenPaddingX, paddingTop: spacing.xs, gap: spacing.md, flexGrow: 1 },
 });

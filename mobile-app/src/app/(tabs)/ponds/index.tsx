@@ -61,7 +61,7 @@ export default function PondsScreen() {
           style={styles.filterButton}
           testID="filter-toggle"
         >
-          <Ionicons name="options-outline" size={18} color={colors.textOnDark} />
+          <Ionicons name="options-outline" size={18} color={colors.textOnBackground} />
           <Text style={styles.filterText}>Filter{active ? ` (${active})` : ''}</Text>
         </Pressable>
       </View>
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.inputBackground, borderRadius: radius.control, paddingHorizontal: spacing.md, minHeight: layout.minTouchTarget },
   input: { flex: 1, fontSize: fontSize.body, color: colors.textPrimary, paddingVertical: 8 },
-  filterButton: { minHeight: layout.minTouchTarget, paddingHorizontal: spacing.md, borderRadius: radius.control, borderWidth: 1, borderColor: colors.buttonOutline, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  filterText: { fontSize: fontSize.body, color: colors.textOnDark, fontWeight: '600' },
-  panel: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm },
-  count: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
+  filterButton: { minHeight: layout.minTouchTarget, paddingHorizontal: spacing.md, borderRadius: radius.control, borderWidth: 1, borderColor: colors.buttonOutline, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterText: { fontSize: fontSize.body, color: colors.textOnBackground, fontWeight: '600' },
+  panel: { backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm },
+  count: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
 });

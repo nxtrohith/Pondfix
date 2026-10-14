@@ -53,7 +53,7 @@ export default function UnavailableScreen() {
       <AppHeader title="Data unavailable" subtitle={pond ? `${pondName} · ${name}` : undefined} />
       <View style={styles.illustration} accessibilityRole="image" accessibilityLabel="Sensor not connected">
         <View style={styles.ring}>
-          <Ionicons name="cloud-offline-outline" size={44} color={colors.textOnDark} />
+          <Ionicons name="cloud-offline-outline" size={44} color={colors.textOnBackground} />
         </View>
         <View style={styles.wire} />
       </View>
@@ -94,7 +94,7 @@ export default function UnavailableScreen() {
 
 const styles = StyleSheet.create({
   illustration: { alignItems: 'center', paddingVertical: spacing.md },
-  ring: { width: 104, height: 104, borderRadius: 52, borderWidth: 2, borderColor: colors.textOnDarkMuted, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  ring: { width: 104, height: 104, borderRadius: 52, borderWidth: 2, borderColor: colors.textOnBackgroundMuted, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   wire: { width: 2, height: 22, backgroundColor: colors.surfaceOverlay },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   body: { fontSize: fontSize.body, color: colors.textSecondary, lineHeight: 21 },

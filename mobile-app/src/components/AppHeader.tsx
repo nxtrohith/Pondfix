@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import { fontSize, layout, spacing } from '@/constants/theme';
 
 interface Props { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode; testID?: string }
@@ -15,7 +16,7 @@ export function AppHeader({ title, subtitle, onBack, right, testID }: Props) {
       <View style={styles.left}>
         {back ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={back} hitSlop={8} style={styles.back}>
-            <Ionicons name="chevron-back" size={22} color={colors.textOnDark} />
+            <Ionicons name="chevron-back" size={22} color={colors.textOnBackground} />
           </Pressable>
         ) : null}
         <View style={styles.titleBox}>
@@ -30,10 +31,10 @@ export function AppHeader({ title, subtitle, onBack, right, testID }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, minHeight: layout.minTouchTarget, paddingTop: spacing.xs },
-  left: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 1 },
-  back: { width: layout.minTouchTarget, height: layout.minTouchTarget, alignItems: 'center', justifyContent: 'center', marginLeft: -10 },
+  left: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
+  back: { width: layout.minTouchTarget, height: layout.minTouchTarget, borderRadius: layout.minTouchTarget / 2, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: layout.borderWidth, borderColor: colors.border },
   titleBox: { flexShrink: 1 },
-  title: { fontSize: fontSize.heading, fontWeight: '700', color: colors.textOnDark, letterSpacing: -0.3 },
-  subtitle: { marginTop: 2, fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
+  title: { fontSize: fontSize.heading, fontFamily: fonts.display, fontWeight: 'normal', color: colors.textOnBackground, letterSpacing: -0.6, lineHeight: 36 },
+  subtitle: { marginTop: spacing.xxs, fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
   right: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

@@ -2,7 +2,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { formatDateTime, formatValue } from '@/lib/format';
 import type { PondSummary } from '@/lib/pondSummary';
 import { PARAMETER_SHORT, PARAMETER_UNIT } from '@/lib/status';
@@ -58,14 +58,14 @@ export function PondCard({ summary, onPress }: { summary: PondSummary; onPress: 
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.sm + 2, alignItems: 'center', borderWidth: 0.5, borderColor: colors.border },
+  card: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   body: { flex: 1, gap: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
   name: { flex: 1, fontSize: fontSize.cardHeading, fontWeight: '600', color: colors.textPrimary },
   species: { fontSize: fontSize.secondary, color: colors.textSecondary },
-  statusRow: { flexDirection: 'row', marginTop: 2 },
-  measureRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.xs, marginTop: 2 },
-  measure: { flexShrink: 1, gap: 1 },
+  statusRow: { flexDirection: 'row', marginTop: 4 },
+  measureRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.xs, marginTop: 4 },
+  measure: { flexShrink: 1, gap: 2 },
   measureLabel: { fontSize: fontSize.metadata, color: colors.textSecondary },
   measureValue: { fontSize: fontSize.secondary, fontWeight: '600', color: colors.textPrimary, fontVariant: ['tabular-nums'] },
   stale: { color: colors.textMuted, fontWeight: '500' },

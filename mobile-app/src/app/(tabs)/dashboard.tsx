@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fonts } from '@/constants/fonts';
+import { fontSize, layout, radius, shadow, spacing } from '@/constants/theme';
 import { useAppStore } from '@/context/AppStore';
 import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -38,12 +39,12 @@ export default function DashboardScreen() {
   return (
     <ScreenContainer testID="dashboard-screen">
       <View style={styles.top}>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 4 }}>
           <Text accessibilityRole="header" style={styles.greeting}>Welcome back, {firstName}</Text>
           <Text style={styles.sub}>Here is what is happening across your {pluralize(counts.total, 'pond')}.</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`Alert notifications, ${unread} unread`} onPress={() => router.push(routes.notifications)} style={styles.bell} testID="bell">
-          <Ionicons name="notifications-outline" size={22} color={colors.textOnDark} />
+          <Ionicons name="notifications-outline" size={22} color={colors.textOnBackground} />
           {unread > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View> : null}
         </Pressable>
       </View>
@@ -52,10 +53,10 @@ export default function DashboardScreen() {
       {pondLoad === 'loading' ? <LoadingState label="Loading ponds" /> : pondLoad === 'error' ? <ErrorState title="Unable to load ponds">Pond data will appear as soon as the server can be reached.</ErrorState> : null}
       {pondLoad === 'ready' ? (<>
       <View style={styles.tiles}>
-        <Tile label="Total ponds" value={counts.total} icon="water-outline" tone={colors.card} testID="tile-total" />
-        <Tile label="Healthy" value={counts.healthy} icon="checkmark-circle" tone={colors.healthySurface} accent={colors.healthyDark} testID="tile-healthy" />
-        <Tile label="Warning" value={counts.warning} icon="warning" tone={colors.warningSurface} accent={colors.warningDark} testID="tile-warning" />
-        <Tile label="Critical" value={counts.critical} icon="alert-circle" tone={colors.criticalSurface} accent={colors.criticalDark} testID="tile-critical" />
+        <Tile label="Total ponds" value={counts.total} icon="water-outline" testID="tile-total" />
+        <Tile label="Healthy" value={counts.healthy} icon="checkmark-circle" accent={colors.healthyDark} iconColor={colors.healthy} testID="tile-healthy" />
+        <Tile label="Warning" value={counts.warning} icon="warning" accent={colors.warningDark} iconColor={colors.warning} testID="tile-warning" />
+        <Tile label="Critical" value={counts.critical} icon="alert-circle" accent={colors.criticalDark} iconColor={colors.critical} testID="tile-critical" />
       </View>
       {counts.incomplete + counts.noData > 0 ? (
         <Text style={styles.gap} testID="data-gap-note">
@@ -92,11 +93,11 @@ export default function DashboardScreen() {
   );
 }
 
-function Tile({ label, value, icon, tone, accent = colors.textPrimary, testID }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; tone: string; accent?: string; testID?: string }) {
+function Tile({ label, value, icon, accent = colors.textPrimary, iconColor = colors.textSecondary, testID }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; accent?: string; iconColor?: string; testID?: string }) {
   return (
-    <View style={[styles.tile, { backgroundColor: tone }]} accessible accessibilityLabel={`${label}: ${value}`} testID={testID}>
+    <View style={styles.tile} accessible accessibilityLabel={`${label}: ${value}`} testID={testID}>
       <View style={styles.tileHead}>
-        <Ionicons name={icon} size={16} color={accent} />
+        <Ionicons name={icon} size={18} color={iconColor} />
         <Text style={styles.tileLabel}>{label}</Text>
       </View>
       <Text style={[styles.tileValue, { color: accent }]}>{value}</Text>
@@ -105,18 +106,19 @@ function Tile({ label, value, icon, tone, accent = colors.textPrimary, testID }:
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: spacing.sm },
-  greeting: { fontSize: fontSize.heading, fontWeight: '700', color: colors.textOnDark, letterSpacing: -0.4 },
-  sub: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
-  bell: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.critical, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: colors.surface },
-  badgeText: { fontSize: 10, fontWeight: '700', color: colors.textOnDark },
-  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  tile: { flexGrow: 1, flexBasis: '46%', minWidth: 140, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, gap: spacing.xxs, borderWidth: 0.5, borderColor: colors.border },
+  top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: spacing.xs },
+  greeting: { fontSize: fontSize.heading, fontFamily: fonts.display, fontWeight: 'normal', color: colors.textOnBackground, letterSpacing: -0.8, lineHeight: 36 },
+  sub: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
+  bell: { width: layout.minTouchTarget, height: layout.minTouchTarget, borderRadius: layout.minTouchTarget / 2, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: layout.borderWidth, borderColor: colors.border },
+  badge: { position: 'absolute', top: 0, right: 0, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: colors.critical, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxs, borderWidth: 2, borderColor: colors.background },
+  badgeText: { fontSize: 11, fontWeight: '700', color: colors.textOnDark },
+  // One ivory panel divided by hairlines (the panel colour shows through the 1px gaps), not four tinted cards.
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: StyleSheet.hairlineWidth, backgroundColor: colors.border, borderRadius: radius.card, overflow: 'hidden', borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
+  tile: { flexGrow: 1, flexBasis: '45%', backgroundColor: colors.card, paddingHorizontal: spacing.md, paddingVertical: spacing.md, gap: spacing.xxs },
   tileHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  tileValue: { fontSize: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  tileValue: { fontSize: 32, lineHeight: 36, fontWeight: '700', fontVariant: ['tabular-nums'] },
   tileLabel: { fontSize: fontSize.secondary, color: colors.textSecondary, fontWeight: '600' },
-  gap: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
+  gap: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
   noteTitle: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
-  noteBody: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 19 },
+  noteBody: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 20 },
 });

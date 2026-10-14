@@ -122,13 +122,13 @@ export default function ForecastScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, fontWeight: '600' },
-  body: { fontSize: fontSize.body, color: colors.textOnDark, lineHeight: 21 },
+  label: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, fontWeight: '600' },
+  body: { fontSize: fontSize.body, color: colors.textOnBackground, lineHeight: 21 },
   small: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 18 },
   legend: { fontSize: fontSize.secondary, color: colors.textSecondary },
   card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
-  tableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: colors.divider },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: colors.divider },
   selectedRow: { backgroundColor: colors.cardSecondary },
   cell: { flex: 1, fontSize: fontSize.secondary, color: colors.textPrimary },
   head: { fontWeight: '700', color: colors.textSecondary },

@@ -1,7 +1,7 @@
 // One chart: title, unit, time-range selection, latest value and status, trend in words, and a DEMO label when the data is demo data.
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { CHART_RANGES, sliceSeries, trendOf, type RangeKey } from '@/lib/chart';
 import { formatValue, formatDateTime } from '@/lib/format';
 import { PARAMETER_LABEL, PARAMETER_UNIT, classifyValue } from '@/lib/status';
@@ -37,7 +37,7 @@ export function ChartCard({ parameter, series, asOf, range, onRangeChange, showD
   return (
     <View style={styles.card} testID={testID}>
       <View style={styles.head}>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 4 }}>
           <Text style={styles.title} accessibilityRole="header">{PARAMETER_LABEL[parameter]} ({unit})</Text>
           {showDemoLabel ? <DemoLabel tone="light" /> : null}
         </View>
@@ -62,7 +62,7 @@ export function ChartCard({ parameter, series, asOf, range, onRangeChange, showD
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   head: { flexDirection: 'row', alignItems: 'flex-start' },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   summary: { gap: 4 },

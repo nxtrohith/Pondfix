@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   item: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border },
   itemHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   category: { fontSize: fontSize.metadata, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase' },
-  unreadTag: { backgroundColor: colors.infoSurface, borderRadius: radius.badge, paddingHorizontal: 7, paddingVertical: 2 },
+  unreadTag: { backgroundColor: colors.infoSurface, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 4 },
   unreadText: { fontSize: fontSize.metadata, fontWeight: '700', color: colors.infoDark },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   message: { fontSize: fontSize.body, color: colors.textSecondary, lineHeight: 20 },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   metaText: { fontSize: fontSize.metadata, color: colors.textMuted },
 });

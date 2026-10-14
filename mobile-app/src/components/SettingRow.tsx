@@ -6,7 +6,7 @@ import { fontSize, layout, spacing } from '@/constants/theme';
 export function SettingSwitch({ label, description, value, onValueChange, testID }: { label: string; description?: string; value: boolean; onValueChange: (v: boolean) => void; testID?: string }) {
   return (
     <View style={styles.row} accessibilityRole="none">
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: 4 }}>
         <Text style={styles.label}>{label}</Text>
         {description ? <Text style={styles.desc}>{description}</Text> : null}
       </View>

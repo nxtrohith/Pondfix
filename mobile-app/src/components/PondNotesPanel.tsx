@@ -63,7 +63,7 @@ export function PondNotesPanel({ pondId }: { pondId: string }) {
 
 const styles = StyleSheet.create({
   tags: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
-  tag: { fontSize: fontSize.metadata, fontWeight: '600', color: colors.textPrimary, backgroundColor: colors.inputBackground, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden' },
+  tag: { fontSize: fontSize.metadata, fontWeight: '600', color: colors.textPrimary, backgroundColor: colors.inputBackground, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 4, overflow: 'hidden' },
   distress: { backgroundColor: colors.criticalSurface, color: colors.criticalDark },
   body: { fontSize: fontSize.body, color: colors.textPrimary, lineHeight: 21 },
   small: { fontSize: fontSize.secondary, color: colors.textSecondary },

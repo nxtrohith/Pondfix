@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/theme';
+import { radius, spacing } from '@/constants/theme';
 import { usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -74,8 +74,8 @@ export default function ChartsScreen() {
 }
 
 const styles = StyleSheet.create({
-  unavailable: { backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
+  unavailable: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
   title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   body: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
-  hint: { fontSize: 12, color: colors.textOnDarkSecondary },
+  hint: { fontSize: 12, color: colors.textOnBackgroundSecondary },
 });

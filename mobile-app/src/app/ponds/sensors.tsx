@@ -2,7 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 import { usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -71,10 +71,10 @@ export default function SensorsScreen() {
 }
 
 const styles = StyleSheet.create({
-  summary: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.xs },
-  title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textOnDark },
-  body: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, lineHeight: 19 },
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 6, borderWidth: 0.5, borderColor: colors.border },
+  summary: { backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.card, padding: spacing.md, gap: spacing.xs },
+  title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textOnBackground },
+  body: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, lineHeight: 19 },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 8, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, flexWrap: 'wrap' },
   name: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   line: { fontSize: fontSize.body, color: colors.textPrimary, fontWeight: '600' },

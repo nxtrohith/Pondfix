@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -40,7 +40,7 @@ export default function ComparisonScreen() {
           const on = selected.includes(s.pond.id);
           return (
             <Pressable key={s.pond.id} accessibilityRole="checkbox" accessibilityLabel={s.pond.displayName} accessibilityState={{ checked: on }} onPress={() => toggle(s.pond.id)} style={[styles.chip, on && styles.chipOn]} testID={`compare-${s.pond.id}`}>
-              <Ionicons name={on ? 'checkbox' : 'square-outline'} size={16} color={on ? colors.buttonPrimaryText : colors.textOnDarkSecondary} />
+              <Ionicons name={on ? 'checkbox' : 'square-outline'} size={16} color={on ? colors.buttonPrimaryText : colors.textOnBackgroundSecondary} />
               <Text style={[styles.chipText, on && styles.chipTextOn]}>{s.pond.displayName}</Text>
             </Pressable>
           );
@@ -124,11 +124,11 @@ function Legend() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnDark },
+  label: { fontSize: fontSize.body, fontWeight: '600', color: colors.textOnBackground },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.buttonOutline },
+  chip: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.buttonOutline },
   chipOn: { backgroundColor: colors.card, borderColor: colors.card },
-  chipText: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, fontWeight: '600' },
+  chipText: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, fontWeight: '600' },
   chipTextOn: { color: colors.textPrimary },
   tableScroll: { backgroundColor: colors.card, borderRadius: radius.card },
   table: { padding: spacing.sm, minWidth: 340 },
@@ -136,14 +136,14 @@ const styles = StyleSheet.create({
   headRow: { borderBottomColor: colors.border },
   head: { fontSize: fontSize.secondary, fontWeight: '700', color: colors.textSecondary },
   cellName: { width: 92, fontSize: fontSize.secondary, color: colors.textPrimary },
-  cellVal: { width: 84, alignItems: 'flex-start', gap: 2 },
+  cellVal: { width: 84, alignItems: 'flex-start', gap: 4 },
   value: { fontSize: fontSize.body, fontWeight: '700', color: colors.textPrimary },
   unitSmall: { fontSize: fontSize.metadata, fontWeight: '400' },
   bold: { fontWeight: '700' },
-  cellStatus: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  cellStatus: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   cellStatusText: { fontSize: fontSize.metadata, fontWeight: '700' },
   overallRow: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  legend: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: 6 },
-  legendTitle: { fontSize: fontSize.secondary, fontWeight: '700', color: colors.textOnDark },
-  legendNote: { fontSize: fontSize.metadata, color: colors.textOnDarkSecondary },
+  legend: { backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.card, padding: spacing.md, gap: 8 },
+  legendTitle: { fontSize: fontSize.secondary, fontWeight: '700', color: colors.textOnBackground },
+  legendNote: { fontSize: fontSize.metadata, color: colors.textOnBackgroundSecondary },
 });

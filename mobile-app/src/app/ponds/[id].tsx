@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -72,7 +72,7 @@ export default function PondDetailScreen() {
       <ConnectionBanner />
 
       <View style={styles.hero}>
-        <PondImage width={120} height={88} radius={14} label={`Photo placeholder for ${pond.displayName}`} />
+        <PondImage width={120} height={88} radius={radius.card} label={`Photo placeholder for ${pond.displayName}`} />
         <View style={styles.heroText}>
           <StatusBadge kind="pond" status={summary.status} />
           <Text style={styles.summary}>{presentation.summary}</Text>
@@ -181,7 +181,7 @@ export default function PondDetailScreen() {
 function ToolLink({ icon, label, onPress, testID }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; testID?: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.tool} testID={testID}>
-      <Ionicons name={icon} size={20} color={colors.textOnDark} />
+      <Ionicons name={icon} size={20} color={colors.textOnBackground} />
       <Text style={styles.toolText}>{label}</Text>
     </Pressable>
   );
@@ -189,9 +189,9 @@ function ToolLink({ icon, label, onPress, testID }: { icon: keyof typeof Ionicon
 
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
-  heroText: { flex: 1, gap: 6 },
-  summary: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary, lineHeight: 18 },
-  updated: { fontSize: fontSize.metadata, color: colors.textOnDarkMuted },
+  heroText: { flex: 1, gap: 8 },
+  summary: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, lineHeight: 18 },
+  updated: { fontSize: fontSize.metadata, color: colors.textOnBackgroundMuted },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { fontSize: fontSize.body, color: colors.textSecondary },
   value: { fontSize: fontSize.body, fontWeight: '700', color: colors.textPrimary },
@@ -200,6 +200,6 @@ const styles = StyleSheet.create({
   metrics: { gap: spacing.sm },
   unavailRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   tools: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  tool: { flexGrow: 1, flexBasis: '30%', minHeight: 64, borderRadius: radius.card, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', gap: 4, padding: spacing.xs },
-  toolText: { fontSize: fontSize.secondary, fontWeight: '600', color: colors.textOnDark },
+  tool: { flexGrow: 1, flexBasis: '30%', minHeight: 64, borderRadius: radius.card, backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 4, padding: spacing.xs },
+  toolText: { fontSize: fontSize.secondary, fontWeight: '600', color: colors.textOnBackground },
 });

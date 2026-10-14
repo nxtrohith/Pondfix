@@ -88,11 +88,11 @@ function ProfileEditor({ profile, onSave, onCancel }: { profile: FarmerProfile; 
 
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },
-  heroText: { flex: 1, gap: 2 },
+  heroText: { flex: 1, gap: 4 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
-  name: { fontSize: 20, fontWeight: '700', color: colors.textOnDark },
-  sub: { fontSize: fontSize.secondary, color: colors.textOnDarkSecondary },
+  name: { fontSize: 20, fontWeight: '700', color: colors.textOnBackground },
+  sub: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 4 },
   label: { fontSize: fontSize.body, color: colors.textSecondary },
   value: { flexShrink: 1, fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary, textAlign: 'right' },

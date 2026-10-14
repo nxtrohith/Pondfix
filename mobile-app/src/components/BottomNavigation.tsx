@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
-import { layout } from '@/constants/theme';
+import { layout, shadow } from '@/constants/theme';
 
 export type NavKey = 'home' | 'ponds' | 'alerts' | 'species' | 'profile';
 const ITEMS: { key: NavKey; label: string; icon: keyof typeof Ionicons.glyphMap; href: Href }[] = [
@@ -32,7 +32,7 @@ export function BottomNavigation({ active }: { active: NavKey }) {
             hitSlop={6}
           >
             <View style={[styles.pill, selected && styles.pillSelected]}>
-              <Ionicons name={selected ? (item.icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap) : item.icon} size={20} color={selected ? colors.buttonPrimaryText : colors.textOnDarkSecondary} />
+              <Ionicons name={selected ? (item.icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap) : item.icon} size={22} color={selected ? colors.textOnDark : colors.textSecondary} />
             </View>
             <Text style={[styles.label, selected && styles.labelSelected]}>{item.label}</Text>
           </Pressable>
@@ -43,10 +43,10 @@ export function BottomNavigation({ active }: { active: NavKey }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', backgroundColor: colors.backgroundDeep, borderTopWidth: 0.5, borderTopColor: colors.surfaceOverlay, paddingTop: 6, minHeight: layout.bottomNavHeight },
+  bar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', backgroundColor: colors.surface, borderTopWidth: layout.borderWidth, borderTopColor: colors.border, paddingTop: 8, minHeight: layout.bottomNavHeight, ...shadow.card },
   item: { minWidth: layout.minTouchTarget, minHeight: layout.minTouchTarget, alignItems: 'center', justifyContent: 'center' },
-  pill: { width: 44, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  pillSelected: { backgroundColor: colors.card },
-  label: { marginTop: 2, fontSize: 11, color: colors.textOnDarkSecondary },
-  labelSelected: { color: colors.textOnDark, fontWeight: '600' },
+  pill: { width: 56, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  pillSelected: { backgroundColor: colors.primaryDark },
+  label: { marginTop: 4, fontSize: 12, color: colors.textSecondary },
+  labelSelected: { color: colors.textPrimary, fontWeight: '700' },
 });

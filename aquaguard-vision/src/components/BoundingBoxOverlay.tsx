@@ -6,14 +6,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { FishTrack } from '../lib/fishTracker';
+import { BEHAVIOUR_COLOUR, colors } from '../theme';
 
-const COLOUR_MAP: Record<string, string> = {
-  ACTIVE: '#00ff88',
-  LOW_ACTIVITY: '#ffd600',
-  POSSIBLY_MOTIONLESS: '#ff4444',
-  TRACKING_UNCERTAIN: '#9e9e9e',
-  UNKNOWN: '#90caf9',
-};
+const COLOUR_MAP = BEHAVIOUR_COLOUR;
+/** Labels sit on the box colour: ivory on the darker fills, ink on the lighter ones. */
+const LABEL_ON_DARK = new Set(['POSSIBLY_MOTIONLESS']);
 
 interface Props {
   tracks: FishTrack[];
@@ -40,7 +37,8 @@ export function BoundingBoxOverlay({
         const y = t.bbox.y1 * scaleY;
         const w = (t.bbox.x2 - t.bbox.x1) * scaleX;
         const h = (t.bbox.y2 - t.bbox.y1) * scaleY;
-        const color = COLOUR_MAP[t.behaviour] ?? '#90caf9';
+        const color = COLOUR_MAP[t.behaviour] ?? COLOUR_MAP.UNKNOWN!;
+        const labelColor = LABEL_ON_DARK.has(t.behaviour) ? colors.textOnDark : colors.textPrimary;
         const opacity = t.trackingReliable ? 1 : 0.45;
 
         return (
@@ -59,12 +57,12 @@ export function BoundingBoxOverlay({
             ]}
           >
             <View style={[styles.badge, { backgroundColor: color }]}>
-              <Text style={styles.badgeText}>
+              <Text style={[styles.badgeText, { color: labelColor }]}>
                 {t.trackId}
-                {t.behaviour === 'POSSIBLY_MOTIONLESS' ? ' ⚠️ STILL' : ''}
-                {t.behaviour === 'LOW_ACTIVITY' ? ' ⏳ SLOW' : ''}
+                {t.behaviour === 'POSSIBLY_MOTIONLESS' ? ' · STILL' : ''}
+                {t.behaviour === 'LOW_ACTIVITY' ? ' · SLOW' : ''}
               </Text>
-              <Text style={styles.badgeSub}>
+              <Text style={[styles.badgeSub, { color: labelColor }]}>
                 {t.speedPxPerSecond.toFixed(0)} px/s
                 {t.directionDeg !== null ? ` · ${t.directionDeg.toFixed(0)}°` : ''}
               </Text>
@@ -81,7 +79,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 2,
     borderRadius: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    backgroundColor: 'rgba(30, 36, 27, 0.08)',
   },
   badge: {
     position: 'absolute',
@@ -92,12 +90,10 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   badgeText: {
-    color: '#000',
     fontSize: 9,
     fontWeight: '800',
   },
   badgeSub: {
-    color: '#000',
     fontSize: 8,
     fontWeight: '500',
   },

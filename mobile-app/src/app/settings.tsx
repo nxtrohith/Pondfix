@@ -67,10 +67,10 @@ export default function SettingsScreen() {
 
       <SectionHeader title="Support" />
       <Panel>
-        <AppButton label="Connection diagnostics" variant="onCard" icon="pulse-outline" onPress={() => router.push(routes.diagnostics)} testID="open-diagnostics" />
-        <AppButton label="Help Center" variant="onCard" icon="help-circle-outline" onPress={() => setInfo('help')} testID="open-help" />
-        <AppButton label="Contact Support" variant="onCard" icon="mail-outline" onPress={() => setInfo('support')} testID="open-support" />
-        <AppButton label="Privacy Policy" variant="onCard" icon="shield-checkmark-outline" onPress={() => setInfo('privacy')} testID="open-privacy" />
+        <AppButton label="Connection diagnostics" variant="onCard" fullWidth icon="pulse-outline" onPress={() => router.push(routes.diagnostics)} testID="open-diagnostics" />
+        <AppButton label="Help Center" variant="onCard" fullWidth icon="help-circle-outline" onPress={() => setInfo('help')} testID="open-help" />
+        <AppButton label="Contact Support" variant="onCard" fullWidth icon="mail-outline" onPress={() => setInfo('support')} testID="open-support" />
+        <AppButton label="Privacy Policy" variant="onCard" fullWidth icon="shield-checkmark-outline" onPress={() => setInfo('privacy')} testID="open-privacy" />
         <Text style={styles.note} testID="app-version">App version {version}</Text>
       </Panel>
 

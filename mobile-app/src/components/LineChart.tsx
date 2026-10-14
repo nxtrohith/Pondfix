@@ -63,8 +63,8 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
           const crit = v === rule.lowCrit || v === rule.highCrit;
           return <Line key={`l${v}`} x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke={crit ? colors.chartThresholdCritical : colors.chartThresholdWarning} strokeWidth={1.2} strokeDasharray="4 4" />;
         })}
-        <Path d={toPath(points)} fill="none" stroke={colors.chartLine} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-        {forecast.length ? (
+        {points.length > 0 ? <Path d={toPath(points)} fill="none" stroke={colors.chartLine} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" /> : null}
+        {forecast.length && points.length > 0 ? (
           <Path d={toPath([points[points.length - 1]!, ...forecast])} fill="none" stroke={colors.chartPrediction} strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round" />
         ) : null}
         {critical.map((p, i) => <Circle key={`c${i}`} cx={x(p.at)} cy={y(p.value)} r={3} fill={colors.critical} />)}
@@ -84,5 +84,5 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
 
 const styles = StyleSheet.create({
   box: { width: '100%' },
-  note: { marginTop: 6, fontSize: fontSize.metadata, color: colors.textSecondary },
+  note: { marginTop: 8, fontSize: fontSize.metadata, color: colors.textSecondary },
 });

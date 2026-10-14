@@ -2,15 +2,15 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 
 function Frame({ icon, title, children, tone = 'light' }: { icon: keyof typeof Ionicons.glyphMap; title: string; children?: React.ReactNode; tone?: 'light' | 'dark' }) {
   const light = tone === 'light';
   return (
     <View style={[styles.frame, light ? styles.lightFrame : styles.darkFrame]} accessibilityRole="summary">
-      <Ionicons name={icon} size={28} color={light ? colors.textSecondary : colors.textOnDarkSecondary} />
-      <Text style={[styles.title, { color: light ? colors.textPrimary : colors.textOnDark }]}>{title}</Text>
-      {children ? <Text style={[styles.body, { color: light ? colors.textSecondary : colors.textOnDarkSecondary }]}>{children}</Text> : null}
+      <Ionicons name={icon} size={28} color={light ? colors.textSecondary : colors.textOnBackgroundSecondary} />
+      <Text style={[styles.title, { color: light ? colors.textPrimary : colors.textOnBackground }]}>{title}</Text>
+      {children ? <Text style={[styles.body, { color: light ? colors.textSecondary : colors.textOnBackgroundSecondary }]}>{children}</Text> : null}
     </View>
   );
 }
@@ -32,7 +32,7 @@ export function LoadingState({ label = 'Loading' }: { label?: string }) {
 
 const styles = StyleSheet.create({
   frame: { alignItems: 'center', gap: spacing.xs, padding: spacing.lg, borderRadius: radius.card },
-  lightFrame: { backgroundColor: colors.card, borderWidth: 0.5, borderColor: colors.border },
+  lightFrame: { backgroundColor: colors.card, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
   darkFrame: { backgroundColor: colors.surface },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', textAlign: 'center' },
   body: { fontSize: fontSize.body, textAlign: 'center', lineHeight: 20 },

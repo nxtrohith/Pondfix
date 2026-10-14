@@ -53,7 +53,7 @@ export default function AlertDetailScreen() {
       <AppHeader title="Alert details" />
       <ConnectionBanner />
 
-      <View style={[styles.hero, { borderLeftColor: resolved ? colors.healthy : critical ? colors.critical : colors.warning }]}>
+      <View style={[styles.hero, { backgroundColor: resolved ? colors.healthySurface : critical ? colors.criticalSurface : colors.warningSurface }]}>
         <Text style={[styles.sev, { color: resolved ? colors.healthyDark : critical ? colors.criticalDark : colors.warningDark }]}>
           {resolved ? 'Resolved' : critical ? 'Critical' : 'Warning'}
         </Text>
@@ -107,7 +107,7 @@ export default function AlertDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderLeftWidth: 5 },
+  hero: { borderRadius: radius.card, padding: spacing.md, gap: spacing.xxs },
   sev: { fontSize: fontSize.secondary, fontWeight: '700', textTransform: 'uppercase', color: colors.criticalDark },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   meta: { fontSize: fontSize.secondary, color: colors.textSecondary },
