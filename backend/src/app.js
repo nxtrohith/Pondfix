@@ -14,7 +14,7 @@ export function createApp({ db, config, ml = null, now = () => new Date(), log =
   app.use(requestLogger(log));
   app.use(cors({ origin: config.corsOrigins, methods: ['GET', 'POST', 'PATCH'] }));
   app.use(express.json({ limit: config.bodyLimit }));
-  app.use('/api', buildRouter({ db, config, ml, now, dbTarget }));
+  app.use('/api', buildRouter({ db, config, ml, now, dbTarget, log }));
   app.use(notFoundHandler);
   app.use(errorHandler({ production: config.production, log }));
   return app;

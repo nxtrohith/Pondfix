@@ -9,6 +9,7 @@ import { demoMeasurement, SCENARIOS } from '../services/demo.js';
 import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
+import { buildSensorRoutes } from '../sensors/index.js';
 
 export function buildRouter(deps) {
   const { db, config, now, dbTarget = 'unknown' } = deps;
@@ -87,6 +88,9 @@ export function buildRouter(deps) {
     const out = await ingestMeasurement(deps, req.body);
     res.status(out.status).json(out.body);
   }));
+
+  // Dedicated IoT / ESP32 sensor receiver endpoints
+  r.use('/sensors', buildSensorRoutes(deps));
 
   // Historical replay: read-only, never writes (see services/replay.js).
   r.get('/replay/ponds', asyncHandler(async (req, res) => res.json(await replayPonds(db))));
