@@ -41,7 +41,7 @@ function SpeciesDetail({ species }: { species: SpeciesProfile }) {
   return (
     <View style={{ gap: spacing.md }} testID="species-detail">
       <View style={styles.hero}>
-        <View style={styles.fishBadge}><Ionicons name={species.cultureLabel === 'Shrimp' ? 'bug-outline' : 'fish-outline'} size={34} color={colors.textOnDark} /></View>
+        <View style={styles.fishBadge}><Ionicons name={species.cultureLabel === 'Shrimp' ? 'bug-outline' : 'fish-outline'} size={36} color={colors.textOnDark} /></View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text accessibilityRole="header" style={styles.name}>{species.displayName}</Text>
           <Text style={styles.sci}>{species.scientificName ?? 'Scientific name not yet configured'}</Text>
@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.buttonOutline, justifyContent: 'center' },
   chipOn: { backgroundColor: colors.card, borderColor: colors.card },
   chipText: { fontSize: fontSize.secondary, color: colors.textOnDark, fontWeight: '600' },
-  chipTextOn: { color: colors.textPrimary, fontWeight: '800' },
+  chipTextOn: { color: colors.textPrimary, fontWeight: '700' },
   hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md },
-  fishBadge: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 20, fontWeight: '800', color: colors.textOnDark },
+  fishBadge: { width: 48, alignItems: 'center', justifyContent: 'center' },
+  name: { fontSize: 20, fontWeight: '700', color: colors.textOnDark },
   sci: { fontSize: fontSize.secondary, fontStyle: 'italic', color: colors.textOnDarkSecondary },
   small: { fontSize: fontSize.metadata, color: colors.textMuted, lineHeight: 16 },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },

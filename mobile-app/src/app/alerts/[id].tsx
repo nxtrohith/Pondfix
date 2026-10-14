@@ -98,11 +98,11 @@ export default function AlertDetailScreen() {
 
 const styles = StyleSheet.create({
   hero: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderLeftWidth: 5 },
-  sev: { fontSize: fontSize.secondary, fontWeight: '800', textTransform: 'uppercase', color: colors.criticalDark },
-  title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+  sev: { fontSize: fontSize.secondary, fontWeight: '700', textTransform: 'uppercase', color: colors.criticalDark },
+  title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   meta: { fontSize: fontSize.secondary, color: colors.textSecondary },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
-  bigValue: { fontSize: 28, fontWeight: '800', color: colors.textPrimary },
+  bigValue: { fontSize: 28, fontWeight: '700', color: colors.textPrimary },
   unit: { fontSize: fontSize.body, fontWeight: '500', color: colors.textSecondary },
   body: { fontSize: fontSize.body, color: colors.textSecondary, lineHeight: 21 },
   small: { fontSize: fontSize.metadata, color: colors.textMuted, lineHeight: 16 },

@@ -34,7 +34,7 @@ export function ChartCard({ parameter, series, asOf, range, onRangeChange, showD
       <View style={styles.head}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.title} accessibilityRole="header">{PARAMETER_LABEL[parameter]} ({unit})</Text>
-          {showDemoLabel ? <DemoLabel /> : null}
+          {showDemoLabel ? <DemoLabel tone="light" /> : null}
         </View>
       </View>
       <SegmentedControl label={`${PARAMETER_LABEL[parameter]} time range`} value={range} options={CHART_RANGES.map((r) => ({ value: r.key, label: r.label, testID: `range-${parameter}-${r.key}` }))} onChange={onRangeChange} />

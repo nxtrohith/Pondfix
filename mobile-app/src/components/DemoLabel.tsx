@@ -1,17 +1,21 @@
-// Marks any screen or chart that shows illustrative data. It is text, so it is never hidden by colour choices.
+// Marks illustrative data. It is quiet text with an information icon, so it stays visible without competing with readings.
+// Use "dark" on the olive screen background and "light" on a white card.
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius } from '@/constants/theme';
+import { fontSize, spacing } from '@/constants/theme';
 
-export function DemoLabel({ text = 'Demo data · illustrative' }: { text?: string }) {
+export function DemoLabel({ text = 'Demo data · illustrative', tone = 'dark' }: { text?: string; tone?: 'dark' | 'light' }) {
+  const fg = tone === 'dark' ? colors.textOnDarkSecondary : colors.infoDark;
   return (
-    <View style={styles.pill} accessibilityRole="text" accessibilityLabel={text}>
-      <Text style={styles.text}>{text}</Text>
+    <View style={styles.row} accessibilityRole="text" accessibilityLabel={text}>
+      <Ionicons name="information-circle-outline" size={14} color={fg} />
+      <Text style={[styles.text, { color: fg }]}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  pill: { alignSelf: 'flex-start', backgroundColor: colors.infoSurface, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 3 },
-  text: { fontSize: fontSize.metadata, fontWeight: '700', color: colors.infoDark },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs, alignSelf: 'flex-start' },
+  text: { fontSize: fontSize.metadata, fontWeight: '600' },
 });

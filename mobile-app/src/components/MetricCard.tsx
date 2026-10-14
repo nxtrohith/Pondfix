@@ -1,4 +1,5 @@
-// One water-quality parameter: its name, current value and status. A missing reading shows "No value" and "Unavailable", never a healthy look.
+// One water-quality parameter as a full-width row: name and time on the left, value and status on the right. The row layout leaves room
+// for long names and status words on small phones. A missing reading shows "No value" and "Unavailable", never a healthy look.
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -23,30 +24,42 @@ interface Props {
 export function MetricCard({ parameter, value, status, recordedAt, ageMinutes, testID }: Props) {
   const hasValue = value !== null && Number.isFinite(value);
   const unit = PARAMETER_UNIT[parameter];
-  const text = hasValue ? formatValue(value, parameter) : '—';
-  const detail = recordedAt ? `${formatTime(recordedAt)}${ageMinutes !== undefined && ageMinutes !== null ? ` · ${formatAge(ageMinutes)}` : ''}` : 'No reading';
+  const name = PARAMETER_LABEL[parameter];
+  const time = recordedAt ? formatTime(recordedAt) : 'No reading';
+  const age = recordedAt && ageMinutes !== undefined && ageMinutes !== null ? formatAge(ageMinutes) : null;
   return (
-    <View style={styles.card} accessible accessibilityLabel={`${PARAMETER_LABEL[parameter]}: ${hasValue ? `${text} ${unit}` : 'no value'}, ${PARAMETER_PRESENTATION[status].label.toLowerCase()}`} testID={testID}>
-      <View style={styles.head}>
-        <Ionicons name={ICON[parameter]} size={16} color={colors.textOnDarkSecondary} />
-        <Text style={styles.name} numberOfLines={1}>{PARAMETER_LABEL[parameter]}</Text>
+    <View
+      style={styles.card}
+      accessible
+      accessibilityLabel={`${name}: ${hasValue ? `${formatValue(value, parameter)} ${unit}` : 'no value'}, ${PARAMETER_PRESENTATION[status].label.toLowerCase()}`}
+      testID={testID}
+    >
+      <View style={styles.left}>
+        <View style={styles.nameRow}>
+          <Ionicons name={ICON[parameter]} size={16} color={colors.textSecondary} />
+          <Text style={styles.name}>{name}</Text>
+        </View>
+        <Text style={styles.time}>{time}{age ? ` · ${age}` : ''}</Text>
       </View>
-      <Text style={[styles.value, !hasValue && styles.muted]} numberOfLines={1} adjustsFontSizeToFit>
-        {text}
-        {hasValue && unit ? <Text style={styles.unit}> {unit}</Text> : null}
-      </Text>
-      <StatusBadge status={status} />
-      <Text style={styles.time} numberOfLines={2}>{detail}</Text>
+      <View style={styles.right}>
+        <Text style={[styles.value, !hasValue && styles.muted]} numberOfLines={1}>
+          {hasValue ? formatValue(value, parameter) : '—'}
+          {hasValue && unit ? <Text style={styles.unit}> {unit}</Text> : null}
+        </Text>
+        <StatusBadge status={status} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flex: 1, minWidth: 100, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.sm + 2, gap: 6, borderWidth: 0.5, borderColor: colors.border },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { flex: 1, fontSize: fontSize.secondary, color: colors.textSecondary, fontWeight: '600' },
-  value: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
+  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, borderWidth: 0.5, borderColor: colors.border },
+  left: { flex: 1, gap: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
+  time: { fontSize: fontSize.metadata, color: colors.textSecondary },
+  right: { alignItems: 'flex-end', gap: 6 },
+  value: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, fontVariant: ['tabular-nums'] },
   muted: { color: colors.textMuted },
   unit: { fontSize: fontSize.secondary, fontWeight: '500', color: colors.textSecondary },
-  time: { fontSize: fontSize.metadata, color: colors.textMuted },
 });
