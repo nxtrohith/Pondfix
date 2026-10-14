@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ObjectId } from 'mongodb';
 import { parse, queryDate, PARAMETERS, SOURCES } from '../utils/params.js';
 import { decodeCursor, encodeCursor, parseObjectId } from '../utils/http.js';
 import { validationError, notFound } from '../utils/errors.js';
@@ -111,9 +112,16 @@ export async function listAlerts(db, config, rawQuery, pondId) {
   if (q.cursor) { const c = decodeCursor(q.cursor); filter.$and = [{ $or: [{ createdAt: { $lt: c.date } }, { createdAt: c.date, _id: { $lt: c.id } }] }]; }
   const rows = await db.collection('alerts').find(filter).sort({ createdAt: -1, _id: -1 }).limit(q.limit + 1).toArray();
   const page = rows.slice(0, q.limit);
-  return { items: page.map(serializeAlert), count: page.length, nextCursor: rows.length > q.limit ? encodeCursor(page.at(-1).createdAt, page.at(-1)._id) : null };
+  return { items: await withPondNames(db, page.map(serializeAlert)), count: page.length, nextCursor: rows.length > q.limit ? encodeCursor(page.at(-1).createdAt, page.at(-1)._id) : null };
 }
 
 /** Which side of its limit an alert fired on, from the stored trigger value and the limit it crossed (no extra stored field needed). */
 export const alertDirection = (a) => (typeof a.triggerValue === 'number' && typeof a.threshold === 'number' ? (a.triggerValue > a.threshold ? 'high' : 'low') : undefined);
 export function serializeAlert({ _id, openKey, fixtureTag, ...a }) { const direction = alertDirection(a); return { id: _id, ...a, ruleScope: a.ruleScope ?? 'general', direction, ...describeAlert({ ...a, direction }) }; }
+
+/** Adds pondName to serialized alerts (one pond lookup for the whole page) so clients never need a separate pond request. */
+export async function withPondNames(db, alerts) {
+  const ids = [...new Set(alerts.map((a) => String(a.pondId)))].map((id) => new ObjectId(id));
+  const names = new Map((ids.length ? await db.collection('ponds').find({ _id: { $in: ids } }, { projection: { name: 1 } }).toArray() : []).map((p) => [String(p._id), p.name]));
+  return alerts.map((a) => ({ ...a, pondName: names.get(String(a.pondId)) ?? null }));
+}

@@ -18,7 +18,8 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-tab-view": "^4.3.3",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
     "@react-native/jest-preset": "^0.86.3",
@@ -40,7 +41,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:e2e": "jest --config tests/e2e/jest.config.js"
   },
   "private": true,
   "jest": {
@@ -49,7 +51,8 @@
       "^@/(.*)$": "<rootDir>/src/$1"
     },
     "testPathIgnorePatterns": [
-      "/node_modules/"
+      "/node_modules/",
+      "/tests/e2e/"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/tests/setup.ts"

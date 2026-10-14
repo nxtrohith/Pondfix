@@ -1,10 +1,11 @@
 // Screen 4: pond details. Each parameter has its own status. Missing or stale readings show as unavailable, never as healthy.
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { PondImage } from '@/components/PondImage';
@@ -12,11 +13,10 @@ import { MetricCard } from '@/components/MetricCard';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AppButton } from '@/components/AppButton';
 import { AlertCard } from '@/components/AlertCard';
-import { DemoLabel } from '@/components/DemoLabel';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { EmptyState } from '@/components/StateViews';
 import { SectionHeader, Panel } from '@/components/SectionHeader';
-import { speciesById } from '@/data/mockSpecies';
-import { WHY_IT_MATTERS } from '@/data/mockAlerts';
+import { WHY_IT_MATTERS } from '@/data/whyItMatters';
 import { summarizePond } from '@/lib/pondSummary';
 import { ageMinutes, classifyValue, PARAMETER_LABEL, POND_PRESENTATION } from '@/lib/status';
 import { formatDateTime, formatTime } from '@/lib/format';
@@ -26,8 +26,11 @@ import { param, routes } from '@/lib/routes';
 export default function PondDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
-  const { ponds, readings, alerts, asOf } = useAppStore();
+  const { ponds, readings, asOf, ensureHistory } = usePonds();
+  const { activeAlerts: alerts } = useAlerts();
   const pond = ponds.find((p) => p.id === id);
+  const hasPond = !!pond;
+  useEffect(() => { if (hasPond) ensureHistory(id); }, [hasPond, id, ensureHistory]);
 
   if (!pond) {
     return (
@@ -40,7 +43,6 @@ export default function PondDetailScreen() {
   }
 
   const summary = summarizePond(pond, readings[pond.id] ?? [], alerts, asOf);
-  const species = speciesById(pond.speciesId);
   const latestTimes = PARAMETERS.map((p) => summary.parameters[p].reading.latest?.recordedAt).filter((t): t is string => !!t);
   const lastUpdated = latestTimes.length ? [...latestTimes].sort().at(-1)! : null;
   const presentation = POND_PRESENTATION[summary.status];
@@ -51,10 +53,10 @@ export default function PondDetailScreen() {
     <ScreenContainer bottomNav="ponds" testID="pond-detail-screen">
       <AppHeader
         title={pond.displayName}
-        subtitle={species ? species.displayName : 'Species not set'}
+        subtitle={pond.speciesLabel ?? 'Species not set'}
         right={<AppButton label="Edit" variant="outline" icon="create-outline" onPress={() => router.push(routes.pondEdit(pond.id))} testID="edit-pond" />}
       />
-      {pond.localOnly ? null : <DemoLabel />}
+      <ConnectionBanner />
 
       <View style={styles.hero}>
         <PondImage width={120} height={88} radius={14} label={`Photo placeholder for ${pond.displayName}`} />
@@ -68,14 +70,10 @@ export default function PondDetailScreen() {
       <Panel>
         <View style={styles.row}>
           <Text style={styles.label}>Species</Text>
-          <Text style={styles.value} testID="pond-species">{species ? species.displayName : 'Not set'}</Text>
+          <Text style={styles.value} testID="pond-species">{pond.speciesLabel ?? 'Not set'}</Text>
         </View>
-        <Text style={styles.small}>
-          {species
-            ? species.validation === 'reference_only'
-              ? 'Reference ranges only. Not validated for alert limits, so the general safety rules apply.'
-              : 'No validated safety profile, so the general safety rules apply.'
-            : 'No species is set. The general safety rules apply until one is chosen.'}
+        <Text style={styles.small} testID="species-safety">
+          {pond.speciesSafety?.message || (pond.speciesLabel ? 'The server has not reported which alert limits apply to this species.' : 'No species is set. The general safety rules apply until one is chosen.')}
         </Text>
         {pond.areaAcres ? <Text style={styles.small}>Area {pond.areaAcres} acres</Text> : null}
       </Panel>
@@ -119,13 +117,13 @@ export default function PondDetailScreen() {
 
       <SectionHeader title="What needs attention?" />
       {problems.length === 0 && unavailable.length === 0 ? (
-        <Panel><Text style={styles.small}>Every reading is within the acceptable range and current. This is a demo status, not a check of fish or shrimp health.</Text></Panel>
+        <Panel><Text style={styles.small}>Every reading is within the acceptable range and current. This is a water-quality status, not a check of fish or shrimp health.</Text></Panel>
       ) : null}
       {problems.map((p) => {
         const reading = summary.parameters[p].reading.latest!;
         const cls = classifyValue(p, reading.value);
-        const explanation = WHY_IT_MATTERS[`${p}.${cls.direction ?? 'low'}`] ?? 'This reading is outside the acceptable range.';
         const open = summary.openAlerts.find((a) => a.parameter === p);
+        const explanation = open?.explanation || WHY_IT_MATTERS[`${p}.${open?.direction ?? cls.direction ?? 'low'}`] || 'This reading is outside the acceptable range.';
         const critical = summary.parameters[p].status === 'CRITICAL';
         return (
           <Panel key={p} testID={`problem-${p}`}>

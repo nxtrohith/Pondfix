@@ -1,6 +1,15 @@
 // User flows through the real screens, driven with the same taps and typing a farmer would use.
-import { screen, fireEvent, waitFor, within } from 'expo-router/testing-library';
+import { screen, fireEvent, within } from 'expo-router/testing-library';
 import { renderApp } from './harness';
+import { acknowledgeAlert } from '@/services/alerts';
+import { setPondSpecies } from '@/services/ponds';
+import { TEST_ALERTS } from '../fixtures/alerts';
+
+// Only the network call is replaced: the backend answers an acknowledge with the updated alert.
+jest.mock('@/services/alerts', () => ({ ...jest.requireActual('@/services/alerts'), acknowledgeAlert: jest.fn() }));
+const acknowledgeMock = acknowledgeAlert as jest.MockedFunction<typeof acknowledgeAlert>;
+jest.mock('@/services/ponds', () => ({ ...jest.requireActual('@/services/ponds'), setPondSpecies: jest.fn() }));
+const setSpeciesMock = setPondSpecies as jest.MockedFunction<typeof setPondSpecies>;
 
 const press = (role: 'button' | 'radio' | 'tab' | 'checkbox' | 'switch', name: string | RegExp) => fireEvent.press(screen.getByRole(role, { name }));
 
@@ -21,8 +30,8 @@ describe('dashboard', () => {
 
   it('the bell shows the unread count and opens notifications', () => {
     renderApp('/dashboard');
-    expect(screen.getByLabelText(/Notifications, 4 unread/)).toBeOnTheScreen();
-    press('button', /Notifications, 4 unread/);
+    expect(screen.getByLabelText(/Alert notifications, 1 unread/)).toBeOnTheScreen();
+    press('button', /Alert notifications, 1 unread/);
     expect(screen.getByTestId('notifications-screen')).toBeOnTheScreen();
   });
 
@@ -121,7 +130,7 @@ describe('pond details', () => {
   it('a pond with a missing sensor shows the reading as unavailable, not healthy', () => {
     renderApp('/ponds/pond-2');
     expect(screen.getByTestId('unavailable-panel')).toBeOnTheScreen();
-    expect(screen.getByText(/Water temperature is unavailable, last seen 08:20 UTC/)).toBeOnTheScreen();
+    expect(screen.getByText(/Water temperature is unavailable\. It is not counted as healthy\./)).toBeOnTheScreen();
     expect(screen.getByLabelText(/Water temperature: no value, unavailable/)).toBeOnTheScreen();
     expect(screen.queryByText('Healthy')).toBeNull();
   });
@@ -129,7 +138,7 @@ describe('pond details', () => {
   it('a critical reading explains why it matters and links to its alert', () => {
     renderApp('/ponds/pond-1');
     expect(screen.getByTestId('problem-dissolved_oxygen')).toBeOnTheScreen();
-    expect(screen.getByText(/Low dissolved oxygen stresses fish/)).toBeOnTheScreen();
+    expect(screen.getByText(/Low oxygen stresses stock\./)).toBeOnTheScreen();
     fireEvent.press(screen.getByRole('button', { name: /Low dissolved oxygen, Pond 1/ }));
     expect(screen.getByTestId('alert-detail-screen')).toBeOnTheScreen();
   });
@@ -141,11 +150,16 @@ describe('pond details', () => {
     expect(screen.getByText('Pond 1')).toBeOnTheScreen();
   });
 
-  it('edit opens the form for this pond', () => {
+  it('the species opens the server-backed species form for this pond', () => {
     renderApp('/ponds/pond-1');
     press('button', 'Edit');
     expect(screen.getByTestId('pond-form')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Pond name')).toHaveProp('value', 'Pond 1');
+    expect(screen.getByRole('radio', { name: 'Rohu' })).toBeSelected();
+  });
+
+  it('shows the species safety statement exactly as the server reported it', () => {
+    renderApp('/ponds/pond-1');
+    expect(screen.getByTestId('species-safety')).toHaveTextContent(/No approved alert limits exist for this species yet/);
   });
 });
 
@@ -167,9 +181,9 @@ describe('historical charts', () => {
 });
 
 describe('forecast', () => {
-  it('is labelled as illustrative and shows the risk outlook for the chosen horizon', () => {
+  it('shows model forecasts with the server risk outlook for the chosen horizon', () => {
     renderApp('/ponds/forecast?id=pond-1');
-    expect(screen.getByText('Demo forecast · illustrative, not from the AquaGuard model')).toBeOnTheScreen();
+    expect(screen.getByText(/Forecasts are model predictions, not measurements\./)).toBeOnTheScreen();
     press('radio', '15 min');
     expect(screen.getByTestId('risk-outlook')).toHaveTextContent(/Oxygen may reach a critical low level within 15 min\./);
   });
@@ -180,45 +194,50 @@ describe('forecast', () => {
     expect(screen.getByText(/pH \(pH\)/)).toBeOnTheScreen();
   });
 
-  it('shows an honest message when a parameter has no current reading', () => {
+  it('shows an honest message when the model produced no forecast for a parameter', () => {
     renderApp('/ponds/forecast?id=pond-2&parameter=temperature');
     expect(screen.getByText('No forecast for this parameter')).toBeOnTheScreen();
   });
 });
 
 describe('sensors', () => {
-  it('shows each sensor state, and an offline sensor does not make the water look healthy', () => {
+  it('shows reading freshness per parameter, and a missing reading does not make the water look healthy', () => {
     renderApp('/ponds/sensors?id=pond-2');
-    expect(screen.getByText('1 of 3 sensors not online')).toBeOnTheScreen();
-    expect(screen.getByTestId('sensor-temperature')).toHaveTextContent(/Offline/);
-    expect(screen.getByTestId('sensor-dissolved_oxygen')).toHaveTextContent(/Online/);
-    expect(screen.getByText(/A connected sensor does not mean the water is healthy/)).toBeOnTheScreen();
+    expect(screen.getByText('1 of 3 readings not current')).toBeOnTheScreen();
+    expect(screen.getByTestId('sensor-temperature')).toHaveTextContent(/No reading received/);
+    expect(screen.getByTestId('sensor-dissolved_oxygen')).toHaveTextContent(/Reading: Current/);
+    expect(screen.getByText(/not whether a sensor is physically connected/)).toBeOnTheScreen();
   });
 });
 
 describe('alerts', () => {
-  it('Active and Resolved tabs show the right alerts', () => {
+  beforeEach(() => acknowledgeMock.mockReset());
+
+  it('Active and History tabs show the right alerts', () => {
     renderApp('/alerts');
     expect(screen.getByLabelText(/Low dissolved oxygen, Pond 1/)).toBeOnTheScreen();
-    press('radio', /Resolved \(2\)/);
+    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Live monitoring/);
+    press('radio', /History \(2\)/);
     expect(screen.getByText(/Resolved Oct 11/)).toBeOnTheScreen();
     expect(screen.queryByLabelText(/Low dissolved oxygen, Pond 1/)).toBeNull();
   });
 
-  it('marking an alert as seen keeps it open and does not resolve it', () => {
+  it('marking an alert as seen is sent to the backend, keeps it open and does not resolve it', async () => {
+    acknowledgeMock.mockResolvedValue({ ...TEST_ALERTS[0]!, status: 'ACKNOWLEDGED', acknowledgedAt: '2026-10-12T10:31:00.000Z' });
     renderApp('/alerts/alert-1');
     expect(screen.getByTestId('alert-value')).toHaveTextContent(/^1\.8 mg\/L$/);
     press('button', 'Mark as seen');
-    expect(screen.getByTestId('alert-state')).toHaveTextContent(/Seen, still open/);
+    expect(await screen.findByText(/Seen, still open/)).toBeOnTheScreen();
+    expect(acknowledgeMock).toHaveBeenCalledWith('alert-1');
     expect(screen.queryByRole('button', { name: 'Mark as seen' })).toBeNull();
   });
 
-  it('an acknowledged alert stays in the Active list', () => {
+  it('says so when the backend cannot be reached to acknowledge', async () => {
+    acknowledgeMock.mockRejectedValue(new Error('offline'));
     renderApp('/alerts/alert-1');
     press('button', 'Mark as seen');
-    press('button', 'Open Pond 1');
-    expect(screen.getByTestId('pond-detail-screen')).toBeOnTheScreen();
-    expect(screen.getAllByText(/Low dissolved oxygen/).length).toBeGreaterThan(0);
+    expect(await screen.findByTestId('ack-failed')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mark as seen' })).toBeOnTheScreen();
   });
 
   it('a resolved alert cannot be marked as seen', () => {
@@ -227,94 +246,61 @@ describe('alerts', () => {
     expect(screen.getByTestId('alert-state')).toHaveTextContent(/Resolved/);
   });
 
-  it('alert details show the recommended next steps and the general-checks caveat', () => {
+  it('alert details show the backend message, species and recommended action', () => {
     renderApp('/alerts/alert-1');
-    expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/Check that aerators are running/);
-    expect(screen.getByText(/not validated for every species or pond/)).toBeOnTheScreen();
+    expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/Increase aeration and monitor closely/);
+    expect(screen.getByTestId('alert-message')).toHaveTextContent(/critically low/);
+    expect(screen.getByText(/Pond 1 · Dissolved oxygen · Rohu/)).toBeOnTheScreen();
+  });
+
+  it('an alert that is no longer listed says so instead of crashing', () => {
+    renderApp('/alerts/does-not-exist');
+    expect(screen.getByTestId('alert-missing')).toBeOnTheScreen();
   });
 });
 
-describe('pond form', () => {
-  it('shows validation errors and does not save an invalid pond', () => {
-    renderApp('/ponds/edit');
-    press('button', 'Save pond');
-    expect(screen.getByTestId('field-name-error')).toHaveTextContent('Enter a pond name.');
-    expect(screen.getByTestId('field-area-error')).toHaveTextContent('Enter the pond area in acres.');
+describe('pond species edit', () => {
+  beforeEach(() => setSpeciesMock.mockReset());
+
+  it('saves the species to the server and returns to the pond', async () => {
+    setSpeciesMock.mockResolvedValue(null);
+    renderApp('/ponds/edit?id=pond-1');
+    press('radio', 'Catla');
+    press('button', 'Save species');
+    expect(await screen.findByTestId('pond-detail-screen')).toBeOnTheScreen();
+    expect(setSpeciesMock).toHaveBeenCalledWith('pond-1', { mode: 'single', speciesProfileId: 'catla' });
+  });
+
+  it('"Not set" clears the species on the server', async () => {
+    setSpeciesMock.mockResolvedValue(null);
+    renderApp('/ponds/edit?id=pond-1');
+    press('radio', 'Not set');
+    press('button', 'Save species');
+    await screen.findByTestId('pond-detail-screen');
+    expect(setSpeciesMock).toHaveBeenCalledWith('pond-1', { mode: 'unconfigured' });
+  });
+
+  it('stays on the form and says so when the server cannot save', async () => {
+    setSpeciesMock.mockRejectedValue(new Error('offline'));
+    renderApp('/ponds/edit?id=pond-1');
+    press('radio', 'Catla');
+    press('button', 'Save species');
+    expect(await screen.findByTestId('save-failed')).toBeOnTheScreen();
     expect(screen.getByTestId('pond-form')).toBeOnTheScreen();
   });
 
-  it('rejects a duplicate name, and a non-numeric area', () => {
-    renderApp('/ponds/edit');
-    fireEvent.changeText(screen.getByLabelText('Pond name'), 'Pond 2');
-    fireEvent.changeText(screen.getByLabelText('Area (acres)'), 'two');
-    press('button', 'Save pond');
-    expect(screen.getByTestId('field-name-error')).toHaveTextContent('Another pond already has this name.');
-    expect(screen.getByTestId('field-area-error')).toHaveTextContent(/Enter a number/);
-  });
-
-  it('adding a pond saves it locally, shows it in the list with no data, and never as healthy', () => {
-    renderApp('/ponds/edit');
-    fireEvent.changeText(screen.getByLabelText('Pond name'), 'North Pond');
-    fireEvent.changeText(screen.getByLabelText('Area (acres)'), '2.5');
-    press('radio', 'Rohu');
-    press('button', 'Save pond');
-    expect(screen.getByTestId('ponds-screen')).toBeOnTheScreen();
-    expect(screen.getByText('North Pond')).toBeOnTheScreen();
-    expect(screen.getByText('No data')).toBeOnTheScreen();
-    expect(screen.getByText('5 ponds')).toBeOnTheScreen();
-  });
-
-  it('a new pond can be saved with no species, shown as Species not set', () => {
-    renderApp('/ponds/edit');
-    fireEvent.changeText(screen.getByLabelText('Pond name'), 'Quiet Pond');
-    fireEvent.changeText(screen.getByLabelText('Area (acres)'), '1');
-    press('button', 'Save pond');
-    expect(screen.getByText('Species not set')).toBeOnTheScreen();
-  });
-
-  it('editing a pond keeps its identity and changes only the edited fields', () => {
-    renderApp('/ponds/edit?id=pond-4');
-    fireEvent.changeText(screen.getByLabelText('Pond name'), 'Pond 4 East');
-    press('button', 'Save changes');
-    expect(screen.getByTestId('ponds-screen')).toBeOnTheScreen();
-    expect(screen.getByTestId('pond-card-pond-4')).toHaveTextContent(/^Pond 4 East/);
-  });
-});
-
-describe('unavailable data', () => {
-  it('retry re-checks this device and never shows a made-up reading', async () => {
-    renderApp('/unavailable?pondId=pond-2&parameter=temperature');
-    expect(screen.getByText(/Missing data is shown as unavailable/)).toBeOnTheScreen();
-    press('button', 'Retry');
-    expect(screen.getByText('Checking this device')).toBeOnTheScreen();
-    await waitFor(() => expect(screen.getByTestId('retry-result')).toBeOnTheScreen(), { timeout: 4000 });
-    expect(screen.getByTestId('retry-result')).toHaveTextContent(/^Still no reading after 1 check\./);
-    expect(screen.queryByText(/°C/)).toBeNull();
-  });
-});
-
-describe('species', () => {
-  it('selecting a species updates the details, and reference ranges are never called alert limits', () => {
-    renderApp('/species');
-    press('radio', 'Catla');
-    expect(screen.getByText('Catla catla')).toBeOnTheScreen();
-    expect(screen.getByTestId('preferred-ranges')).toHaveTextContent(/Not warning or critical limits/);
-    expect(screen.getByTestId('validation-status')).toHaveTextContent(/Reference ranges only/);
-  });
-
-  it('a species without a supplied profile says so', () => {
-    renderApp('/species');
-    press('radio', 'Pangasius');
-    expect(screen.getByTestId('validation-status')).toHaveTextContent(/No validated safety profile/);
-    expect(screen.getByText('Scientific name not yet configured')).toBeOnTheScreen();
+  it('there is no way to add a pond: the server cannot create ponds', () => {
+    renderApp('/ponds');
+    expect(screen.queryByTestId('add-pond')).toBeNull();
+    expect(screen.getByTestId('pond-count')).toHaveTextContent('4 ponds');
   });
 });
 
 describe('notifications', () => {
-  it('opening an alert notification marks it read and opens the alert', () => {
+  it('opening an unread alert notification opens the alert and marks it read', () => {
     renderApp('/notifications');
-    expect(screen.getAllByText('Unread').length).toBeGreaterThan(0);
-    press('button', /Critical low dissolved oxygen, Pond 1, unread/);
+    expect(screen.getAllByText('Unread').length).toBe(1);
+    press('button', /Low dissolved oxygen, Pond 1, critical, unread/);
     expect(screen.getByTestId('alert-detail-screen')).toBeOnTheScreen();
   });
 
@@ -368,7 +354,6 @@ describe('profile', () => {
   it('shows demo data and counts derived from the ponds', () => {
     renderApp('/profile');
     expect(screen.getByTestId('row-ponds')).toHaveTextContent('4');
-    expect(screen.getByTestId('row-farm-area')).toHaveTextContent('9.0 acres');
     expect(screen.getByText('Demo profile · not from a server')).toBeOnTheScreen();
   });
 

@@ -4,17 +4,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
 import { formatDateTime, formatValue } from '@/lib/format';
-import { PARAMETER_LABEL, PARAMETER_UNIT } from '@/lib/status';
+import { parameterLabel, parameterUnit } from '@/lib/status';
 import type { AlertItem } from '@/types';
 
-export function alertTitle(a: Pick<AlertItem, 'parameter' | 'direction' | 'severity'>): string {
+export function alertTitle(a: Pick<AlertItem, 'parameter' | 'direction' | 'severity'> & { origin?: AlertItem['origin'] }): string {
   const side = a.direction === 'low' ? 'Low' : 'High';
-  if (a.parameter === 'dissolved_oxygen') return `${side} dissolved oxygen`;
-  if (a.parameter === 'ph') return `pH ${a.direction === 'low' ? 'below' : 'above'} range`;
-  return `${side} water temperature`;
+  const forecast = a.origin === 'predicted' ? 'Forecast: ' : '';
+  if (a.parameter === 'dissolved_oxygen') return `${forecast}${side} dissolved oxygen`;
+  if (a.parameter === 'ph') return `${forecast}pH ${a.direction === 'low' ? 'below' : 'above'} range`;
+  if (a.parameter === 'temperature') return `${forecast}${side} water temperature`;
+  return `${forecast}${side} ${parameterLabel(a.parameter).toLowerCase()}`;
 }
 
-export function AlertCard({ alert, pondName, onPress }: { alert: AlertItem; pondName: string; onPress?: () => void }) {
+export function AlertCard({ alert, pondName = alert.pondName ?? 'Unknown pond', onPress }: { alert: AlertItem; pondName?: string; onPress?: () => void }) {
+  const unit = parameterUnit(alert.parameter);
   const critical = alert.severity === 'CRITICAL';
   const resolved = alert.status === 'RESOLVED';
   const statusLabel = resolved ? 'Closed' : alert.status === 'ACKNOWLEDGED' ? 'Seen, still open' : 'Active';
@@ -28,9 +31,9 @@ export function AlertCard({ alert, pondName, onPress }: { alert: AlertItem; pond
         <Text style={styles.status}>{statusLabel}</Text>
       </View>
       <Text style={styles.title}>{alertTitle(alert)}</Text>
-      <Text style={styles.meta} numberOfLines={1}>{pondName} · {PARAMETER_LABEL[alert.parameter]}</Text>
+      <Text style={styles.meta} numberOfLines={1}>{pondName} · {parameterLabel(alert.parameter)}{alert.speciesLabel ? ` · ${alert.speciesLabel}` : ''}</Text>
       <Text style={styles.reading}>
-        Reading {formatValue(alert.value, alert.parameter)} {PARAMETER_UNIT[alert.parameter]} · limit {formatValue(alert.limit, alert.parameter)} {PARAMETER_UNIT[alert.parameter]}
+        {alert.origin === 'predicted' ? 'Forecast' : 'Reading'} {formatValue(alert.value, alert.parameter)} {unit}{alert.limit !== null ? ` · limit ${formatValue(alert.limit, alert.parameter)} ${unit}` : ''}
       </Text>
       <Text style={styles.time}>{resolved && alert.resolvedAt ? `Resolved ${formatDateTime(alert.resolvedAt)}` : `Raised ${formatDateTime(alert.raisedAt)}`}</Text>
     </View>

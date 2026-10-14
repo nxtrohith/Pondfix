@@ -6,7 +6,6 @@ export const routes = {
   login: '/login',
   dashboard: '/dashboard',
   ponds: '/ponds',
-  pondNew: '/ponds/edit',
   pond: (id: string) => `/ponds/${encodeURIComponent(id)}`,
   pondEdit: (id: string) => `/ponds/edit?id=${encodeURIComponent(id)}`,
   pondCharts: (id: string) => `/ponds/charts?id=${encodeURIComponent(id)}`,
@@ -18,6 +17,7 @@ export const routes = {
   species: '/species',
   notifications: '/notifications',
   settings: '/settings',
+  diagnostics: '/diagnostics',
   profile: '/profile',
   unavailable: (pondId?: string, parameter?: Parameter) => {
     const q = [pondId ? `pondId=${encodeURIComponent(pondId)}` : '', parameter ? `parameter=${parameter}` : ''].filter(Boolean).join('&');

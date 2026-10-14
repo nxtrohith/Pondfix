@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { classify, RANK } from './risk.js';
 import { applyCondition } from './alerts.js';
 import { alertContext, ruleFor } from './speciesProfiles.js';
+import { publishAlertChanges } from './alertEvents.js';
 
 const TO_API = { do: 'dissolved_oxygen', ph: 'ph', temp: 'temperature' };
 const FROM_API = { dissolved_oxygen: 'do', ph: 'ph', temperature: 'temp' };
@@ -64,7 +65,7 @@ export async function modelForecast({ db, ml, config, pond, measurement }) {
  * Runs inference for a stored measurement, persists predictions + a modelRuns audit row, and evaluates predicted-risk alerts.
  * Resolves with a status object; never throws for ML problems.
  */
-export async function runInference({ db, ml, config, pond, measurement, now }) {
+export async function runInference({ db, ml, config, events, pond, measurement, now }) {
   if (!ml) return { status: 'disabled' };
   const runId = new ObjectId();
   const runs = db.collection('modelRuns');
@@ -101,6 +102,7 @@ export async function runInference({ db, ml, config, pond, measurement, now }) {
         message: `FORECAST (not observed): dissolved oxygen predicted ${top.value} mg/L in ${top.horizonMinutes} min, below ${top.cls.threshold} mg/L`,
         extra: { horizonMinutes: top.horizonMinutes, forecastFor: top.forecastFor, ...alertContext(pond, 'dissolved_oxygen') },
       });
+      await publishAlertChanges({ db, events }, [alert]);
     }
     return { status: 'ok', runId, predictions: docs.length, warnings: out.warnings?.slice(0, 10) ?? [], predictedAlert: alert };
   } catch (e) {

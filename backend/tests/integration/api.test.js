@@ -204,9 +204,14 @@ test('demo scenarios use the same pipeline and are marked simulated', async () =
 });
 
 test('request logs exclude bodies and query strings', async () => {
-  await env.post('/api/measurements', doReading(pond._id, 5));
+  await env.post('/api/measurements', doReading(pond._id, 5, { idempotencyKey: 'private-key-123' }));
   await env.get('/api/ponds?secret=abc');
-  assert.ok(env.logs.length >= 2 && env.logs.every((l) => !l.includes('secret') && !l.includes('dissolved')));
+  // Access-log lines: no body, no query string. The separate [INGEST] summary (what monitoring decided, with the measured value) is
+  // checked on its own: it must not echo raw request fields such as the idempotency key or the query string either.
+  const access = env.logs.filter((l) => !l.startsWith('[INGEST]'));
+  assert.ok(access.length >= 2 && access.every((l) => !l.includes('secret') && !l.includes('dissolved')));
+  assert.ok(env.logs.some((l) => l.startsWith('[INGEST]')));
+  assert.ok(env.logs.every((l) => !l.includes('secret') && !l.includes('private-key-123')));
 });
 
 test('risk-rules exposes the backend thresholds', async () => {

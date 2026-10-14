@@ -4,9 +4,9 @@ import type { Parameter } from '@/types';
 const DECIMALS: Record<Parameter, number> = { dissolved_oxygen: 1, ph: 1, temperature: 1 };
 
 /** "2.6", or an explicit "No value" when the reading is missing (never a made-up number). */
-export function formatValue(value: number | null | undefined, parameter: Parameter): string {
+export function formatValue(value: number | null | undefined, parameter: string): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return 'No value';
-  return value.toFixed(DECIMALS[parameter]);
+  return value.toFixed(DECIMALS[parameter as Parameter] ?? 1);
 }
 
 /** Clock time in UTC, e.g. "10:10 UTC". Demo timestamps are UTC so every screen reads the same. */

@@ -12,6 +12,19 @@ export const GENERAL_RULES: Record<Parameter, { unit: string; label: string; low
   temperature: { unit: '°C', label: 'Water temperature', lowWarn: 20, lowCrit: 15, highWarn: 32, highCrit: 35 },
 };
 
+/**
+ * Replaces the local copies of the general limits with the backend's (GET /api/risk-rules), so chart reference lines and the fallback
+ * classification can never drift from the alert engine. Units and labels stay local (presentation). Species-specific limits are
+ * not exposed by the backend as rules; a pond's status always comes from the backend verdict, not from these numbers.
+ */
+export function applyBackendRules(parameters: Record<string, { lowWarning?: number; lowCritical?: number; highWarning?: number; highCritical?: number }>): void {
+  for (const key of Object.keys(GENERAL_RULES) as Parameter[]) {
+    const r = parameters[key];
+    if (!r) continue;
+    Object.assign(GENERAL_RULES[key], { lowWarn: r.lowWarning, lowCrit: r.lowCritical, highWarn: r.highWarning, highCrit: r.highCritical });
+  }
+}
+
 export interface Classification {
   status: 'NORMAL' | 'WARNING' | 'CRITICAL';
   direction?: 'low' | 'high';
@@ -39,7 +52,9 @@ export function ageMinutes(recordedAt: string, asOf: string): number {
  */
 export function parameterStatus(reading: ParameterReading, asOf: string): ParameterStatus {
   if (reading.sensor !== 'online' || !reading.latest) return 'UNAVAILABLE';
-  if (ageMinutes(reading.latest.recordedAt, asOf) > STALE_AFTER_MINUTES) return 'STALE';
+  if (ageMinutes(reading.latest.recordedAt, asOf) > (reading.staleAfterMinutes ?? STALE_AFTER_MINUTES)) return 'STALE';
+  // The backend's verdict (species-aware) is authoritative; the local rules are only the fallback for data that has none.
+  if (reading.risk) return reading.risk === 'NORMAL' || reading.risk === 'WARNING' || reading.risk === 'CRITICAL' ? reading.risk : reading.risk === 'STALE' ? 'STALE' : 'UNAVAILABLE';
   return classifyValue(reading.parameter, reading.latest.value).status;
 }
 
@@ -83,3 +98,13 @@ export const PARAMETER_LABEL: Record<Parameter, string> = {
 };
 export const PARAMETER_SHORT: Record<Parameter, string> = { dissolved_oxygen: 'DO', ph: 'pH', temperature: 'Temp' };
 export const PARAMETER_UNIT: Record<Parameter, string> = { dissolved_oxygen: 'mg/L', ph: 'pH', temperature: '°C' };
+
+/** Label/unit for any parameter name the backend may send. Unknown names are shown readable instead of failing. */
+export function parameterLabel(parameter: string): string {
+  if (parameter in PARAMETER_LABEL) return PARAMETER_LABEL[parameter as Parameter];
+  const words = parameter.replace(/_/g, ' ').trim();
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : 'Parameter';
+}
+export function parameterUnit(parameter: string): string {
+  return parameter in PARAMETER_UNIT ? PARAMETER_UNIT[parameter as Parameter] : '';
+}

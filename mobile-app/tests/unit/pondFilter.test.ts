@@ -1,8 +1,9 @@
 import { filterSummaries } from '@/lib/pondFilter';
 import { fleetCounts, summarizePond } from '@/lib/pondSummary';
-import { DEMO_ALERTS } from '@/data/mockAlerts';
-import { DEMO_AS_OF, DEMO_PONDS } from '@/data/mockPonds';
-import { demoReadings } from '@/data/mockReadings';
+import { TEST_ALERTS as DEMO_ALERTS } from '../fixtures/alerts';
+import { DEMO_AS_OF } from '../fixtures/mockPonds';
+import { FIXTURE_PONDS as DEMO_PONDS } from '../fixtures/pondsState';
+import { demoReadings } from '../fixtures/mockReadings';
 
 const all = DEMO_PONDS.map((p) => summarizePond(p, demoReadings(p.id), DEMO_ALERTS, DEMO_AS_OF));
 const names = (xs: { pond: { displayName: string } }[]) => xs.map((x) => x.pond.displayName);

@@ -88,3 +88,46 @@ A reading older than 60 minutes is "Not recent". A missing or offline sensor is 
 - Pond photos are vector illustrations, since no licensed photography is bundled. App icons are Expo template placeholders.
 - "Other / custom" species is not offered in the pond form, because it needs a name field that is not built yet.
 - Data lives in memory. Edits, acknowledgements and settings reset when the app reloads.
+
+## Live data
+
+Ponds, readings, charts, forecasts and alerts come from the AquaGuard backend; nothing is simulated in the app.
+Only the farmer profile and the species reference catalogue are local.
+
+- Backend address: `EXPO_PUBLIC_API_URL` in `.env.local` (see `.env.example`). Use the computer's LAN IP, never `localhost`.
+- The backend must listen on the network: `HOST=0.0.0.0` in `backend/.env`.
+- Sync model: `GET /api/ponds/summaries` (one server-stamped snapshot per pond), `GET /api/alerts`, then Socket.IO events
+  `pond:reading_updated`, `pond:updated`, `pond:forecast_updated`, `alert:new`, `alert:updated`, `alert:resolved`.
+  A client applies a pond snapshot only if it is newer than the one it holds, so duplicates and out-of-order delivery are harmless.
+  Events are not replayed: every (re)connect and every return to the foreground refetches.
+
+### Tests
+
+`npm test` (no server needed) and `npm run test:e2e` (opt-in, needs a backend on an isolated database):
+
+```bash
+AQUAGUARD_E2E_FILE=/path/to/e2e.json npm run test:e2e   # {"base":"http://127.0.0.1:PORT","ponds":[17 pond ids]}
+```
+
+### Reading the logs
+
+Every diagnostic line is `HH:MM:SS.mmm [TAG] message`. In development it appears in the **Metro terminal** (the one running
+`npx expo start`); Expo forwards `console.*` from the phone to that terminal over a websocket, in development mode only, and
+not with `--no-dev`. The same lines are always kept on the phone: **Settings → Connection diagnostics**, or tap the
+connection banner on any screen. That screen also shows the server address, the live-connection state, the REST state and the
+pond/alert counts.
+
+| Tag | Meaning | Examples |
+| --- | --- | --- |
+| `[APP]` | Lifecycle | `AquaGuard mobile starting`, `app state -> active` |
+| `[CONFIG]` | Server address | `server address http://172.16.19.138:4000`, `The server address is not valid` |
+| `[REST]` | Each request | `GET /ponds/summaries -> 200 in 412ms`, `GET /alerts failed after 83ms: Network request failed` |
+| `[SOCKET]` | Realtime connection | `connecting to …`, `connected … via websocket`, `connect_error #2 …: xhr poll error` |
+| `[SYNC]` | Data synchronisation | `ponds received=17; with readings=17`, `ponds stored=17`, `alerts received: active=1 resolved=0` |
+| `[POND]` | Reading/pond events | `pond:reading_updated received: pond=… latest=[temperature]`, `ignored stale or duplicate snapshot` |
+| `[ALERT]` | Alert events | `alert:new received: … WARNING ACTIVE`, `stored …` |
+| `[UI]` | What a screen renders | `pond list rendering 17 of 17 ponds` |
+
+The backend prints one `[INGEST]` line per accepted reading in **its** terminal, saying what monitoring decided for each parameter
+(`safe, no alert`, `alert opened`, `same condition still open: deduplicated`, `not evaluated: a newer reading … exists`).
+Secrets, tokens and response bodies are never logged; credentials inside URLs are redacted.

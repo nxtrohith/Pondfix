@@ -5,7 +5,7 @@ import { fontSize, radius, spacing } from '@/constants/theme';
 import { CHART_RANGES, sliceSeries, trendOf, type RangeKey } from '@/lib/chart';
 import { formatValue, formatDateTime } from '@/lib/format';
 import { PARAMETER_LABEL, PARAMETER_UNIT, classifyValue } from '@/lib/status';
-import type { Parameter, SeriesPoint } from '@/types';
+import type { Parameter, ParameterStatus, SeriesPoint } from '@/types';
 import { LineChart } from './LineChart';
 import { SegmentedControl } from './SegmentedControl';
 import { StatusBadge } from './StatusBadge';
@@ -18,16 +18,21 @@ interface Props {
   range: RangeKey;
   onRangeChange: (r: RangeKey) => void;
   showDemoLabel?: boolean;
+  /** The server's verdict on the pond's current reading. Shown only for the point that IS that reading; older points have no verdict. */
+  verdict?: { status: ParameterStatus; recordedAt: string };
+  /** True while this pond's history is still being fetched, so an empty chart is not mistaken for missing data. */
+  loading?: boolean;
   testID?: string;
 }
 
 const TREND_TEXT = { rising: 'Rising over this range', falling: 'Falling over this range', steady: 'Steady over this range' } as const;
 
-export function ChartCard({ parameter, series, asOf, range, onRangeChange, showDemoLabel = true, testID }: Props) {
+export function ChartCard({ parameter, series, asOf, range, onRangeChange, showDemoLabel = true, verdict, loading = false, testID }: Props) {
   const points = sliceSeries(series, asOf, range);
   const latest = points.length ? points[points.length - 1]! : null;
   const unit = PARAMETER_UNIT[parameter];
-  const status = latest ? classifyValue(parameter, latest.value).status : null;
+  const status = latest ? (verdict ? (latest.at === verdict.recordedAt ? verdict.status : null) : classifyValue(parameter, latest.value).status) : null;
+  const newest = series.length ? series[series.length - 1]! : null;
   const trend = trendOf(points);
   return (
     <View style={styles.card} testID={testID}>
@@ -38,16 +43,18 @@ export function ChartCard({ parameter, series, asOf, range, onRangeChange, showD
         </View>
       </View>
       <SegmentedControl label={`${PARAMETER_LABEL[parameter]} time range`} value={range} options={CHART_RANGES.map((r) => ({ value: r.key, label: r.label, testID: `range-${parameter}-${r.key}` }))} onChange={onRangeChange} />
-      {latest && status ? (
+      {latest ? (
         <View style={styles.summary}>
           <Text style={styles.latest} accessibilityLabel={`Latest ${PARAMETER_LABEL[parameter]} ${formatValue(latest.value, parameter)} ${unit}`}>
             {formatValue(latest.value, parameter)} <Text style={styles.unit}>{unit}</Text>
           </Text>
-          <StatusBadge status={status} />
+          {status ? <StatusBadge status={status} /> : null}
           <Text style={styles.trend}>{TREND_TEXT[trend]} · latest {formatDateTime(latest.at)}</Text>
         </View>
       ) : (
-        <Text style={styles.empty}>No readings in this range. Check the sensor on the Sensors screen.</Text>
+        <Text style={styles.empty} testID="chart-empty">
+          {loading ? 'Loading readings…' : newest ? `No readings in this range. The latest reading on record is from ${formatDateTime(newest.at)}.` : 'No readings have been recorded for this pond.'}
+        </Text>
       )}
       <LineChart parameter={parameter} points={points} />
     </View>
