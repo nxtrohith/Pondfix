@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { AppButton } from '@/components/AppButton';
@@ -26,7 +26,7 @@ const STEPS = [
 
 export default function UnavailableScreen() {
   const { pondId: rawPond, parameter: rawParam } = useLocalSearchParams<{ pondId?: string; parameter?: string }>();
-  const { ponds, readings } = useAppStore();
+  const { ponds, readings, refresh } = usePonds();
   const pondId = param(rawPond);
   const parameter = PARAMETERS.find((p) => p === param(rawParam)) as Parameter | undefined;
   const pond = ponds.find((p) => p.id === pondId);
@@ -36,13 +36,13 @@ export default function UnavailableScreen() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  // Retry only re-checks this device. The demo has no live connection, so it can never produce a new reading.
+  // Re-checks with the server. It cannot make a sensor report: it only fetches whatever the server has received since.
   function retry() {
     setChecking(true);
-    timer.current = setTimeout(() => {
+    void refresh().finally(() => {
       setChecking(false);
       setAttempts((n) => n + 1);
-    }, 1200);
+    });
   }
 
   const name = parameter ? PARAMETER_LABEL[parameter] : 'Sensor';
@@ -80,7 +80,7 @@ export default function UnavailableScreen() {
       {checking ? <LoadingState label="Checking this device" /> : null}
       {!checking && attempts > 0 ? (
         <Text style={styles.small} accessibilityLiveRegion="polite" testID="retry-result">
-          Still no reading after {attempts} {attempts === 1 ? 'check' : 'checks'}. This demo has no live sensor connection, so nothing new can arrive.
+          Still no reading after {attempts} {attempts === 1 ? 'check' : 'checks'}. The server has not received a newer reading for this parameter.
         </Text>
       ) : null}
 

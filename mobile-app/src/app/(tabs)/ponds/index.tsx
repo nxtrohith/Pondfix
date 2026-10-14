@@ -1,38 +1,42 @@
 // Screen 3: pond list with real search, status filters and a collapsible filter panel.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, layout, radius, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { PondCard } from '@/components/PondCard';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { AppButton } from '@/components/AppButton';
-import { EmptyState } from '@/components/StateViews';
-import { DemoLabel } from '@/components/DemoLabel';
+import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { summarizePond } from '@/lib/pondSummary';
 import { filterSummaries, type PondFilter } from '@/lib/pondFilter';
 import { routes } from '@/lib/routes';
+import { logger } from '@/lib/logger';
 
 const FILTERS: { value: PondFilter; label: string }[] = [
   { value: 'ALL', label: 'All' }, { value: 'NORMAL', label: 'Healthy' }, { value: 'WARNING', label: 'Warning' }, { value: 'CRITICAL', label: 'Critical' },
 ];
 
 export default function PondsScreen() {
-  const { ponds, readings, alerts, asOf } = useAppStore();
+  const { ponds, readings, asOf, loadState, refresh } = usePonds();
+  const { activeAlerts: alerts } = useAlerts();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PondFilter>('ALL');
   const [panelOpen, setPanelOpen] = useState(false);
   const summaries = useMemo(() => ponds.map((p) => summarizePond(p, readings[p.id] ?? [], alerts, asOf)), [ponds, readings, alerts, asOf]);
   const shown = useMemo(() => filterSummaries(summaries, query, filter), [summaries, query, filter]);
   const active = (filter !== 'ALL' ? 1 : 0) + (query.trim() ? 1 : 0);
+  useEffect(() => { if (loadState === 'ready') logger.info('UI', `pond list rendering ${shown.length} of ${summaries.length} ponds`); }, [loadState, shown.length, summaries.length]);
 
   return (
     <ScreenContainer testID="ponds-screen">
-      <AppHeader title="Ponds" subtitle="View and manage all your ponds" right={<DemoLabel />} />
+      <AppHeader title="Ponds" subtitle="Live readings from the AquaGuard server" />
+      <ConnectionBanner />
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={16} color={colors.textSecondary} />
@@ -73,8 +77,15 @@ export default function PondsScreen() {
         {active ? `Showing ${shown.length} of ${summaries.length} ponds` : `${summaries.length} ponds`}
       </Text>
 
-      {summaries.length === 0 ? (
-        <EmptyState title="No ponds yet">Add your first pond to start tracking it.</EmptyState>
+      {loadState === 'loading' ? (
+        <LoadingState label="Loading ponds" />
+      ) : loadState === 'error' ? (
+        <>
+          <ErrorState title="Unable to load ponds">Check your connection. Ponds will appear as soon as the server can be reached.</ErrorState>
+          <AppButton label="Try again" variant="outline" onPress={() => { void refresh(); }} testID="retry-ponds" />
+        </>
+      ) : summaries.length === 0 ? (
+        <EmptyState title="No ponds available">The server returned no ponds for this account.</EmptyState>
       ) : shown.length === 0 ? (
         <EmptyState title="No ponds match">Check the spelling or clear the filters.</EmptyState>
       ) : (
@@ -84,7 +95,6 @@ export default function PondsScreen() {
       )}
 
       <View style={styles.actions}>
-        <AppButton label="Add pond" icon="add" onPress={() => router.push(routes.pondNew)} testID="add-pond" />
         <AppButton label="Compare ponds" variant="outline" icon="bar-chart-outline" onPress={() => router.push(routes.comparison)} testID="open-comparison" />
       </View>
     </ScreenContainer>

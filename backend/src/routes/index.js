@@ -2,16 +2,18 @@ import { Router } from 'express';
 import { asyncHandler, parseObjectId } from '../utils/http.js';
 import { ApiError } from '../utils/errors.js';
 import { ingestMeasurement } from '../services/ingestion.js';
-import { listMeasurements, latestByParameter, pondSummary, listPredictions, listAlerts, requirePond, serializePond, serializeAlert } from '../services/queries.js';
+import { listMeasurements, latestByParameter, pondSummary, listPredictions, listAlerts, requirePond, serializePond, serializeAlert, withPondNames } from '../services/queries.js';
 import { pondAnalytics, comparePonds } from '../services/analytics.js';
 import { acknowledge } from '../services/alerts.js';
 import { demoMeasurement, SCENARIOS } from '../services/demo.js';
 import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
+import { publishAlertChanges } from '../services/alertEvents.js';
+import { allSnapshots, publishPondUpdate } from '../services/pondSync.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
 export function buildRouter(deps) {
-  const { db, config, now, dbTarget = 'unknown' } = deps;
+  const { db, config, now, events, dbTarget = 'unknown' } = deps;
   const r = Router();
 
   r.get('/health', asyncHandler(async (req, res) => {
@@ -49,6 +51,8 @@ export function buildRouter(deps) {
     ponds.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', undefined, { numeric: true }));
     res.json({ items: ponds.map(serializePond), count: ponds.length });
   }));
+  // One call for the whole fleet: every pond's snapshot (see services/pondSync.js). Registered before /ponds/:id.
+  r.get('/ponds/summaries', asyncHandler(async (req, res) => res.json(await allSnapshots(db, config, now()))));
   r.get('/ponds/:id', asyncHandler(async (req, res) => res.json(serializePond(await requirePond(db, req.params.id)))));
   // Species catalogue and the status of each safety profile (reference ranges are context, not alert limits).
   r.get('/species-profiles', (req, res) => res.json(serializeCatalogue()));
@@ -66,6 +70,7 @@ export function buildRouter(deps) {
       throw e;
     }
     if (!saved) throw new ApiError(404, 'NOT_FOUND', 'pond not found');
+    await publishPondUpdate({ db, config, events, now }, saved._id);
     res.json(serializePond(saved));
   }));
   r.get('/ponds/:id/summary', asyncHandler(async (req, res) => res.json(await pondSummary(db, config, await requirePond(db, req.params.id), now()))));
@@ -102,7 +107,9 @@ export function buildRouter(deps) {
   r.get('/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query))));
   r.patch('/alerts/:id/acknowledge', asyncHandler(async (req, res) => {
     const { alert, changed } = await acknowledge(db, parseObjectId(req.params.id, 'alert id'), now());
-    res.json({ alert: serializeAlert(alert), changed });
+    if (changed) await publishAlertChanges({ db, events }, [{ action: 'acknowledged', alertId: alert._id }]);
+    const [out] = await withPondNames(db, [serializeAlert(alert)]);
+    res.json({ alert: out, changed });
   }));
 
   if (config.demoEnabled) {

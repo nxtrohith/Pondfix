@@ -6,8 +6,8 @@ import { AppButton } from '@/components/AppButton';
 import { FormField } from '@/components/FormField';
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { demoReadings } from '@/data/mockReadings';
-import { DEMO_AS_OF } from '@/data/mockPonds';
+import { demoReadings } from '../fixtures/mockReadings';
+import { DEMO_AS_OF } from '../fixtures/mockPonds';
 import type { RangeKey } from '@/lib/chart';
 
 describe('ChartCard range selection', () => {
@@ -30,8 +30,23 @@ describe('ChartCard range selection', () => {
   });
 
   it('says so when the selected range has no readings', () => {
+    render(<ChartCard parameter="dissolved_oxygen" series={[{ at: '2026-01-30T18:15:00.000Z', value: 3.4 }]} asOf={DEMO_AS_OF} range="1H" onRangeChange={() => {}} />);
+    expect(screen.getByText(/No readings in this range. The latest reading on record is from Jan 30/)).toBeOnTheScreen();
+  });
+  it('says so when a pond has no recorded readings at all, and does not claim to be loading', () => {
     render(<ChartCard parameter="dissolved_oxygen" series={[]} asOf={DEMO_AS_OF} range="1H" onRangeChange={() => {}} />);
-    expect(screen.getByText(/No readings in this range/)).toBeOnTheScreen();
+    expect(screen.getByText('No readings have been recorded for this pond.')).toBeOnTheScreen();
+  });
+  it('shows a loading note while history is being fetched', () => {
+    render(<ChartCard parameter="dissolved_oxygen" series={[]} asOf={DEMO_AS_OF} range="1H" onRangeChange={() => {}} loading />);
+    expect(screen.getByText('Loading readings…')).toBeOnTheScreen();
+  });
+  it('shows the server verdict only for the point that is the current reading', () => {
+    const series = [{ at: '2026-10-12T10:00:00.000Z', value: 3.5 }, { at: '2026-10-12T10:10:00.000Z', value: 1.8 }];
+    const { rerender } = render(<ChartCard parameter="dissolved_oxygen" series={series} asOf={DEMO_AS_OF} range="6H" onRangeChange={() => {}} verdict={{ status: 'CRITICAL', recordedAt: '2026-10-12T10:10:00.000Z' }} />);
+    expect(screen.getByLabelText('Status: Critical')).toBeOnTheScreen();
+    rerender(<ChartCard parameter="dissolved_oxygen" series={series} asOf={DEMO_AS_OF} range="6H" onRangeChange={() => {}} verdict={{ status: 'CRITICAL', recordedAt: '2026-10-12T10:20:00.000Z' }} />);
+    expect(screen.queryByLabelText('Status: Critical')).toBeNull();
   });
 });
 

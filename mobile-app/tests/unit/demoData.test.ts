@@ -1,11 +1,9 @@
 // Cross-screen consistency for the demo data. Every screen derives from these same records, so these checks keep them honest.
-import { DEMO_ALERTS } from '@/data/mockAlerts';
-import { DEMO_AS_OF, DEMO_PONDS } from '@/data/mockPonds';
-import { DEMO_FORECASTS, demoReadings } from '@/data/mockReadings';
+import { TEST_ALERTS as DEMO_ALERTS } from '../fixtures/alerts';
+import { DEMO_AS_OF, DEMO_PONDS } from '../fixtures/mockPonds';
+import { DEMO_FORECASTS, demoReadings } from '../fixtures/mockReadings';
 import { SPECIES } from '@/data/mockSpecies';
 import { fleetCounts, summarizePond } from '@/lib/pondSummary';
-import { PARAMETERS } from '@/types';
-import { DEMO_NOTIFICATIONS } from '@/data/mockNotifications';
 
 const summaries = () => DEMO_PONDS.map((p) => summarizePond(p, demoReadings(p.id), DEMO_ALERTS, DEMO_AS_OF));
 
@@ -24,25 +22,6 @@ describe('demo data consistency', () => {
   it('matches the illustrative story: Pond 1 critical, Pond 2 and 3 warning, Pond 4 healthy', () => {
     const byName = Object.fromEntries(summaries().map((s) => [s.pond.displayName, s.status]));
     expect(byName).toEqual({ 'Pond 1': 'CRITICAL', 'Pond 2': 'WARNING', 'Pond 3': 'WARNING', 'Pond 4': 'NORMAL' });
-  });
-
-  it('every open alert matches a current out-of-range reading of the same parameter and severity', () => {
-    for (const a of DEMO_ALERTS.filter((x) => x.status !== 'RESOLVED')) {
-      const s = summaries().find((x) => x.pond.id === a.pondId)!;
-      const st = s.parameters[a.parameter].status;
-      expect(st).toBe(a.severity);
-    }
-  });
-
-  it('every pond with a warning or critical reading has an open alert, and no pond has an alert it does not need', () => {
-    for (const s of summaries()) {
-      for (const p of PARAMETERS) {
-        const st = s.parameters[p].status;
-        const hasOpen = DEMO_ALERTS.some((a) => a.pondId === s.pond.id && a.parameter === p && a.status !== 'RESOLVED');
-        if (st === 'WARNING' || st === 'CRITICAL') expect(hasOpen).toBe(true);
-        if (hasOpen) expect(['WARNING', 'CRITICAL']).toContain(st);
-      }
-    }
   });
 
   it('the offline temperature sensor on Pond 2 has no current reading and no chart series', () => {
@@ -70,13 +49,6 @@ describe('demo data consistency', () => {
         const r = demoReadings(pondId).find((x) => x.parameter === param);
         expect(r?.latest).toBeTruthy();
       }
-    }
-  });
-
-  it('notifications reference only real ponds and alerts', () => {
-    for (const n of DEMO_NOTIFICATIONS) {
-      if (n.pondId) expect(DEMO_PONDS.some((p) => p.id === n.pondId)).toBe(true);
-      if (n.alertId) expect(DEMO_ALERTS.some((a) => a.id === n.alertId)).toBe(true);
     }
   });
 

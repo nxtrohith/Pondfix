@@ -1,6 +1,6 @@
 import { forecastOutlook, sliceSeries, trendOf, extent } from '@/lib/chart';
-import { demoReadings } from '@/data/mockReadings';
-import { DEMO_AS_OF } from '@/data/mockPonds';
+import { demoReadings } from '../fixtures/mockReadings';
+import { DEMO_AS_OF } from '../fixtures/mockPonds';
 import type { SeriesPoint } from '@/types';
 
 const series: SeriesPoint[] = Array.from({ length: 96 * 2 + 1 }, (_, i) => ({
@@ -48,17 +48,20 @@ describe('demo series match the latest readings', () => {
   });
 });
 
-describe('forecast outlook uses the same classification as live readings', () => {
+describe('forecast outlook uses the backend risk verdicts, never local limits', () => {
   it('reports a critical oxygen forecast in plain words', () => {
-    const o = forecastOutlook('dissolved_oxygen', [{ minutesAhead: 15, value: 1.7 }, { minutesAhead: 60, value: 1.5 }]);
+    const o = forecastOutlook('dissolved_oxygen', [{ minutesAhead: 15, risk: 'CRITICAL', direction: 'low' }, { minutesAhead: 60, risk: 'WARNING', direction: 'low' }]);
     expect(o.status).toBe('CRITICAL');
     expect(o.text).toBe('Oxygen may reach a critical low level within 15 min.');
   });
   it('reports a warning temperature forecast', () => {
-    const o = forecastOutlook('temperature', [{ minutesAhead: 60, value: 32.4 }]);
+    const o = forecastOutlook('temperature', [{ minutesAhead: 60, risk: 'WARNING', direction: 'high' }]);
     expect(o).toEqual({ status: 'WARNING', text: 'Water temperature may move outside the acceptable range (high) within 1 h.' });
   });
   it('says so when everything stays in range', () => {
-    expect(forecastOutlook('ph', [{ minutesAhead: 15, value: 7.2 }]).status).toBe('NORMAL');
+    expect(forecastOutlook('ph', [{ minutesAhead: 15, risk: 'NORMAL' }]).status).toBe('NORMAL');
+  });
+  it('does not claim a verdict the backend did not give', () => {
+    expect(forecastOutlook('ph', [{ minutesAhead: 15, risk: 'UNKNOWN' }]).status).toBe('UNKNOWN');
   });
 });

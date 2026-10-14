@@ -1,6 +1,5 @@
 // Time-range selection and trend maths for the charts and forecast screens. Pure, so it is unit-tested.
 import type { Parameter, SeriesPoint } from '@/types';
-import { classifyValue } from './status';
 
 export const CHART_RANGES = [
   { key: '1H', label: '1H', minutes: 60 },
@@ -47,16 +46,17 @@ export function extent(points: { value: number }[]): { min: number; max: number 
   return { min, max };
 }
 
-/** Plain-language outlook for forecast values, using the same classification as live readings. Illustrative data only. */
-export function forecastOutlook(parameter: Parameter, values: { minutesAhead: number; value: number }[]): { status: 'NORMAL' | 'WARNING' | 'CRITICAL'; text: string } {
-  const rank = { NORMAL: 0, WARNING: 1, CRITICAL: 2 } as const;
+/** Plain-language outlook for model forecasts. Each value carries the backend's own risk verdict, so no limits are applied here. */
+export function forecastOutlook(parameter: Parameter, values: { minutesAhead: number; risk: string; direction?: 'low' | 'high' }[]): { status: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'UNKNOWN'; text: string } {
+  const rank: Record<string, number> = { NORMAL: 0, WARNING: 1, CRITICAL: 2 };
   let worst: { minutesAhead: number; status: 'NORMAL' | 'WARNING' | 'CRITICAL'; direction?: 'low' | 'high' } | null = null;
   for (const v of values) {
-    const c = classifyValue(parameter, v.value);
-    if (!worst || rank[c.status] > rank[worst.status]) worst = { minutesAhead: v.minutesAhead, status: c.status, direction: c.direction };
+    if (!(v.risk in rank)) continue;
+    if (!worst || rank[v.risk]! > rank[worst.status]!) worst = { minutesAhead: v.minutesAhead, status: v.risk as 'NORMAL' | 'WARNING' | 'CRITICAL', direction: v.direction };
   }
   const name = parameter === 'dissolved_oxygen' ? 'Oxygen' : parameter === 'ph' ? 'pH' : 'Water temperature';
-  if (!worst || worst.status === 'NORMAL') return { status: 'NORMAL', text: `${name} is expected to stay within the acceptable range.` };
+  if (!worst) return { status: 'UNKNOWN', text: `No risk assessment is available for the ${name.toLowerCase()} forecast.` };
+  if (worst.status === 'NORMAL') return { status: 'NORMAL', text: `${name} is expected to stay within the acceptable range.` };
   const when = worst.minutesAhead < 60 ? `${worst.minutesAhead} min` : `${worst.minutesAhead / 60} h`;
   const side = worst.direction === 'low' ? 'low' : 'high';
   const text = worst.status === 'CRITICAL'

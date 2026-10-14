@@ -1,17 +1,21 @@
 // Screen 2: home dashboard. Counts and recent alerts come from the same derived summaries as every other screen.
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
 import { useAppStore } from '@/context/AppStore';
+import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
-import { DemoLabel } from '@/components/DemoLabel';
 import { AlertCard } from '@/components/AlertCard';
 import { SectionHeader, Panel } from '@/components/SectionHeader';
-import { EmptyState } from '@/components/StateViews';
+import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { AppButton } from '@/components/AppButton';
 import { fleetCounts, summarizePond } from '@/lib/pondSummary';
+import { PARAMETERS } from '@/types';
+import { logger } from '@/lib/logger';
 import { routes } from '@/lib/routes';
 import { formatTime, pluralize } from '@/lib/format';
 import type { AlertItem } from '@/types';
@@ -19,15 +23,16 @@ import type { AlertItem } from '@/types';
 const SEVERITY_ORDER = { CRITICAL: 0, WARNING: 1 } as const;
 
 export default function DashboardScreen() {
-  const { ponds, readings, alerts, notifications, profile, asOf } = useAppStore();
-  const summaries = ponds.map((p) => summarizePond(p, readings[p.id] ?? [], alerts, asOf));
+  const { profile } = useAppStore();
+  const { ponds, readings, asOf, loadState: pondLoad, lastUpdated: pondsUpdated } = usePonds();
+  const { activeAlerts, unreadCount: unread, loadState } = useAlerts();
+  const summaries = ponds.map((p) => summarizePond(p, readings[p.id] ?? [], activeAlerts, asOf));
   const counts = fleetCounts(summaries);
-  const unread = notifications.filter((n) => !n.read).length;
-  const recent: AlertItem[] = alerts
-    .filter((a) => a.status !== 'RESOLVED')
+  useEffect(() => { if (pondLoad === 'ready') logger.info('UI', `dashboard: ${counts.total} ponds (healthy ${counts.healthy}, warning ${counts.warning}, critical ${counts.critical}, incomplete ${counts.incomplete}, no data ${counts.noData}), ${activeAlerts.length} active alerts`); }, [pondLoad, counts.total, counts.healthy, counts.warning, counts.critical, counts.incomplete, counts.noData, activeAlerts.length]);
+  const withCurrent = summaries.filter((s) => PARAMETERS.some((p) => s.parameters[p].status !== 'UNAVAILABLE' && s.parameters[p].status !== 'STALE')).length;
+  const recent: AlertItem[] = [...activeAlerts]
     .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || Date.parse(b.raisedAt) - Date.parse(a.raisedAt))
     .slice(0, 3);
-  const nameOf = (id: string) => ponds.find((p) => p.id === id)?.displayName ?? 'Unknown pond';
   const firstName = profile.name.split(' ')[0];
 
   return (
@@ -37,14 +42,15 @@ export default function DashboardScreen() {
           <Text accessibilityRole="header" style={styles.greeting}>Welcome back, {firstName}</Text>
           <Text style={styles.sub}>Here is what is happening across your {pluralize(counts.total, 'pond')}.</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Notifications, ${unread} unread`} onPress={() => router.push(routes.notifications)} style={styles.bell} testID="bell">
+        <Pressable accessibilityRole="button" accessibilityLabel={`Alert notifications, ${unread} unread`} onPress={() => router.push(routes.notifications)} style={styles.bell} testID="bell">
           <Ionicons name="notifications-outline" size={22} color={colors.textOnDark} />
           {unread > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View> : null}
         </Pressable>
       </View>
-      <DemoLabel />
 
-      <SectionHeader title="Pond overview" hint={`Updated ${formatTime(asOf)}. Missing readings count as not healthy.`} />
+      <SectionHeader title="Pond overview" hint={pondsUpdated ? `Synchronized ${formatTime(pondsUpdated)}. Missing or old readings are never counted as healthy.` : 'Missing or old readings are never counted as healthy.'} />
+      {pondLoad === 'loading' ? <LoadingState label="Loading ponds" /> : pondLoad === 'error' ? <ErrorState title="Unable to load ponds">Pond data will appear as soon as the server can be reached.</ErrorState> : null}
+      {pondLoad === 'ready' ? (<>
       <View style={styles.tiles}>
         <Tile label="Total ponds" value={counts.total} icon="water-outline" tone={colors.card} testID="tile-total" />
         <Tile label="Healthy" value={counts.healthy} icon="checkmark-circle" tone={colors.healthySurface} accent={colors.healthyDark} testID="tile-healthy" />
@@ -56,22 +62,31 @@ export default function DashboardScreen() {
           {counts.incomplete + counts.noData} {counts.incomplete + counts.noData === 1 ? 'pond has' : 'ponds have'} incomplete data. {counts.incomplete + counts.noData === 1 ? 'It is' : 'They are'} not counted as healthy.
         </Text>
       ) : null}
+      <Text style={styles.gap} testID="readings-available">{withCurrent} of {counts.total} ponds have a current reading.</Text>
+      </>) : null}
       <AppButton label="Open ponds" variant="outline" icon="grid-outline" onPress={() => router.push(routes.ponds)} testID="open-ponds" />
 
       <SectionHeader
         title="Recent alerts"
         action={<AppButton label="See all" variant="ghost" onPress={() => router.push(routes.alerts)} testID="see-all-alerts" />}
       />
-      {recent.length === 0 ? (
-        <EmptyState title="No open alerts">Every pond is within its acceptable range, or has no current reading to check.</EmptyState>
+      <ConnectionBanner />
+      {loadState === 'loading' ? (
+        <LoadingState label="Loading alerts" />
+      ) : loadState === 'error' ? (
+        <ErrorState title="Unable to load alerts">Alerts will appear here as soon as the server can be reached.</ErrorState>
+      ) : recent.length === 0 ? (
+        counts.total > 0 && counts.healthy === counts.total
+          ? <EmptyState title="All ponds are healthy">No active water-quality alerts.</EmptyState>
+          : <EmptyState title="No active alerts">No water-quality alerts are open. Ponds with old or missing readings are not counted as healthy.</EmptyState>
       ) : (
-        <View style={{ gap: spacing.sm }}>
-          {recent.map((a) => <AlertCard key={a.id} alert={a} pondName={nameOf(a.pondId)} onPress={() => router.push(routes.alert(a.id))} />)}
+        <View style={{ gap: spacing.sm }} testID="recent-alerts">
+          {recent.map((a) => <AlertCard key={a.id} alert={a} onPress={() => router.push(routes.alert(a.id))} />)}
         </View>
       )}
       <Panel>
         <Text style={styles.noteTitle}>About these numbers</Text>
-        <Text style={styles.noteBody}>Demo data. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.</Text>
+        <Text style={styles.noteBody}>Ponds, readings and alerts come from the AquaGuard server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.</Text>
       </Panel>
     </ScreenContainer>
   );

@@ -5,9 +5,10 @@ import { PondCard } from '@/components/PondCard';
 import { AlertCard } from '@/components/AlertCard';
 import { SensorBadge } from '@/components/SensorBadge';
 import { summarizePond } from '@/lib/pondSummary';
-import { DEMO_ALERTS } from '@/data/mockAlerts';
-import { DEMO_AS_OF, DEMO_PONDS } from '@/data/mockPonds';
-import { demoReadings } from '@/data/mockReadings';
+import { TEST_ALERTS as DEMO_ALERTS } from '../fixtures/alerts';
+import { DEMO_AS_OF } from '../fixtures/mockPonds';
+import { FIXTURE_PONDS as DEMO_PONDS } from '../fixtures/pondsState';
+import { demoReadings } from '../fixtures/mockReadings';
 
 describe('StatusBadge', () => {
   it('shows parameter status as words, so status is never colour alone', () => {
@@ -55,13 +56,14 @@ describe('PondCard', () => {
     expect(screen.getByText('Pond 1')).toBeOnTheScreen();
     expect(screen.getByText('Rohu')).toBeOnTheScreen();
     expect(screen.getByText('Critical')).toBeOnTheScreen();
-    expect(screen.getByText('Dissolved oxygen')).toBeOnTheScreen();
+    expect(screen.getByText('DO')).toBeOnTheScreen();
     expect(screen.getByText('1.8 mg/L')).toBeOnTheScreen();
+    expect(screen.getByTestId('card-last-reading')).toHaveTextContent(/Last reading Oct 12/);
     fireEvent.press(screen.getByRole('button', { name: /Pond 1, Rohu, critical/ }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
   it('an unset species is shown as "Species not set"', () => {
-    const unset = summarizePond({ ...DEMO_PONDS[0]!, speciesId: null }, demoReadings('pond-1'), DEMO_ALERTS, DEMO_AS_OF);
+    const unset = summarizePond({ ...DEMO_PONDS[0]!, speciesId: null, speciesLabel: null }, demoReadings('pond-1'), DEMO_ALERTS, DEMO_AS_OF);
     render(<PondCard summary={unset} onPress={() => {}} />);
     expect(screen.getByText('Species not set')).toBeOnTheScreen();
   });
@@ -70,7 +72,7 @@ describe('PondCard', () => {
 describe('AlertCard', () => {
   const critical = DEMO_ALERTS.find((a) => a.id === 'alert-1')!;
   it('shows severity, title, reading, limit, pond and time', () => {
-    render(<AlertCard alert={critical} pondName="Pond 1" />);
+    render(<AlertCard alert={critical} />);
     expect(screen.getByText('Critical')).toBeOnTheScreen();
     expect(screen.getByText('Low dissolved oxygen')).toBeOnTheScreen();
     expect(screen.getByText(/Reading 1\.8 mg\/L · limit 2\.0 mg\/L/)).toBeOnTheScreen();

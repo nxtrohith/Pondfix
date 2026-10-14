@@ -9,6 +9,8 @@ import { classify, observedMessage } from './risk.js';
 import { applyReading } from './alerts.js';
 import { runInference } from './inference.js';
 import { alertContext, ruleFor } from './speciesProfiles.js';
+import { publishAlertChanges } from './alertEvents.js';
+import { publishReadingUpdate, publishForecastUpdate } from './pondSync.js';
 
 /**
  * A reading may carry several parameters. Values that fail validation (impossible range, wrong unit, unknown parameter) are set
@@ -26,7 +28,7 @@ function splitValues(raw) {
   return good.length && rejected.length ? { raw: { ...raw, values: good }, rejected } : { raw, rejected: [] };
 }
 
-export async function ingestMeasurement({ db, ml, config, now = () => new Date() }, rawInput, { extraMeta, strictValues = false } = {}) {
+export async function ingestMeasurement({ db, ml, config, events, log = () => {}, now = () => new Date() }, rawInput, { extraMeta, strictValues = false } = {}) {
   const { raw: cleaned, rejected } = strictValues ? { raw: rawInput, rejected: [] } : splitValues(rawInput);
   const input = parse(measurementInput, cleaned);
   const pondId = parseObjectId(input.pondId, 'pondId');
@@ -58,12 +60,13 @@ export async function ingestMeasurement({ db, ml, config, now = () => new Date()
   const newest = await db.collection('measurements').find({ pondId, source: measurement.source }).sort({ recordedAt: -1, _id: -1 }).limit(1).next();
   const isNewest = String(newest._id) === String(measurement._id);
 
-  const risk = {}; const alertResults = []; let alertStateUpdated = false;
+  const risk = {}; const alertResults = []; const skipped = {}; let alertStateUpdated = false;
   for (const v of measurement.values) {
     const { rule, scope } = ruleFor(pond, v.parameter);
     const cls = classify(v.parameter, v.value, rule);
     risk[v.parameter] = { value: v.value, unit: v.unit, status: cls.status, ruleScope: scope, ...(cls.direction ? { direction: cls.direction } : {}), ...(cls.threshold !== null && cls.threshold !== undefined ? { threshold: cls.threshold } : {}), ...(cls.status === 'UNKNOWN' ? { note: cls.reason } : {}) };
-    if (cls.status === 'UNKNOWN' || await newerExists(v.parameter)) continue;
+    if (cls.status === 'UNKNOWN') { skipped[v.parameter] = 'no alert rule for this parameter'; continue; }
+    if (await newerExists(v.parameter)) { skipped[v.parameter] = 'not evaluated: a newer reading of this parameter already exists'; continue; }
     alertStateUpdated = true;
     const results = await applyReading(db, {
       pondId, origin: 'observed', parameter: v.parameter, rule, dataSource: measurement.source, cls, triggerValue: v.value,
@@ -72,12 +75,26 @@ export async function ingestMeasurement({ db, ml, config, now = () => new Date()
       extra: { triggerMeasurementId: measurement._id, ...alertContext(pond, v.parameter) },
     });
     for (const r of results) alertResults.push({ parameter: v.parameter, ...r });
+    await publishAlertChanges({ db, events }, results);
   }
+
+  // One line per accepted reading that says what the monitoring decided for each parameter, so "why was there no alert?" is answerable.
+  const outcome = (v) => {
+    const r = risk[v.parameter]; const acts = alertResults.filter((a) => a.parameter === v.parameter).map((a) => a.action).filter((a) => a !== 'none');
+    const verdict = skipped[v.parameter] ?? (acts.length ? acts.map((a) => (a === 'updated' ? 'same condition still open: deduplicated, no new alert' : `alert ${a}`)).join(' + ') : r.status === 'NORMAL' ? 'safe, no alert' : 'unsafe but already open: deduplicated, no new alert');
+    return `${v.parameter}=${v.value}${r.unit ? ` ${r.unit}` : ''} ${r.status}${r.ruleScope ? ` (${r.ruleScope} limits)` : ''} -> ${verdict}`;
+  };
+  log(`[INGEST] pond=${pondId} (${pond.name}) source=${measurement.source} ${duplicate ? 'DUPLICATE request, nothing re-applied' : measurement.values.map(outcome).join('; ')}${rejected.length ? ` | rejected values: ${rejected.map((x) => `${x.parameter ?? '?'} (${x.reason})`).join(', ')}` : ''}`);
+
+  // Commit point reached (persisted, alert lifecycle settled): announce it. Duplicates and rejected readings never get here as news.
+  if (!duplicate) await publishReadingUpdate({ db, config, events, now }, pond, measurement);
 
   // Optional ML: skipped for duplicates and out-of-order data; never throws.
   const inference = duplicate ? { status: 'skipped', reason: 'duplicate request' }
     : !isNewest ? { status: 'skipped', reason: 'out-of-order measurement' }
-    : await runInference({ db, ml: config.ml.enabled ? ml : null, config, pond, measurement, now: receivedAt });
+    : await runInference({ db, ml: config.ml.enabled ? ml : null, config, events, pond, measurement, now: receivedAt });
+
+  if (inference.status === 'ok' && inference.predictions > 0) publishForecastUpdate({ events }, pondId, receivedAt);
 
   return {
     status: duplicate ? 200 : 201,

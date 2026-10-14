@@ -6,6 +6,7 @@ import { applyCollections, applyIndexes } from '../../database/lib/setup.js';
 import { requireUri, DB_NAME } from '../../database/lib/connect.js';
 import { loadConfig } from '../src/config/index.js';
 import { createApp } from '../src/app.js';
+import { createAlertBus } from '../src/services/alertEvents.js';
 
 export const TEST_DB = process.env.MONGODB_TEST_DB || 'aquaguard_test';
 if (TEST_DB === DB_NAME) throw new Error(`MONGODB_TEST_DB must differ from MONGODB_DB (${DB_NAME}): tests never write to the production database.`);
@@ -22,7 +23,8 @@ export async function startEnv({ ml = null, configEnv = {}, clock = new Date('20
   // Demo endpoints are on in tests: they only ever write to the isolated test database above.
   const config = loadConfig({ NODE_ENV: 'test', DEMO_ENABLED: 'true', ...configEnv });
   const logs = [];
-  const app = createApp({ db, config, ml, now: () => new Date(state.now), log: (m) => logs.push(m), dbTarget: 'atlas' });
+  const events = createAlertBus();
+  const app = createApp({ db, config, ml, events, now: () => new Date(state.now), log: (m) => logs.push(m), dbTarget: 'atlas' });
   const server = await new Promise((res) => { const s = app.listen(0, '127.0.0.1', () => res(s)); });
   const base = `http://127.0.0.1:${server.address().port}`;
   const call = async (method, path, body, headers = {}) => {
@@ -37,7 +39,7 @@ export async function startEnv({ ml = null, configEnv = {}, clock = new Date('20
     await db.collection('ponds').insertOne(pond); return pond;
   };
   return {
-    db, call, state, config, logs, makePond, base,
+    db, call, state, config, logs, makePond, base, events, server,
     get: (p) => call('GET', p), post: (p, b, h) => call('POST', p, b, h), patch: (p, b) => call('PATCH', p, b),
     async stop() { await new Promise((r) => server.close(r)); await db.dropDatabase(); await client.close(); },
     reset: async () => { for (const c of ['measurements', 'predictions', 'alerts', 'modelRuns', 'notificationDeliveries']) await db.collection(c).deleteMany({}); },

@@ -1,22 +1,21 @@
 // Screen 14: forecasting. ALL values here are ILLUSTRATIVE demo forecasts. They are not produced by the AquaGuard forecasting model.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { spacing, fontSize, radius } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { LineChart } from '@/components/LineChart';
 import { StatusBadge } from '@/components/StatusBadge';
-import { DemoLabel } from '@/components/DemoLabel';
-import { EmptyState } from '@/components/StateViews';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
+import { EmptyState, LoadingState } from '@/components/StateViews';
 import { AppButton } from '@/components/AppButton';
-import { DEMO_FORECASTS } from '@/data/mockReadings';
 import { forecastOutlook, sliceSeries } from '@/lib/chart';
-import { formatValue, formatTime } from '@/lib/format';
-import { PARAMETER_LABEL, PARAMETER_UNIT, classifyValue } from '@/lib/status';
+import { formatValue, formatDateTime } from '@/lib/format';
+import { PARAMETER_LABEL, PARAMETER_UNIT } from '@/lib/status';
 import { param, routes } from '@/lib/routes';
 import { PARAMETERS, type Parameter, type SeriesPoint } from '@/types';
 
@@ -30,8 +29,11 @@ type HorizonKey = (typeof HORIZONS)[number]['value'];
 export default function ForecastScreen() {
   const { id: rawId, parameter: rawParam } = useLocalSearchParams<{ id: string; parameter?: string }>();
   const id = param(rawId) ?? '';
-  const { ponds, readings, asOf } = useAppStore();
+  const { ponds, readings, asOf, ensureHistory, ensureForecast, forecast: forecastOf } = usePonds();
   const pond = ponds.find((p) => p.id === id);
+  const hasPond = !!pond;
+  useEffect(() => { if (hasPond) { ensureHistory(id); ensureForecast(id); } }, [hasPond, id, ensureHistory, ensureForecast]);
+  const fc = forecastOf(id);
   const initialParam = PARAMETERS.find((p) => p === param(rawParam)) ?? 'dissolved_oxygen';
   const [parameter, setParameter] = useState<Parameter>(initialParam);
   const [horizon, setHorizon] = useState<HorizonKey>('180');
@@ -40,11 +42,10 @@ export default function ForecastScreen() {
     const r = (readings[id] ?? []).find((x) => x.parameter === parameter);
     return r && r.sensor === 'online' ? sliceSeries(r.series, asOf, '6H') : [];
   }, [readings, id, parameter, asOf]);
-  const values = DEMO_FORECASTS[id]?.[parameter] ?? [];
+  const values = useMemo(() => (fc.data?.items ?? []).filter((v) => v.parameter === parameter).sort((a, b) => a.minutesAhead - b.minutesAhead), [fc.data, parameter]);
   const selectedMinutes = HORIZONS.find((h) => h.value === horizon)!.minutes;
   const shownForecast = values.filter((v) => v.minutesAhead <= selectedMinutes);
-  const startMs = Date.parse(asOf);
-  const forecastPoints: SeriesPoint[] = shownForecast.map((v) => ({ at: new Date(startMs + v.minutesAhead * 60000).toISOString(), value: v.value }));
+  const forecastPoints: SeriesPoint[] = shownForecast.map((v) => ({ at: v.forecastFor, value: v.value }));
   const outlook = values.length ? forecastOutlook(parameter, values) : null;
 
   if (!pond) {
@@ -56,14 +57,14 @@ export default function ForecastScreen() {
     );
   }
 
-  const hasCurrent = history.length > 0;
+  const readingOf = (readings[id] ?? []).find((x) => x.parameter === parameter);
 
   return (
     <ScreenContainer testID="forecast-screen">
       <AppHeader title="Forecast" subtitle={pond.displayName} />
-      <DemoLabel text="Demo forecast · illustrative, not from the AquaGuard model" />
+      <ConnectionBanner />
       <Text style={styles.body}>
-        These are example predictions for the next few hours, shown so you can see how the screen works. They are not measurements and are not produced by the AquaGuard forecasting engine.
+        Forecasts are model predictions, not measurements.{fc.data?.generatedAt ? ` Generated ${formatDateTime(fc.data.generatedAt)}.` : ''} Confirm with a current reading before acting.
       </Text>
 
       <Text style={styles.label}>Parameter</Text>
@@ -72,23 +73,25 @@ export default function ForecastScreen() {
       <Text style={styles.label}>Forecast horizon</Text>
       <SegmentedControl label="Forecast horizon" value={horizon} options={HORIZONS.map((h) => ({ value: h.value, label: h.label, testID: `horizon-${h.value}` }))} onChange={setHorizon} />
 
-      {values.length === 0 || !hasCurrent ? (
-        <EmptyState title="No forecast for this parameter">
-          {hasCurrent ? 'No illustrative forecast has been prepared for this parameter.' : 'There is no current reading for this parameter, so no forecast can be shown.'}
-        </EmptyState>
+      {fc.status === 'loading' || fc.status === 'idle' ? (
+        <LoadingState label="Loading forecast" />
+      ) : fc.status === 'error' && !fc.data ? (
+        <EmptyState title="Unable to load the forecast">Check your connection and try again.</EmptyState>
+      ) : values.length === 0 ? (
+        <EmptyState title="No forecast for this parameter">The forecasting model has not produced a forecast for this parameter. Forecasts need enough recent readings.</EmptyState>
       ) : (
         <>
           <View style={styles.card}>
             <Text style={styles.title}>{PARAMETER_LABEL[parameter]} ({PARAMETER_UNIT[parameter]})</Text>
-            <Text style={styles.legend}>Solid line: recent readings. Dashed blue line: illustrative forecast.</Text>
+            <Text style={styles.legend}>Solid line: recent readings. Dashed blue line: model forecast.</Text>
             <LineChart parameter={parameter} points={history} forecast={forecastPoints} height={190} />
           </View>
 
           <View style={styles.card} testID="risk-outlook">
             <Text style={styles.title}>Risk outlook</Text>
-            {outlook ? <StatusBadge status={outlook.status} /> : null}
+            {outlook && outlook.status !== 'UNKNOWN' ? <StatusBadge status={outlook.status} /> : null}
             <Text style={styles.body}>{outlook?.text}</Text>
-            <Text style={styles.small}>Illustrative. Confirm with a current reading before acting.</Text>
+            <Text style={styles.small}>Risk is assessed by the AquaGuard server for this pond. Confirm with a current reading before acting.</Text>
           </View>
 
           <View style={styles.card} testID="forecast-table">
@@ -99,18 +102,17 @@ export default function ForecastScreen() {
               <Text style={[styles.cell, styles.head]}>Status</Text>
             </View>
             {values.map((v) => {
-              const c = classifyValue(parameter, v.value);
               const label = v.minutesAhead === 60 ? '1 hour' : v.minutesAhead === 180 ? '3 hours' : `${v.minutesAhead} min`;
               const selected = v.minutesAhead <= selectedMinutes;
               return (
                 <View key={v.minutesAhead} style={[styles.tableRow, selected && styles.selectedRow]} testID={`forecast-row-${v.minutesAhead}`}>
                   <Text style={styles.cell}>{label}</Text>
                   <Text style={styles.cell}>{formatValue(v.value, parameter)} {PARAMETER_UNIT[parameter]}</Text>
-                  <Text style={styles.cell}>{c.status === 'NORMAL' ? 'Normal' : c.status === 'WARNING' ? 'Warning' : 'Critical'}</Text>
+                  <Text style={styles.cell}>{v.risk === 'NORMAL' ? 'Normal' : v.risk === 'WARNING' ? 'Warning' : v.risk === 'CRITICAL' ? 'Critical' : 'Not assessed'}</Text>
                 </View>
               );
             })}
-            <Text style={styles.small}>Current reading at {formatTime(asOf)}: {formatValue(history[history.length - 1]?.value ?? null, parameter)} {PARAMETER_UNIT[parameter]}.</Text>
+            <Text style={styles.small}>Latest reading: {readingOf?.latest ? `${formatValue(readingOf.latest.value, parameter)} ${PARAMETER_UNIT[parameter]} at ${formatDateTime(readingOf.latest.recordedAt)}` : 'none'}.</Text>
           </View>
         </>
       )}

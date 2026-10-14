@@ -4,17 +4,17 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { useEffect, useState } from 'react';
+import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { AppButton } from '@/components/AppButton';
-import { DemoLabel } from '@/components/DemoLabel';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { EmptyState } from '@/components/StateViews';
 import { Panel } from '@/components/SectionHeader';
 import { alertTitle } from '@/components/AlertCard';
-import { RECOMMENDED_ACTIONS, WHY_IT_MATTERS } from '@/data/mockAlerts';
 import { formatDateTime, formatValue } from '@/lib/format';
-import { PARAMETER_LABEL, PARAMETER_UNIT } from '@/lib/status';
+import { parameterLabel, parameterUnit } from '@/lib/status';
 import { param, routes } from '@/lib/routes';
 
 const STATE_TEXT = {
@@ -26,68 +26,75 @@ const STATE_TEXT = {
 export default function AlertDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
-  const { alerts, ponds, acknowledgeAlert } = useAppStore();
-  const alert = alerts.find((a) => a.id === id);
+  const { activeAlerts, alertHistory, acknowledge, markSeen, loadState } = useAlerts();
+  const { ponds } = usePonds();
+  const [ackFailed, setAckFailed] = useState(false);
+  const alert = activeAlerts.find((a) => a.id === id) ?? alertHistory.find((a) => a.id === id);
+  useEffect(() => { if (id) markSeen([id]); }, [id, markSeen]);
   if (!alert) {
     return (
       <ScreenContainer bottomNav="alerts" testID="alert-missing">
-        <AppHeader title="Alert not found" />
-        <EmptyState title="This alert does not exist">Go back to the alerts list.</EmptyState>
+        <AppHeader title={loadState === 'loading' ? 'Loading alert' : 'Alert not found'} />
+        <EmptyState title={loadState === 'loading' ? 'Loading alert' : 'This alert is no longer listed'}>{loadState === 'loading' ? 'Please wait.' : 'It may have been resolved. Go back to the alerts list.'}</EmptyState>
         <AppButton label="All alerts" variant="outline" onPress={() => router.replace(routes.alerts)} />
       </ScreenContainer>
     );
   }
   const pond = ponds.find((p) => p.id === alert.pondId);
+  const pondName = pond?.displayName ?? alert.pondName ?? 'Unknown pond';
   const critical = alert.severity === 'CRITICAL';
   const resolved = alert.status === 'RESOLVED';
-  const key = `${alert.parameter}.${alert.direction}`;
-  const actions = RECOMMENDED_ACTIONS[key] ?? ['Verify the reading and follow your farm’s operating procedure.'];
-  const unit = PARAMETER_UNIT[alert.parameter];
+  const unit = parameterUnit(alert.parameter);
   const limitWord = alert.direction === 'low' ? 'below' : 'above';
 
   return (
     <ScreenContainer bottomNav="alerts" testID="alert-detail-screen">
       <AppHeader title="Alert details" />
-      <DemoLabel text="Demo alert · illustrative" />
+      <ConnectionBanner />
 
       <View style={[styles.hero, { borderLeftColor: resolved ? colors.healthy : critical ? colors.critical : colors.warning }]}>
         <Text style={[styles.sev, { color: resolved ? colors.healthyDark : critical ? colors.criticalDark : colors.warningDark }]}>
           {resolved ? 'Resolved' : critical ? 'Critical' : 'Warning'}
         </Text>
         <Text accessibilityRole="header" style={styles.title}>{alertTitle(alert)}</Text>
-        <Text style={styles.meta}>{pond?.displayName ?? 'Unknown pond'} · {PARAMETER_LABEL[alert.parameter]}</Text>
+        <Text style={styles.meta}>{pondName} · {parameterLabel(alert.parameter)}{alert.speciesLabel ? ` · ${alert.speciesLabel}` : ''}</Text>
         <Text style={styles.meta}>Raised {formatDateTime(alert.raisedAt)}{resolved && alert.resolvedAt ? ` · Resolved ${formatDateTime(alert.resolvedAt)}` : ''}</Text>
       </View>
 
       <Panel>
         <Text style={styles.heading}>Reading</Text>
         <Text style={styles.bigValue} testID="alert-value">{formatValue(alert.value, alert.parameter)} <Text style={styles.unit}>{unit}</Text></Text>
-        <Text style={styles.body} testID="alert-limit">This reading is {limitWord} the {critical ? 'critical' : 'warning'} limit of {formatValue(alert.limit, alert.parameter)} {unit}. Values inside the acceptable range are normal.</Text>
+        {alert.limit !== null ? (
+          <Text style={styles.body} testID="alert-limit">This {alert.origin === 'predicted' ? 'forecast' : 'reading'} is {limitWord} the {critical ? 'critical' : 'warning'} limit of {formatValue(alert.limit, alert.parameter)} {unit}. Values inside the acceptable range are normal.</Text>
+        ) : null}
+        {alert.message ? <Text style={styles.body} testID="alert-message">{alert.message}</Text> : null}
       </Panel>
 
-      <Panel>
-        <Text style={styles.heading}>Why it matters</Text>
-        <Text style={styles.body}>{WHY_IT_MATTERS[key] ?? 'This reading is outside the acceptable range.'}</Text>
-      </Panel>
+      {alert.explanation ? (
+        <Panel>
+          <Text style={styles.heading}>Why it matters</Text>
+          <Text style={styles.body}>{alert.explanation}</Text>
+        </Panel>
+      ) : null}
 
-      <Panel testID="recommended-actions">
-        <Text style={styles.heading}>Recommended next steps</Text>
-        {actions.map((a) => (
-          <View key={a} style={styles.actionRow}>
+      {alert.recommendedAction ? (
+        <Panel testID="recommended-actions">
+          <Text style={styles.heading}>Recommended action</Text>
+          <View style={styles.actionRow}>
             <Ionicons name="checkmark-done-outline" size={16} color={colors.textSecondary} />
-            <Text style={[styles.body, { flex: 1 }]}>{a}</Text>
+            <Text style={[styles.body, { flex: 1 }]}>{alert.recommendedAction}</Text>
           </View>
-        ))}
-        <Text style={styles.small}>General checks only. They are not validated for every species or pond. Follow your farm’s procedure.</Text>
-      </Panel>
+        </Panel>
+      ) : null}
 
       <Panel>
         <Text style={styles.heading}>Status</Text>
         <Text style={styles.body} testID="alert-state">{STATE_TEXT[alert.status]}</Text>
         {alert.acknowledgedAt ? <Text style={styles.small}>Marked as seen {formatDateTime(alert.acknowledgedAt)}.</Text> : null}
         {!resolved && alert.status === 'ACTIVE' ? (
-          <AppButton label="Mark as seen" icon="eye-outline" onPress={() => acknowledgeAlert(alert.id)} testID="acknowledge" accessibilityHint="Records that you have seen this alert. It does not resolve the problem." />
+          <AppButton label="Mark as seen" icon="eye-outline" onPress={async () => setAckFailed(!(await acknowledge(alert.id)))} testID="acknowledge" accessibilityHint="Records that you have seen this alert. It does not resolve the problem." />
         ) : null}
+        {ackFailed ? <Text style={styles.small} testID="ack-failed">Could not reach the server. Try again when you are connected.</Text> : null}
         <Text style={styles.small}>Marking as seen does not resolve the problem. The alert closes only when readings return to the acceptable range.</Text>
       </Panel>
 

@@ -11,9 +11,14 @@ export type PondStatus = 'NORMAL' | 'WARNING' | 'CRITICAL' | 'INCOMPLETE' | 'NO_
 export type SensorConnection = 'online' | 'offline' | 'unavailable';
 
 export interface Pond {
+  /** The backend pond id. Never derived from the name or the list position. */
   id: string;
   displayName: string;
   speciesId: string | null;
+  /** Species name exactly as the backend reports it ("Rohu", a custom name, "Polyculture: ..."); null when no species is set. */
+  speciesLabel?: string | null;
+  /** The backend's statement of which alert limits apply to this pond's species. */
+  speciesSafety?: { status: string; ruleScope: 'species' | 'general'; message: string } | null;
   areaAcres: number | null;
   notes: string;
   /** True for ponds created on this device (demo mock data is false). */
@@ -31,6 +36,11 @@ export interface ParameterReading {
   lastSeenAt: string | null;
   /** Time-ordered history used for charts. Empty when there is no data. */
   series: SeriesPoint[];
+  /** The backend's verdict on the latest value at snapshot time (species-aware). Absent only in fixtures; then the local demo rules apply. */
+  risk?: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'STALE' | 'UNKNOWN';
+  /** The backend's freshness limit for this reading, in minutes. */
+  staleAfterMinutes?: number;
+  source?: string;
 }
 
 export interface SpeciesProfile {
@@ -45,16 +55,29 @@ export interface SpeciesProfile {
   requiresCustomName: boolean;
 }
 
+/** An alert exactly as the AquaGuard backend decided it. The app only presents these; it never creates or classifies them. */
 export interface AlertItem {
   id: string;
   pondId: string;
-  parameter: Parameter;
+  /** Backend pond name; null when the backend could not resolve it. */
+  pondName: string | null;
+  /** Any parameter the backend alerts on (dissolved_oxygen, ph, temperature, ...). */
+  parameter: string;
   severity: 'WARNING' | 'CRITICAL';
   /** ACKNOWLEDGED means the farmer has seen it; the condition is still open until readings recover. */
   status: 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
+  /** The reading that triggered the alert (a forecast value when origin is "predicted"). */
   value: number;
-  limit: number;
+  /** The limit the value crossed; null when the backend sent none. */
+  limit: number | null;
   direction: 'low' | 'high';
+  origin: 'observed' | 'predicted';
+  /** Species the backend used to classify this alert, when species-specific limits applied. */
+  speciesLabel: string | null;
+  /** Backend wording; empty string when absent. */
+  message: string;
+  explanation: string;
+  recommendedAction: string;
   raisedAt: string;
   resolvedAt: string | null;
   acknowledgedAt: string | null;

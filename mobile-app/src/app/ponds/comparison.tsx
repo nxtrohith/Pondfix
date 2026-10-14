@@ -1,15 +1,15 @@
-// Screen 16: pond comparison. Illustrative demo values. Status is shown as words and icons, not colour alone.
+// Screen 16: pond comparison, from the server's current readings. Status is shown as words and icons, not colour alone.
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { useAlerts, usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { DemoLabel } from '@/components/DemoLabel';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/StateViews';
 import { summarizePond, type PondSummary } from '@/lib/pondSummary';
@@ -21,7 +21,8 @@ import { PARAMETERS, type ParameterStatus } from '@/types';
 type Tab = 'quality' | 'overall';
 
 export default function ComparisonScreen() {
-  const { ponds, readings, alerts, asOf } = useAppStore();
+  const { ponds, readings, asOf } = usePonds();
+  const { activeAlerts: alerts } = useAlerts();
   const summaries = useMemo(() => ponds.map((p) => summarizePond(p, readings[p.id] ?? [], alerts, asOf)), [ponds, readings, alerts, asOf]);
   const [selected, setSelected] = useState<string[]>(() => ponds.map((p) => p.id));
   const [tab, setTab] = useState<Tab>('quality');
@@ -30,8 +31,8 @@ export default function ComparisonScreen() {
 
   return (
     <ScreenContainer bottomNav="ponds" testID="comparison-screen">
-      <AppHeader title="Compare ponds" subtitle="Illustrative demo values" />
-      <DemoLabel text="Demo data · illustrative comparison" />
+      <AppHeader title="Compare ponds" subtitle="Current readings from the server" />
+      <ConnectionBanner />
 
       <Text style={styles.label}>Ponds to compare</Text>
       <View style={styles.chips}>

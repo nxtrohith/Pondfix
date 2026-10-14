@@ -1,69 +1,80 @@
-// Screen 12: notification centre. Local items only. Nothing here is delivered by push, SMS or any backend.
+// Screen 12: notification centre. Lists the alert activity the AquaGuard server has reported (open and resolved), newest first.
+// These are in-app items from the live alert feed; this app does not send push notifications.
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
-import { useAppStore } from '@/context/AppStore';
+import { useAlerts } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { AppButton } from '@/components/AppButton';
-import { DemoLabel } from '@/components/DemoLabel';
-import { EmptyState } from '@/components/StateViews';
-import { formatDateTime } from '@/lib/format';
+import { ConnectionBanner } from '@/components/ConnectionBanner';
+import { alertTitle } from '@/components/AlertCard';
+import { EmptyState, LoadingState } from '@/components/StateViews';
+import { formatDateTime, formatValue } from '@/lib/format';
+import { parameterUnit } from '@/lib/status';
 import { routes } from '@/lib/routes';
-import type { NotificationItem } from '@/types';
+import type { AlertItem } from '@/types';
 
 type Tab = 'all' | 'unread';
 
 export default function NotificationsScreen() {
-  const { notifications, ponds, markNotificationRead, markAllNotificationsRead } = useAppStore();
+  const { activeAlerts, alertHistory, unreadIds, unreadCount, markSeen, markAllSeen, loadState } = useAlerts();
   const [tab, setTab] = useState<Tab>('all');
-  const unread = notifications.filter((n) => !n.read).length;
-  const list = useMemo(() => [...notifications].filter((n) => tab === 'all' || !n.read).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [notifications, tab]);
-  const pondName = (id: string | null) => (id ? ponds.find((p) => p.id === id)?.displayName ?? 'Unknown pond' : 'AquaGuard');
+  const list = useMemo(() => {
+    const at = (a: AlertItem) => Date.parse(a.resolvedAt ?? a.raisedAt);
+    return [...activeAlerts, ...alertHistory].filter((a) => tab === 'all' || unreadIds.includes(a.id)).sort((a, b) => at(b) - at(a));
+  }, [activeAlerts, alertHistory, unreadIds, tab]);
 
-  function open(n: NotificationItem) {
-    markNotificationRead(n.id);
-    if (n.alertId) router.push(routes.alert(n.alertId));
+  function open(a: AlertItem) {
+    markSeen([a.id]);
+    router.push(routes.alert(a.id));
   }
 
   return (
     <ScreenContainer testID="notifications-screen">
-      <AppHeader title="Notifications" subtitle={`${unread} unread`} />
-      <DemoLabel text="Demo notifications · stored on this device, not delivered" />
+      <AppHeader title="Notifications" subtitle={`${unreadCount} unread`} />
+      <ConnectionBanner />
       <View style={styles.bar}>
-        <SegmentedControl label="Notification tabs" value={tab} options={[{ value: 'all', label: 'All', testID: 'notif-all' }, { value: 'unread', label: `Unread (${unread})`, testID: 'notif-unread' }]} onChange={setTab} />
-        <AppButton label="Mark all read" variant="ghost" onPress={markAllNotificationsRead} disabled={unread === 0} testID="mark-all-read" />
+        <SegmentedControl label="Notification tabs" value={tab} options={[{ value: 'all', label: 'All', testID: 'notif-all' }, { value: 'unread', label: `Unread (${unreadCount})`, testID: 'notif-unread' }]} onChange={setTab} />
+        <AppButton label="Mark all read" variant="ghost" onPress={markAllSeen} disabled={unreadCount === 0} testID="mark-all-read" />
       </View>
-      {list.length === 0 ? (
-        <EmptyState title={tab === 'unread' ? 'No unread notifications' : 'No notifications'}>New alerts and sensor updates will appear here.</EmptyState>
+      {loadState === 'loading' ? (
+        <LoadingState label="Loading notifications" />
+      ) : list.length === 0 ? (
+        <EmptyState title={tab === 'unread' ? 'No unread notifications' : 'No notifications'}>New alerts from your ponds will appear here.</EmptyState>
       ) : (
         <View style={{ gap: spacing.sm }} testID="notification-list">
-          {list.map((n) => (
-            <Pressable
-              key={n.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${n.title}, ${pondName(n.pondId)}, ${n.read ? 'read' : 'unread'}`}
-              accessibilityHint={n.alertId ? 'Opens the related alert' : 'Marks as read'}
-              onPress={() => open(n)}
-              style={styles.item}
-              testID={`notification-${n.id}`}
-            >
-              <View style={styles.itemHead}>
-                <Text style={styles.category}>{n.category}</Text>
-                {!n.read ? <View style={styles.unreadTag}><Text style={styles.unreadText}>Unread</Text></View> : null}
-              </View>
-              <Text style={styles.title}>{n.title}</Text>
-              <Text style={styles.message}>{n.message}</Text>
-              <View style={styles.meta}>
-                <Text style={styles.metaText}>{pondName(n.pondId)} · {formatDateTime(n.createdAt)}</Text>
-                {n.alertId ? <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} /> : null}
-              </View>
-            </Pressable>
-          ))}
+          {list.map((a) => {
+            const unread = unreadIds.includes(a.id);
+            const resolved = a.status === 'RESOLVED';
+            const pondName = a.pondName ?? 'Unknown pond';
+            return (
+              <Pressable
+                key={a.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${alertTitle(a)}, ${pondName}, ${resolved ? 'resolved' : a.severity === 'CRITICAL' ? 'critical' : 'warning'}, ${unread ? 'unread' : 'read'}`}
+                accessibilityHint="Opens the alert"
+                onPress={() => open(a)}
+                style={styles.item}
+                testID={`notification-${a.id}`}
+              >
+                <View style={styles.itemHead}>
+                  <Text style={styles.category}>{resolved ? 'Resolved' : a.severity === 'CRITICAL' ? 'Critical alert' : 'Warning alert'}</Text>
+                  {unread ? <View style={styles.unreadTag}><Text style={styles.unreadText}>Unread</Text></View> : null}
+                </View>
+                <Text style={styles.title}>{alertTitle(a)}</Text>
+                <Text style={styles.message}>{pondName} · {formatValue(a.value, a.parameter)} {parameterUnit(a.parameter)}</Text>
+                <View style={styles.meta}>
+                  <Text style={styles.metaText}>{resolved && a.resolvedAt ? `Resolved ${formatDateTime(a.resolvedAt)}` : formatDateTime(a.raisedAt)}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
       )}
     </ScreenContainer>

@@ -10,14 +10,14 @@ import { AppButton } from '@/components/AppButton';
 import { FormField } from '@/components/FormField';
 import { DemoLabel } from '@/components/DemoLabel';
 import { Panel } from '@/components/SectionHeader';
-import { speciesById } from '@/data/mockSpecies';
+import { usePonds } from '@/context/LiveData';
 import type { FarmerProfile } from '@/types';
 
 export default function ProfileScreen() {
-  const { profile, ponds, updateProfile } = useAppStore();
+  const { profile, updateProfile } = useAppStore();
+  const { ponds } = usePonds();
   const [editing, setEditing] = useState(false);
-  const configuredSpecies = new Set(ponds.map((p) => p.speciesId).filter((s): s is string => !!s && !!speciesById(s))).size;
-  const area = ponds.reduce((sum, p) => sum + (p.areaAcres ?? 0), 0);
+  const configuredSpecies = ponds.filter((p) => p.speciesId).length;
   const initials = profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
@@ -43,7 +43,6 @@ export default function ProfileScreen() {
             <Row label="Location" value={profile.location} />
           </Panel>
           <Panel>
-            <Row label="Farm area" value={`${area.toFixed(1)} acres`} />
             <Row label="Ponds" value={String(ponds.length)} />
             <Row label="Species configured" value={String(configuredSpecies)} />
           </Panel>
