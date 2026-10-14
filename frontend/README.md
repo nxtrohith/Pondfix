@@ -9,7 +9,7 @@ The dashboard needs the API running. **Start the backend first, in its own termi
 | Step | Atlas (real data) | Isolated local database |
 |---|---|---|
 | 0. Install once | `npm install` (repo root) and `pip install -r ml/requirements.txt` | same |
-| 1. Configure | repo-root `.env` with `MONGODB_URI` (see root README). The frontend needs no configuration for local development. | none |
+| 1. Configure | `backend/.env` with `MONGODB_URI` (copy `backend/.env.example`; see root README). The frontend needs no configuration for local development. | none |
 | 2. Terminal 1: API | `npm start` | `npm run dev:local` (~20 s: starts an in-memory MongoDB and imports the historical CSVs from `~/Preprocess/csv`; data is discarded on exit) |
 | 3. Check the API | `curl http://127.0.0.1:4000/api/health` should return `"status":"ok"` with `"database":{"status":"up"}` | same |
 | 4. Terminal 2: dashboard | `npm run dev:frontend` | same |
@@ -24,7 +24,7 @@ Use the local-database workflow for anything that writes (the Simulation page, a
 | `API_BASE_URL` | same as above | Optional server-side URL for Next.js server components |
 | `NEXT_PUBLIC_DISPLAY_TIMEZONE` | `UTC` | IANA time zone for displayed timestamps (data is stored in UTC) |
 
-Put overrides in `frontend/.env.local` (git-ignored) and restart `npm run dev:frontend`; `NEXT_PUBLIC_*` values are fixed at build time. The API accepts browser requests only from `CORS_ORIGINS` (default: `localhost` and `127.0.0.1` on ports 3000, 5173 and 8081).
+Put overrides in `frontend/.env.local` (git-ignored; template: `frontend/.env.example`) and restart `npm run dev:frontend`; `NEXT_PUBLIC_*` values are fixed at build time. The API accepts browser requests only from `CORS_ORIGINS` (default: `localhost` and `127.0.0.1` on ports 3000, 5173 and 8081).
 
 ### Hackathon demo: the alert lifecycle
 
