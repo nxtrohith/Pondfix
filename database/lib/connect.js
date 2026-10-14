@@ -11,6 +11,20 @@ if (existsSync(envFile)) process.loadEnvFile(envFile); // does not override exis
 
 export const DB_NAME = process.env.MONGODB_DB || 'aquaguard';
 
+/**
+ * Classifies a connection string WITHOUT exposing it: 'local' only if every host is loopback; anything else
+ * (including mongodb+srv and any parse failure) is 'remote'. Used to guard test-data workflows and to label /api/health.
+ */
+export function describeTarget(uri) {
+  try {
+    if (!uri || /^mongodb\+srv:/i.test(uri)) return 'remote';
+    const hostPart = uri.replace(/^mongodb:\/\//i, '').split('@').pop().split('/')[0].split('?')[0];
+    const hosts = hostPart.split(',').map((h) => h.trim().replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase());
+    return hosts.length > 0 && hosts.every((h) => ['127.0.0.1', 'localhost', '::1'].includes(h)) ? 'local' : 'remote';
+  } catch { return 'remote'; }
+}
+export const getTarget = () => (process.env.MONGODB_URI ? describeTarget(process.env.MONGODB_URI) : 'unknown');
+
 export function sanitize(err, uri = process.env.MONGODB_URI) {
   let msg = `${err?.name ?? 'Error'}: ${err?.message ?? String(err)}`;
   if (uri) {

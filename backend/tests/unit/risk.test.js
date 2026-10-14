@@ -13,6 +13,13 @@ test('DO boundary classification (strict < comparisons)', () => {
   assert.equal(classify('dissolved_oxygen', 2.7).threshold, 3.0);
 });
 
+test('DO boundaries at two-decimal precision (1.99 / 2.00 / 2.99 / 3.00) and the demo values', () => {
+  const st = (v) => classify('dissolved_oxygen', v).status;
+  assert.deepEqual([1.99, 2.0, 2.99, 3.0].map(st), ['CRITICAL', 'WARNING', 'WARNING', 'NORMAL']);
+  assert.deepEqual([3.5, 2.5, 1.5].map(st), ['NORMAL', 'WARNING', 'CRITICAL']);
+  assert.deepEqual([classify('dissolved_oxygen', 1.99).threshold, classify('dissolved_oxygen', 2.5).threshold, classify('dissolved_oxygen', 3.5).threshold], [2, 3, null]);
+});
+
 test('parameters without validated rules are UNKNOWN, never healthy', () => {
   for (const p of ['ph', 'temperature', 'water_level']) assert.equal(classify(p, 7.2).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', NaN).status, 'UNKNOWN');

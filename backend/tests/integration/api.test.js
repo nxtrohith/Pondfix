@@ -11,6 +11,7 @@ test('health: reports app, db and ml status without internals', async () => {
   const r = await env.get('/api/health');
   assert.equal(r.status, 200);
   assert.deepEqual([r.body.status, r.body.database.status, r.body.ml.status], ['ok', 'up', 'disabled']);
+  assert.equal(r.body.database.target, 'local', 'health labels whether the database is local or remote (no host/URI is exposed)');
   assert.ok(!/mongodb|password|uri/i.test(r.text));
 });
 

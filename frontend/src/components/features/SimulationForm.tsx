@@ -16,6 +16,7 @@ import { ErrorState, Notice } from '../ui/states';
 import { SourceBadge, StatusPill } from '../ui/StatusPill';
 import { Skeleton } from '../ui/Skeleton';
 import { cx } from '../ui/cx';
+import { AlertDemoRunner } from './AlertDemoRunner';
 
 const SCENARIO_COPY: Record<Scenario, { label: string; text: string }> = {
   healthy: { label: 'Healthy', text: 'Dissolved oxygen above the warning limit' },
@@ -71,6 +72,8 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
   return (
     <div className="space-y-6">
       <Notice tone="warning"><strong className="font-medium">This page saves test data.</strong> A simulation stores a real record marked &quot;Simulated&quot;, can open or resolve alerts, and can create forecasts. It never changes anything until you confirm. There is no delete action, so saved simulated readings remain in the database.</Notice>
+
+      <AlertDemoRunner ponds={ponds} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card aria-labelledby="sim-form">
