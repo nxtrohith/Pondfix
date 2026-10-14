@@ -2,7 +2,7 @@
 // Only fields the UI reads are required; everything else is optional so additive backend changes do not break the app.
 import { z } from 'zod';
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level'] as const;
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'] as const;
 export const FORECAST_PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
 export type Parameter = (typeof PARAMETERS)[number];
 export type ForecastParameter = (typeof FORECAST_PARAMETERS)[number];
@@ -69,12 +69,16 @@ export const pondSchema = z.object({
   speciesConfig: speciesConfigSchema.optional(),
   /** True only for the dedicated demo pond (simulated data). */
   isDemo: z.boolean().optional(),
+  /** Where this pond's readings come from. Optional so an older API still parses; absent means sensor. */
+  dataSource: z.enum(['sensor', 'simulator']).optional(),
   location: z.object({ description: z.string().optional(), latitude: z.number().optional(), longitude: z.number().optional() }).partial().optional(),
   area: z.object({ value: z.number(), unit: z.string() }).optional(),
   createdAt: iso.optional(),
   updatedAt: iso.optional(),
 });
 export type Pond = z.infer<typeof pondSchema>;
+export type PondDataSource = NonNullable<Pond['dataSource']>;
+export const setAllDataSourceResponse = z.object({ dataSource: z.enum(['sensor', 'simulator']), updated: z.number() });
 export const pondsResponse = z.object({ items: z.array(pondSchema), count: z.number() });
 
 export const paramSummarySchema = z.object({

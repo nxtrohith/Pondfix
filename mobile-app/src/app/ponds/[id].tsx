@@ -10,6 +10,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { PondImage } from '@/components/PondImage';
 import { MetricCard } from '@/components/MetricCard';
+import { ChemistryCard } from '@/components/ChemistryCard';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AppButton } from '@/components/AppButton';
 import { AlertCard } from '@/components/AlertCard';
@@ -20,13 +21,13 @@ import { WHY_IT_MATTERS } from '@/data/whyItMatters';
 import { summarizePond } from '@/lib/pondSummary';
 import { ageMinutes, classifyValue, PARAMETER_LABEL, POND_PRESENTATION } from '@/lib/status';
 import { formatDateTime, formatTime } from '@/lib/format';
-import { PARAMETERS } from '@/types';
+import { CHEMISTRY_PARAMETERS, PARAMETERS } from '@/types';
 import { param, routes } from '@/lib/routes';
 
 export default function PondDetailScreen() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
-  const { ponds, readings, asOf, ensureHistory } = usePonds();
+  const { ponds, readings, chemistry, asOf, staleAfterMinutes, ensureHistory } = usePonds();
   const { activeAlerts: alerts } = useAlerts();
   const pond = ponds.find((p) => p.id === id);
   const hasPond = !!pond;
@@ -96,6 +97,18 @@ export default function PondDetailScreen() {
           );
         })}
       </View>
+
+      {(chemistry[pond.id] ?? []).some((c) => c.latest) ? (
+        <>
+          <SectionHeader title="Water chemistry" hint="Ammonia, nitrate and turbidity. No alert limits are set for these, so they do not change the pond status." />
+          <View style={styles.metrics}>
+            {CHEMISTRY_PARAMETERS.map((cp) => {
+              const c = (chemistry[pond.id] ?? []).find((x) => x.parameter === cp);
+              return c ? <ChemistryCard key={cp} testID={`chemistry-${cp}`} reading={c} asOf={asOf} staleAfterMinutes={staleAfterMinutes} /> : null;
+            })}
+          </View>
+        </>
+      ) : null}
 
       {unavailable.length ? (
         <Panel testID="unavailable-panel">

@@ -295,7 +295,8 @@ def predict_all_parameters(model_bundle, pond_id, current_measurements, historic
     out, errors = {}, {}
     for hm in horizons_minutes:
         try:
-            r = predict(pond_id, hist, ts + pd.Timedelta(minutes=hm), model_path=art, now=ts)
+            issue_ts = pd.Timestamp(ts).round('%dmin' % C.STEP_MIN)   # readings carry second-level jitter; the model works on the grid
+            r = predict(pond_id, hist, issue_ts + pd.Timedelta(minutes=hm), model_path=art, now=issue_ts)
             out[str(hm)] = {p: {k: v for k, v in e.items() if k in
                                 ('parameter', 'value', 'unit', 'status', 'reason', 'target_timestamp', 'selected_model',
                                  'persistence_baseline', 'typical_abs_error', 'abs_error_q90')}

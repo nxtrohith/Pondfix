@@ -18,7 +18,7 @@ export async function buildHistory(db, pondId, source, upTo, hours) {
   const rows = await db.collection('measurements')
     .find({ pondId, source: { $in: sources }, recordedAt: { $lte: upTo, $gte: new Date(+upTo - hours * 3600000) } })
     .sort({ recordedAt: 1 }).limit(2000).toArray();
-  return rows.map((m) => {
+  return rows.filter((m) => m.values.some((v) => FROM_API[v.parameter])).map((m) => { // rows without a model parameter (e.g. ammonia-only) would only add empty duplicate timestamps
     const row = { timestamp: m.recordedAt.toISOString(), qc_flyover_window: !!m.provenance?.qcFlags?.includes('datetime:flyover_window') };
     for (const v of m.values) if (FROM_API[v.parameter]) row[`${FROM_API[v.parameter]}_clean`] = v.value;
     return row;

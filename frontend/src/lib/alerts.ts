@@ -4,7 +4,9 @@ import type { Alert, Rule } from './api/schemas';
 import { DEFAULT_UNIT, PARAM_LABEL, formatValue, horizonLabel, unitLabel } from './format';
 
 export const ALERT_PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
-export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer };
+/** Measured and shown, but with no alert limits (see the backend risk rules): they never raise or clear an alert. */
+export const CHEMISTRY_PARAMETERS = ['ammonia', 'nitrate', 'turbidity'] as const;
+export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer, ammonia: Flask, nitrate: Flask, turbidity: Drop };
 
 export const directionLabel = (d?: 'low' | 'high') => (d === 'low' ? 'Low' : d === 'high' ? 'High' : '');
 

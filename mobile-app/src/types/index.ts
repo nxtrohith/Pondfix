@@ -3,6 +3,18 @@
 export type Parameter = 'dissolved_oxygen' | 'ph' | 'temperature';
 export const PARAMETERS: readonly Parameter[] = ['dissolved_oxygen', 'ph', 'temperature'];
 
+/** Water chemistry shown for information only: no alert limits, no forecast, and never part of a pond's status. */
+export type ChemistryParameter = 'ammonia' | 'nitrate' | 'turbidity';
+export const CHEMISTRY_PARAMETERS: readonly ChemistryParameter[] = ['ammonia', 'nitrate', 'turbidity'];
+export interface ChemistryReading {
+  parameter: ChemistryParameter;
+  /** Latest value; null when the backend has none. */
+  latest: { value: number; recordedAt: string } | null;
+  /** Where the value came from (`simulated` for demo data), exactly as the backend reports it. */
+  source: string | null;
+  series: SeriesPoint[];
+}
+
 /** Status of one water-quality parameter. UNAVAILABLE and STALE are never treated as healthy. */
 export type ParameterStatus = 'NORMAL' | 'WARNING' | 'CRITICAL' | 'STALE' | 'UNAVAILABLE';
 /** Overall pond status. INCOMPLETE = some parameter has no current reading (not healthy). NO_DATA = no readings at all. */

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { validationError } from './errors.js';
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level'];
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'];
 export const SOURCES = ['historical', 'simulated', 'live'];
 
 /** Parse with zod and turn failures into a 422 with per-field details (no input echo of secrets). */

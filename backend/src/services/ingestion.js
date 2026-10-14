@@ -4,7 +4,7 @@ import { ObjectId } from 'mongodb';
 import { parse } from '../utils/params.js';
 import { measurementInput, valueInput } from '../validators/measurement.js';
 import { parseObjectId } from '../utils/http.js';
-import { validationError, notFound } from '../utils/errors.js';
+import { validationError, notFound, ApiError } from '../utils/errors.js';
 import { classify, observedMessage } from './risk.js';
 import { applyReading } from './alerts.js';
 import { runInference } from './inference.js';
@@ -38,6 +38,8 @@ export async function ingestMeasurement({ db, ml, config, events, log = () => {}
 
   const pond = await db.collection('ponds').findOne({ _id: pondId });
   if (!pond) throw notFound('pond not found');
+  // A pond set to "Server" takes simulated readings only; hardware readings would mix real and synthetic data in one series.
+  if (input.source === 'live' && pond.dataSource === 'simulator') throw new ApiError(409, 'DATA_SOURCE_MISMATCH', 'this pond is set to the Server (simulated) data source; switch it to Sensor before sending live sensor readings');
 
   // Persist (idempotent when the caller supplies an idempotencyKey)
   const dedupKey = input.idempotencyKey ? `api:${pondId}:${input.idempotencyKey}` : undefined;

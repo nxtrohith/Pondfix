@@ -42,3 +42,12 @@ test('missing and stale data are not healthy', () => {
   assert.equal(pondRiskStatus({ value: 1.5, recordedAt: new Date('2026-03-01T11:59:00Z') }, now, 60), 'CRITICAL');
   assert.deepEqual(dataState(null, now, 60), { state: 'NO_DATA', ageMinutes: null });
 });
+
+test('ammonia, nitrate and turbidity have no alert limits: always UNKNOWN, never NORMAL and never an alert', async () => {
+  const { classify, RULE_PARAMETERS } = await import('../../src/services/risk.js');
+  for (const p of ['ammonia', 'nitrate', 'turbidity']) {
+    assert.ok(!RULE_PARAMETERS.includes(p));
+    assert.equal(classify(p, 0.001).status, 'UNKNOWN');
+    assert.equal(classify(p, 999).status, 'UNKNOWN');
+  }
+});

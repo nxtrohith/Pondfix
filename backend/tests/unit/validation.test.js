@@ -44,3 +44,12 @@ test('object id and cursor helpers', () => {
   const c = decodeCursor(encodeCursor(d, id)); assert.equal(+c.date, +d); assert.equal(String(c.id), String(id));
   assert.throws(() => decodeCursor('garbage'), /cursor/);
 });
+
+test('water-chemistry parameters (ammonia, nitrate, turbidity) validate with canonical units and physical bounds', () => {
+  const r = ok({ source: 'simulated', values: [{ parameter: 'ammonia', value: 0.2, unit: 'mg/l' }, { parameter: 'nitrate', value: 12 }, { parameter: 'turbidity', value: 30, unit: 'ntu' }] });
+  assert.ok(r.success); assert.deepEqual(r.data.values.map((v) => v.unit), ['mg/L', 'mg/L', 'NTU']);
+  assert.ok(!ok({ values: [{ parameter: 'ammonia', value: -0.01 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'ammonia', value: 21 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'turbidity', value: 5, unit: 'mg/L' }] }).success);
+  assert.ok(ok({ values: ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'].map((parameter) => ({ parameter, value: 1 })) }).success, 'all seven parameters in one reading');
+});

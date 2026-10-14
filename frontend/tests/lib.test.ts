@@ -139,3 +139,15 @@ describe('display time zone', () => {
     vi.unstubAllEnvs(); vi.resetModules();
   });
 });
+
+describe('water-chemistry parameters', () => {
+  it('have labels, decimals and units, and are recognised as parameters', async () => {
+    const { PARAM_LABEL, formatValue, DEFAULT_UNIT, isParameter } = await import('@/lib/format');
+    expect(PARAM_LABEL.ammonia).toBe('Ammonia');
+    expect(formatValue(0.12345, 'ammonia')).toBe('0.123');
+    expect(formatValue(12.345, 'nitrate')).toBe('12.35');
+    expect(formatValue(31.26, 'turbidity', true, 'NTU')).toBe('31.3 NTU');
+    expect(DEFAULT_UNIT.turbidity).toBe('NTU');
+    expect(['ammonia', 'nitrate', 'turbidity'].every(isParameter)).toBe(true);
+  });
+});

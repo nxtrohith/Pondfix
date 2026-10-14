@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, CheckCircle } from '@phosphor-icons/react/dist/ssr';
 import { ApiError, serverApi } from '@/lib/api/client';
 import { toRow } from '@/lib/fleet';
-import { ALERT_PARAMETERS } from '@/lib/alerts';
+import { ALERT_PARAMETERS, CHEMISTRY_PARAMETERS } from '@/lib/alerts';
 import { formatDateTime } from '@/lib/format';
 import { POND_STATUS } from '@/lib/terms';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -17,6 +17,7 @@ import { WaterQualityCard } from '@/components/features/WaterQualityCard';
 import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
+import { DataSourceToggle } from '@/components/features/DataSourceToggle';
 import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
 
@@ -83,6 +84,14 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
           </Section>
         ) : null}
 
+        {summary && CHEMISTRY_PARAMETERS.some((p) => summary.parameters[p]) ? (
+          <Section id="chemistry" title="Other water chemistry" hint="Ammonia, nitrate and turbidity. No alert limits are set for these, so they never raise an alert.">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {CHEMISTRY_PARAMETERS.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} />)}
+            </div>
+          </Section>
+        ) : null}
+
         {row.latestAt && summary ? (
           <Section id="trends" title="Water quality over time">
             <MeasurementTrend ponds={[{ id: pond.id, name: row.pond.name, latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes }]} initialPondId={pond.id} rules={rules} allowPondChange={false} forecast={preds ?? undefined} title="Trends" />
@@ -100,6 +109,8 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
             : <AlertCardList alerts={past} compact />}
           <p className="text-[13px]"><Link href={`/alerts?pond=${pond.id}`} className="text-olive-text underline-offset-2 hover:underline">See every alert for this pond</Link></p>
         </Section>
+
+        <DataSourceToggle scope="pond" pondId={pond.id} pondName={row.pond.name} value={pond.dataSource ?? 'sensor'} />
 
         <SpeciesSettings pondId={pond.id} pondName={row.pond.name} initial={pond.speciesConfig} />
 

@@ -10,7 +10,9 @@ import { Field, Input, Select } from '../ui/Field';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/states';
 import { PondCard } from './PondCard';
+import { DataSourceToggle } from './DataSourceToggle';
 
+const allSame = (rows: FleetRow[]): 'sensor' | 'simulator' | 'mixed' => { const set = new Set(rows.map((r) => r.pond.dataSource ?? 'sensor')); return set.size === 1 ? [...set][0]! : 'mixed'; };
 const STATUS_FILTERS = ['ALL', 'CRITICAL', 'WARNING', 'NORMAL', 'STALE', 'NO_DATA'] as const;
 
 export function PondsDirectory({ rows, initialQuery = '' }: { rows: FleetRow[]; initialQuery?: string }) {
@@ -29,6 +31,7 @@ export function PondsDirectory({ rows, initialQuery = '' }: { rows: FleetRow[]; 
   return (
     <Card aria-labelledby="dir-title">
       <CardHeader id="dir-title" title="Your ponds" description={<span aria-live="polite">{filtered ? `${shown.length} of ${rows.length} ponds match` : `${rows.length} ponds`}</span>} />
+      {rows.length ? <div className="px-5 pt-4"><DataSourceToggle scope="all" value={allSame(rows)} /></div> : null}
       <form className="grid grid-cols-1 gap-3 px-5 pt-4 sm:grid-cols-[minmax(0,1fr)_180px_180px]" role="search" onSubmit={(e) => e.preventDefault()}>
         <Field label="Search ponds" hint="Name or identifier">
           {(id, d) => (

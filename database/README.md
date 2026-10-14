@@ -47,6 +47,12 @@ See `indexes/indexes.js` (each has a `purpose`). Highlights: `measurements(pondI
 - `scripts/import-fwi.js` (idempotent historical import, dry run by default) and `scripts/verify-import.js`; mapping in `../docs/DATASET_AND_MODEL.md`. `lib/connect.js` also exports `getDb()/closeDb()` for the backend; `lib/setup.js` holds the reusable init/index functions.
 - Re-run `npm run db:init -w database && npm run db:indexes -w database` on an existing deployment to apply the validator/index changes (collMod, no data touched).
 
+## Simulated water chemistry (demo only)
+`ammonia` (mg/L), `nitrate` (mg/L) and `turbidity` (NTU) are valid measurement parameters (bounds 0–20, 0–500, 0–1000). The historical CSVs do not contain them, so `scripts/generate-simulated-wq.js` derives them from each pond's real DO, pH and temperature (`lib/wq-simulator.js`: ammonia rises with feeding, warmth and low oxygen; nitrate accumulates slowly from ammonia; turbidity follows algae bloom plus rare rain spikes).
+- `npm run db:simulate-wq -- --dir <csv dir> [--offline] [--write]` (dry run by default; run the historical import first). One `source: "simulated"` measurement per historical row, `dedupKey` `sim:wq-sim-v1:<historical dedupKey>`, `provenance.simulation` links back. Re-running never duplicates or overwrites. Historical documents are never modified.
+- Deterministic per pond, so the same CSVs always give the same values. **Not measured data.** No alert limits exist for these parameters, so they never raise or clear an alert and are not part of any pond status. They are not used for model training or forecasting.
+- Re-run `npm run db:init` once on an existing deployment to update the validators (`collMod`).
+
 ## Open items
 - DO thresholds (CRITICAL < 2.0, WARNING < 3.0 mg/L) are implemented in the backend from the project's `ml/aquaguard_config.py`; they are project defaults, not validated species limits. pH/temperature/water level have none.
 - Historical import is implemented for the FWI CSVs (see above).

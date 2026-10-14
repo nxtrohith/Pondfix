@@ -1,7 +1,7 @@
 // Water-quality classification for the mobile app. Limits are the same PROVISIONAL general rules the backend applies
 // (backend/src/services/risk.js, RULES_VERSION demo-defaults-2026-10). They are not validated species limits.
 // Boundaries: a value exactly ON a limit is normal; strictly beyond a warning limit is WARNING; strictly beyond a critical limit is CRITICAL.
-import type { Parameter, ParameterReading, ParameterStatus, PondStatus } from '@/types';
+import type { ChemistryParameter, Parameter, ParameterReading, ParameterStatus, PondStatus } from '@/types';
 import { colors } from '@/constants/colors';
 
 export const STALE_AFTER_MINUTES = 60;
@@ -100,11 +100,16 @@ export const PARAMETER_SHORT: Record<Parameter, string> = { dissolved_oxygen: 'D
 export const PARAMETER_UNIT: Record<Parameter, string> = { dissolved_oxygen: 'mg/L', ph: 'pH', temperature: '°C' };
 
 /** Label/unit for any parameter name the backend may send. Unknown names are shown readable instead of failing. */
+export const CHEMISTRY_LABEL: Record<ChemistryParameter, string> = { ammonia: 'Ammonia', nitrate: 'Nitrate', turbidity: 'Turbidity' };
+export const CHEMISTRY_UNIT: Record<ChemistryParameter, string> = { ammonia: 'mg/L', nitrate: 'mg/L', turbidity: 'NTU' };
+
 export function parameterLabel(parameter: string): string {
   if (parameter in PARAMETER_LABEL) return PARAMETER_LABEL[parameter as Parameter];
+  if (parameter in CHEMISTRY_LABEL) return CHEMISTRY_LABEL[parameter as ChemistryParameter];
   const words = parameter.replace(/_/g, ' ').trim();
   return words ? words.charAt(0).toUpperCase() + words.slice(1) : 'Parameter';
 }
 export function parameterUnit(parameter: string): string {
+  if (parameter in CHEMISTRY_UNIT) return CHEMISTRY_UNIT[parameter as ChemistryParameter];
   return parameter in PARAMETER_UNIT ? PARAMETER_UNIT[parameter as Parameter] : '';
 }

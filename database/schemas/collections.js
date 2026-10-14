@@ -2,7 +2,7 @@
 // deliberately limited to structural and physically-impossible-value checks:
 // historical data outside a "preferred" range is never rejected here.
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level'];
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'];
 export const FIXTURE_TAG = 'aquaguard-demo-v1';
 
 const id = { bsonType: 'objectId' };
@@ -52,6 +52,8 @@ export const collections = {
         speciesProfileId: str({ minLength: 1 }), proportionPercent: { bsonType: ['double', 'int', 'long'], minimum: 0, maximum: 100 } } } },
       profileVersion: str({ description: 'Safety-profile version the species resolved to when it was saved.' }),
       speciesConfiguredAt: date,
+      dataSource: oneOfEnum(['sensor', 'simulator']),  // where this pond's readings come from; absent = sensor (set via PATCH /api/ponds/:id/data-source)
+      dataSourceChangedAt: date,
       sourceId: str({ minLength: 1, description: 'Identifier in the originating dataset (e.g. anonymised FWI pond id).' }),
       sourceDataset: str(),
       // Demo pond metadata (additive; absent on every real pond). `demo` holds the guided-scenario run state, see backend/src/services/demoPond.js.
@@ -80,6 +82,9 @@ export const collections = {
           reading('ph', 'pH', 0, 14),
           reading('temperature', 'C', -5, 60),
           reading('water_level', 'm', 0, 50),
+          reading('ammonia', 'mg/L', 0, 20),
+          reading('nitrate', 'mg/L', 0, 500),
+          reading('turbidity', 'NTU', 0, 1000),
         ] },
       },
       provenance: {
@@ -90,6 +95,8 @@ export const collections = {
           pondSourceId: str(), sourceTimestamp: str({ description: 'Timestamp text exactly as in the source.' }),
           sourceTimezone: str(), qcFlags: { bsonType: 'array', items: str() },
           dataQuality: { bsonType: 'array', items: str(), description: 'Import-time notes, e.g. zero_value_artifact:do (value omitted).' },
+          simulation: { bsonType: 'object', additionalProperties: false, description: 'Set only on demo-simulated water chemistry derived from a historical row.',
+            properties: { version: str(), derivedFrom: str({ description: 'dedupKey of the historical measurement the values were derived from.' }) } },
         },
       },
       dedupKey: str({ minLength: 1, description: 'Optional idempotency key (e.g. dataset row id). Unique when present.' }),

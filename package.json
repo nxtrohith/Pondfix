@@ -4,10 +4,12 @@
   "workspaces": [
     "database",
     "backend",
-    "frontend"
+    "frontend",
+    "simulator"
   ],
   "scripts": {
-    "test": "npm test -w backend && npm test -w database && npm test -w frontend",
+    "test": "npm test -w backend && npm test -w database && npm test -w frontend && npm test -w simulator",
+    "simulator": "npm start -w simulator",
     "start": "npm start -w backend",
     "dev:backend": "npm start -w backend",
     "dev:frontend": "npm run dev -w frontend",

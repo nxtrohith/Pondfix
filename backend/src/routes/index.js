@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler, parseObjectId } from '../utils/http.js';
-import { ApiError } from '../utils/errors.js';
+import { ApiError, validationError } from '../utils/errors.js';
 import { ingestMeasurement } from '../services/ingestion.js';
 import { listMeasurements, latestByParameter, pondSummary, listPredictions, listAlerts, requirePond, serializePond, serializeAlert, withPondNames } from '../services/queries.js';
 import { pondAnalytics, comparePonds } from '../services/analytics.js';
@@ -39,7 +39,7 @@ export function buildRouter(deps) {
     res.json({
       dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
       parameters, mode, version,
-      unclassifiedParameters: ['water_level'],
+      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity'], // measured and shown, but no alert limits are defined
       staleAfterMinutes: config.staleAfterMinutes,
       boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
       note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
@@ -54,6 +54,32 @@ export function buildRouter(deps) {
   }));
   // One call for the whole fleet: every pond's snapshot (see services/pondSync.js). Registered before /ponds/:id.
   r.get('/ponds/summaries', asyncHandler(async (req, res) => res.json(await allSnapshots(db, config, now()))));
+  // Where readings come from: "sensor" (hardware) or "simulator" (the simulator service). One pond, or every active pond at once.
+  const dataSourceBody = (body) => {
+    const v = body?.dataSource;
+    if (v !== 'sensor' && v !== 'simulator') throw validationError('request validation failed', [{ path: 'dataSource', message: 'must be "sensor" or "simulator"' }]);
+    return v;
+  };
+  const setDataSource = async (filter, dataSource) => {
+    const at = now();
+    try { await db.collection('ponds').updateMany(filter, { $set: { dataSource, dataSourceChangedAt: at, updatedAt: at } }); } catch (e) {
+      if (e?.code === 121) throw new ApiError(503, 'SCHEMA_OUTDATED', 'the database does not accept the dataSource field yet; run "npm run db:init -w database" to update the collection validators');
+      throw e;
+    }
+  };
+  r.patch('/ponds/data-source', asyncHandler(async (req, res) => {
+    const dataSource = dataSourceBody(req.body);
+    await setDataSource({ status: 'active' }, dataSource);
+    const ponds = await db.collection('ponds').find({ status: 'active' }).toArray();
+    for (const p of ponds) await publishPondUpdate({ db, config, events, now }, p._id);
+    res.json({ dataSource, updated: ponds.length });
+  }));
+  r.patch('/ponds/:id/data-source', asyncHandler(async (req, res) => {
+    const pond = await requirePond(db, req.params.id);
+    await setDataSource({ _id: pond._id }, dataSourceBody(req.body));
+    await publishPondUpdate({ db, config, events, now }, pond._id);
+    res.json(serializePond(await requirePond(db, req.params.id)));
+  }));
   r.get('/ponds/:id', asyncHandler(async (req, res) => res.json(serializePond(await requirePond(db, req.params.id)))));
   // Species catalogue and the status of each safety profile (reference ranges are context, not alert limits).
   r.get('/species-profiles', (req, res) => res.json(serializeCatalogue()));
