@@ -1,5 +1,5 @@
 /** @jest-environment node */
-// Opt-in end-to-end check of the REAL mobile services and reducers against a REAL running AquaGuard backend (no mocks):
+// Opt-in end-to-end check of the REAL mobile services and reducers against a REAL running PondFix backend (no mocks):
 // 17 ponds, readings through the actual ingestion path, live events, ordering, chart history, alerts, reconnect and species changes.
 //   1. start a backend on an ISOLATED database with demo endpoints on and 17 ponds (see mobile-app/README section "Live test")
 //   2. AQUAGUARD_E2E_FILE=/path/to/e2e.json npm run test:e2e      (file: {"base": "http://host:port", "ponds": [17 ids]})

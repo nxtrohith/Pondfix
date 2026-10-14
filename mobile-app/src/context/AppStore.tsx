@@ -1,5 +1,5 @@
 // Local, in-memory app preferences and the farmer profile. Ponds, readings and alerts are NOT here: they come from the backend (LiveData).
-// Every change here lives only in this session: nothing is sent to the AquaGuard API or stored on disk.
+// Every change here lives only in this session: nothing is sent to the PondFix API or stored on disk.
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { AlertSettings, FarmerProfile } from '@/types';
 import { DEFAULT_SETTINGS, DEMO_PROFILE } from '@/data/mockProfile';

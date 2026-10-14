@@ -1,4 +1,4 @@
-// Screen 9: change a pond's species. The species is saved to the AquaGuard server (PATCH /api/ponds/:id/species) and comes back to
+// Screen 9: change a pond's species. The species is saved to the PondFix server (PATCH /api/ponds/:id/species) and comes back to
 // every screen through the live pond updates. The server has no way to add ponds or change their name, area or notes, so those are not offered.
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

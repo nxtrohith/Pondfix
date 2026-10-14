@@ -1,6 +1,6 @@
 // Alert service. The backend decides whether an alert exists (backend/src/services/alerts.js); this file only fetches, validates and
 // subscribes to what it produced. There is deliberately no threshold or classification logic here.
-import type { AlertItem } from '@/types';
+import type { AlertAdvisory, AlertItem, DownstreamRisk } from '@/types';
 import { apiGet, apiPatch } from './api';
 
 type Raw = Record<string, unknown>;
@@ -8,6 +8,43 @@ const isObj = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const date = (v: unknown): string | null => { const s = str(v); return s && !Number.isNaN(Date.parse(s)) ? s : null; };
+
+const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length > 0) : []);
+
+/** Validates the advisor output. Anything malformed becomes null so the alert still renders without it. */
+export function normalizeAdvisory(input: unknown): AlertAdvisory | null {
+  if (!isObj(input)) return null;
+  const analysedBy = input.analysedBy === 'jev' || input.analysedBy === 'rules' ? input.analysedBy : null;
+  const notify = isObj(input.notify) ? input.notify : null;
+  const channel = notify && (notify.channel === 'in_app' || notify.channel === 'push' || notify.channel === 'sms') ? notify.channel : null;
+  if (!analysedBy || !channel || !Array.isArray(input.priorities)) return null;
+  const priorities = input.priorities.flatMap((p) => {
+    if (!isObj(p)) return [];
+    const parameter = str(p.parameter); const status: 'WARNING' | 'CRITICAL' | null = p.status === 'WARNING' || p.status === 'CRITICAL' ? p.status : null;
+    return parameter && status ? [{ parameter, status, urgency: num(p.jevUrgency) }] : [];
+  });
+  const sf = isObj(input.sensorFault) && num(input.sensorFault.probability) !== null ? { probability: num(input.sensorFault.probability)!, flagged: input.sensorFault.flagged === true } : null;
+  const fa = isObj(input.forecastActionable) && num(input.forecastActionable.probability) !== null ? { probability: num(input.forecastActionable.probability)!, actionable: input.forecastActionable.actionable === true } : null;
+  const sol = isObj(input.solution) ? input.solution : null;
+  const steps = sol ? strArr(sol.steps) : [];
+  const solution = sol && (sol.source === 'llm' || sol.source === 'rules') && str(sol.summary) && str(sol.verifyFirst) && steps.length
+    ? { source: sol.source as 'llm' | 'rules', summary: str(sol.summary)!, verifyFirst: str(sol.verifyFirst)!, steps } : null;
+  const guard = isObj(input.guard) ? input.guard : null;
+  const aiHeldBack = !!guard && guard.passed === false && solution?.source === 'rules' && strArr(guard.reasons).some((r) => !r.startsWith('llm failed'));
+  return { analysedBy, priorities, sensorFault: sf, relatedParameters: isObj(input.incident) ? strArr(input.incident.relatedParameters) : [], channel, forecastActionable: fa, solution, aiHeldBack, downstreamRisks: normalizeRisks(input.downstreamRisks) };
+}
+
+/** Validates the knock-on effects list; a malformed entry is dropped on its own. */
+export function normalizeRisks(input: unknown): DownstreamRisk[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((r) => {
+    if (!isObj(r)) return [];
+    const id = str(r.id); const from = str(r.from); const affects = str(r.affects); const effect = str(r.effect); const basis = str(r.basis);
+    const lead = Array.isArray(r.leadHours) && r.leadHours.length === 2 ? [num(r.leadHours[0]), num(r.leadHours[1])] : null;
+    if (!id || !from || !affects || !effect || !basis || !lead || lead[0] === null || lead[1] === null) return [];
+    return [{ id, from, affects, effect, basis, leadHours: [lead[0], lead[1]] as [number, number], precaution: str(r.precaution) }];
+  });
+}
 
 /** Validates one backend alert. Returns null for a malformed payload so one bad record can never crash the app. */
 export function normalizeAlert(input: unknown): AlertItem | null {
@@ -30,6 +67,7 @@ export function normalizeAlert(input: unknown): AlertItem | null {
     recommendedAction: str(input.recommendedAction) ?? '',
     resolvedAt: date(input.resolvedAt),
     acknowledgedAt: date(input.acknowledgedAt),
+    advisory: normalizeAdvisory(input.advisory),
   };
 }
 

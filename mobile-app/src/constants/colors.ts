@@ -1,4 +1,4 @@
-// Single source of colour for the app. Values come from the AquaGuard mobile design brief. Screens and components must use these
+// Single source of colour for the app. Values come from the PondFix mobile design brief. Screens and components must use these
 // semantic tokens, never raw HEX codes.
 // Palette from the design brief. Fills, icons and borders use the brief's colours (3:1 is enough for non-text).
 // Text on a pale surface uses a darker variant of the same hue (the "*Dark" tokens), so it meets WCAG AA 4.5:1.

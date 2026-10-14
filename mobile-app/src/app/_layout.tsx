@@ -5,7 +5,7 @@ import { LiveDataProvider } from '@/context/LiveData';
 import { colors } from '@/constants/colors';
 import { logger } from '@/lib/logger';
 
-logger.info('APP', `AquaGuard mobile starting (${__DEV__ ? 'development' : 'production'} mode)`);
+logger.info('APP', `PondFix mobile starting (${__DEV__ ? 'development' : 'production'} mode)`);
 
 export default function RootLayout() {
   return (

@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { AppState } from 'react-native';
 import { alertsReducer, initialAlertsState, type AlertsState } from '@/lib/alertState';
 import { initialPondsState, pondsReducer, type PondsState } from '@/lib/pondState';
-import { allReadings } from '@/lib/pondView';
+import { allChemistry, allReadings } from '@/lib/pondView';
 import { isNewerSnapshot } from '@/lib/pondState';
 import { logger } from '@/lib/logger';
 import { applyBackendRules } from '@/lib/status';
@@ -15,7 +15,7 @@ import { acknowledgeAlert as acknowledgeOnServer, getActiveAlerts, getAlertHisto
 import { getPondForecast, getPondHistory, getPondSummaries, getRiskRules, setPondSpecies, type PondForecast } from '@/services/ponds';
 import { pauseRealtime, resumeRealtime, subscribeToRealtime } from '@/services/realtime';
 import { API_CONFIGURED, API_CONFIG_ERROR, API_IS_LOOPBACK, API_LABEL } from '@/services/config';
-import type { ParameterReading, Pond } from '@/types';
+import type { ChemistryReading, ParameterReading, Pond } from '@/types';
 
 export interface AlertsStore extends AlertsState {
   refresh(): Promise<void>;
@@ -34,6 +34,8 @@ export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 export interface PondsStore {
   ponds: Pond[];
   readings: Record<string, ParameterReading[]>;
+  /** Ammonia, nitrate and turbidity per pond: information only, not part of status or alerts. */
+  chemistry: Record<string, ChemistryReading[]>;
   /** "Now" on the server's clock, advancing locally, used to age readings. Fixed in tests. */
   asOf: string;
   loadState: PondsState['loadState'];
@@ -177,6 +179,7 @@ export function LiveDataProvider({ children, live = true, initial, initialPonds,
   const alertsValue = useMemo<AlertsStore>(() => ({ ...alerts, refresh, acknowledge, markAllSeen, markSeen, configured: API_CONFIGURED || !live, configError: live ? API_CONFIG_ERROR : null, serverLabel: API_LABEL }), [alerts, refresh, acknowledge, markAllSeen, markSeen, live]);
 
   const readings = useMemo(() => allReadings(pondState), [pondState]);
+  const chemistry = useMemo(() => allChemistry(pondState), [pondState]);
   const asOf = fixedAsOf ?? new Date(nowMs + pondState.serverOffsetMs).toISOString();
   const ensureHistory = useCallback((pondId: string) => {
     if (!live) return;
@@ -193,10 +196,10 @@ export function LiveDataProvider({ children, live = true, initial, initialPonds,
   }, [refresh]);
 
   const pondsValue = useMemo<PondsStore>(() => ({
-    ponds: pondState.ponds, readings, asOf, loadState: pondState.loadState, lastUpdated: pondState.lastUpdated, staleAfterMinutes: pondState.staleAfterMinutes,
+    ponds: pondState.ponds, readings, chemistry, asOf, loadState: pondState.loadState, lastUpdated: pondState.lastUpdated, staleAfterMinutes: pondState.staleAfterMinutes,
     historyStatus: (id) => historyStatus[id] ?? (pondState.history[id] ? 'ready' : 'idle'),
     ensureHistory, forecast: (id) => forecasts[id] ?? { status: live ? 'idle' : 'ready', data: null }, ensureForecast, changeSpecies, refresh,
-  }), [pondState, readings, asOf, historyStatus, forecasts, live, ensureHistory, ensureForecast, changeSpecies, refresh]);
+  }), [pondState, readings, chemistry, asOf, historyStatus, forecasts, live, ensureHistory, ensureForecast, changeSpecies, refresh]);
 
   return <AlertsCtx.Provider value={alertsValue}><PondsCtx.Provider value={pondsValue}>{children}</PondsCtx.Provider></AlertsCtx.Provider>;
 }

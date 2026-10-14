@@ -19,9 +19,9 @@ const SYSTEM: Record<SystemState, { label: string; cls: string; Icon: typeof Che
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="AquaGuard overview">
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="PondFix overview">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-olive text-white" aria-hidden="true"><Drop size={18} weight="fill" /></span>
-      <span className={cx('text-[17px] font-medium tracking-tight text-ink', compact && 'md:hidden lg:inline')}>AquaGuard</span>
+      <span className={cx('text-[17px] font-medium tracking-tight text-ink', compact && 'md:hidden lg:inline')}>PondFix</span>
     </Link>
   );
 }
@@ -72,7 +72,7 @@ function SystemStatus({ system, rail }: { system: SystemState; rail?: boolean })
 function Topbar({ openAlerts, openAlertsMore, onMenu }: { openAlerts: number | null; openAlertsMore: boolean; onMenu: () => void }) {
   const pathname = usePathname();
   const { title, parent } = pageTitle(pathname);
-  const { refresh, refreshing } = useRefresh();
+  const { refresh, refreshing, liveStatus } = useRefresh();
   const countLabel = openAlerts === null ? 'Alert count unavailable' : `${openAlerts}${openAlertsMore ? '+' : ''} open alerts`;
   return (
     <header className="sticky top-0 z-[var(--z-nav)] flex h-14 items-center gap-3 border-b border-line bg-page/95 px-4 backdrop-blur-none md:px-6 lg:px-8">
@@ -91,6 +91,10 @@ function Topbar({ openAlerts, openAlertsMore, onMenu }: { openAlerts: number | n
         </div>
       </form>
       <div className="ml-auto flex items-center gap-1 sm:ml-0">
+        <span className={cx('mr-1 flex items-center gap-1.5 text-xs', liveStatus === 'live' ? 'text-olive-text' : 'text-ink-soft')} role="status" title={liveStatus === 'live' ? 'New readings appear automatically' : 'Live updates are not connected. Use Refresh.'}>
+          <span className={cx('size-2 rounded-full', liveStatus === 'live' ? 'bg-olive animate-pulse motion-reduce:animate-none' : 'bg-ink-soft/50')} aria-hidden="true" />
+          <span className="hidden sm:inline">{liveStatus === 'live' ? 'Live' : liveStatus === 'connecting' ? 'Connecting' : 'Offline'}</span>
+        </span>
         <Link href="/ponds" aria-label="Search ponds" className="flex size-9 items-center justify-center rounded-lg text-ink-soft hover:bg-surface sm:hidden"><MagnifyingGlass size={20} aria-hidden="true" /></Link>
         <button type="button" onClick={refresh} aria-label="Refresh data" title="Refresh data" className="flex size-9 items-center justify-center rounded-lg text-ink-soft hover:bg-surface hover:text-ink active:translate-y-px">
           <ArrowsClockwise size={20} aria-hidden="true" className={refreshing ? 'animate-spin motion-reduce:animate-none' : ''} />

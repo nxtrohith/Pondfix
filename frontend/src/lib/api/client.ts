@@ -66,7 +66,7 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     } catch {
       if (signal?.aborted) throw new ApiError('aborted', 'Request was cancelled');
       if (timedOut) throw new ApiError('timeout', `The API did not respond within ${Math.round(timeoutMs / 1000)} seconds`);
-      throw new ApiError('network', 'Could not reach the AquaGuard API. Check that the backend is running.');
+      throw new ApiError('network', 'Could not reach the PondFix API. Check that the backend is running.');
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
@@ -93,6 +93,8 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     pond: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}`, { schema: S.pondSchema, signal }),
     speciesProfiles: (signal?: AbortSignal) => request('/species-profiles', { schema: S.speciesCatalogueResponse, signal }),
     saveSpecies: (id: string, body: S.SpeciesRequest, signal?: AbortSignal) => request(`/ponds/${enc(id)}/species`, { schema: S.pondSchema, method: 'PATCH', body, signal }),
+    setDataSource: (id: string, dataSource: S.PondDataSource, signal?: AbortSignal) => request(`/ponds/${enc(id)}/data-source`, { schema: S.pondSchema, method: 'PATCH', body: { dataSource }, signal }),
+    setAllDataSource: (dataSource: S.PondDataSource, signal?: AbortSignal) => request('/ponds/data-source', { schema: S.setAllDataSourceResponse, method: 'PATCH', body: { dataSource }, signal }),
     pondSummary: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/summary`, { schema: S.pondSummarySchema, signal }),
     latest: (id: string, query?: { source?: S.DataSource }, signal?: AbortSignal) => request(`/ponds/${enc(id)}/measurements/latest`, { schema: S.latestResponse, query, signal }),
     measurements: (id: string, query: { from?: string; to?: string; parameter?: string; source?: string; limit?: number; cursor?: string }, signal?: AbortSignal) =>
@@ -104,6 +106,10 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     pondAlerts: (id: string, query: { status?: string; origin?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/alerts`, { schema: S.alertsResponse, query, signal }),
     acknowledgeAlert: (id: string, signal?: AbortSignal) => request(`/alerts/${enc(id)}/acknowledge`, { schema: S.ackResponse, method: 'PATCH', signal }),
+    downstreamRisks: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/downstream-risks`, { schema: S.downstreamRisksResponse, signal }),
+    whatIf: (body: Record<string, unknown>, signal?: AbortSignal) => request('/what-if', { schema: S.whatIfResponse, method: 'POST', body, signal }),
+    notes: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.notesResponse, query: { limit: 20 }, signal }),
+    addNote: (id: string, text: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.noteSchema, method: 'POST', body: { text }, signal }),
     analytics: (id: string, query: { parameter?: string; from?: string; to?: string; source?: string; bucket?: 'none' | 'hour' | 'day' }, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/analytics`, { schema: S.analyticsResponse, query, signal }),
     compare: (query: { parameter?: string; from?: string; to?: string; pondIds?: string }, signal?: AbortSignal) => request('/analytics/compare', { schema: S.compareResponse, query, signal }),

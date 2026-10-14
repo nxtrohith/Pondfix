@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, CheckCircle } from '@phosphor-icons/react/dist/ssr';
 import { ApiError, serverApi } from '@/lib/api/client';
 import { toRow } from '@/lib/fleet';
-import { ALERT_PARAMETERS } from '@/lib/alerts';
+import { ALERT_PARAMETERS, CHEMISTRY_PARAMETERS } from '@/lib/alerts';
 import { formatDateTime } from '@/lib/format';
 import { POND_STATUS } from '@/lib/terms';
 import { PondScene } from '@/components/illustrations';
@@ -15,10 +15,15 @@ import { LastUpdated } from '@/components/ui/LastUpdated';
 import { ErrorState } from '@/components/ui/states';
 import { MeasurementTrend } from '@/components/features/MeasurementTrend';
 import { WaterQualityCard } from '@/components/features/WaterQualityCard';
+import { ChemistryPanel } from '@/components/features/ChemistryPanel';
+import { DownstreamRisks } from '@/components/features/DownstreamRisks';
+import { LinkedTrends } from '@/components/features/LinkedTrends';
 import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
+import { DataSourceToggle } from '@/components/features/DataSourceToggle';
 import { EquipmentDemoPanel } from '@/components/features/EquipmentDemoPanel';
+import { PondNotes } from '@/components/features/PondNotes';
 import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
 
@@ -47,8 +52,8 @@ export default async function PondDetailPage({ params, searchParams }: { params:
     if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound();
     return <Card><ErrorState server error={e} title="Could not load this pond" /></Card>;
   }
-  const [summaryR, predsR, openR, pastR, rulesR] = await Promise.allSettled([
-    api.pondSummary(id), api.predictions(id), api.pondAlerts(id, { status: 'OPEN', origin: 'observed', limit: 20 }), api.pondAlerts(id, { status: 'RESOLVED', limit: 5 }), api.riskRules(),
+  const [summaryR, predsR, openR, pastR, rulesR, downstreamR] = await Promise.allSettled([
+    api.pondSummary(id), api.predictions(id), api.pondAlerts(id, { status: 'OPEN', origin: 'observed', limit: 20 }), api.pondAlerts(id, { status: 'RESOLVED', limit: 5 }), api.riskRules(), api.downstreamRisks(id),
   ]);
   const summary = summaryR.status === 'fulfilled' ? summaryR.value : null;
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
@@ -82,6 +87,8 @@ export default async function PondDetailPage({ params, searchParams }: { params:
 
         {showEquipmentDemo ? <EquipmentDemoPanel /> : null}
 
+        <PondNotes pondId={pond.id} />
+
         {summary ? (
           <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -90,9 +97,27 @@ export default async function PondDetailPage({ params, searchParams }: { params:
           </Section>
         ) : null}
 
+        {downstreamR.status === 'fulfilled' && summary ? (
+          <Section id="watch" title="What to watch for" hint="If one reading is moving, it can push another. These are rules of thumb from the latest readings, not measurements, and they never raise an alert.">
+            <DownstreamRisks risks={downstreamR.value.risks} />
+          </Section>
+        ) : null}
+
+        {summary && CHEMISTRY_PARAMETERS.some((p) => summary.parameters[p]) ? (
+          <Section id="chemistry" title="Other water chemistry" hint="No alert limits are set for these, so they never raise an alert or change the pond status. Test data and calculated values are labelled.">
+            <ChemistryPanel readings={summary.parameters} />
+          </Section>
+        ) : null}
+
         {row.latestAt && summary ? (
           <Section id="trends" title="Water quality over time">
             <MeasurementTrend ponds={[{ id: pond.id, name: row.pond.name, latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes }]} initialPondId={pond.id} rules={rules} allowPondChange={false} forecast={preds ?? undefined} title="Trends" />
+          </Section>
+        ) : null}
+
+        {row.latestAt && summary ? (
+          <Section id="together" title="How readings move together" hint="Pick up to four readings and compare them on one time axis, for example temperature, oxygen and ammonia.">
+            <LinkedTrends pondId={pond.id} latestAt={row.latestAt} rules={rules} />
           </Section>
         ) : null}
 
@@ -107,6 +132,8 @@ export default async function PondDetailPage({ params, searchParams }: { params:
             : <AlertCardList alerts={past} compact />}
           <p className="text-[13px]"><Link href={`/alerts?pond=${pond.id}`} className="text-olive-text underline-offset-2 hover:underline">See every alert for this pond</Link></p>
         </Section>
+
+        <DataSourceToggle scope="pond" pondId={pond.id} pondName={row.pond.name} value={pond.dataSource ?? 'sensor'} />
 
         <SpeciesSettings pondId={pond.id} pondName={row.pond.name} initial={pond.speciesConfig} />
 

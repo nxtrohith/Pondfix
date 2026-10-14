@@ -6,7 +6,7 @@ import { AppShell, type SystemState } from '@/components/shell/AppShell';
 import { serverApi } from '@/lib/api/client';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: { default: 'AquaGuard', template: '%s | AquaGuard' }, description: 'Pond water-quality monitoring, forecasts and alerts.' };
+export const metadata: Metadata = { title: { default: 'PondFix', template: '%s | PondFix' }, description: 'Pond water-quality monitoring, forecasts and alerts.' };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#F8F7F2' };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

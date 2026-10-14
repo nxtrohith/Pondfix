@@ -36,8 +36,10 @@ function ensureSocket(): Socket | null {
   const s = io(API_ORIGIN, { transports: ['websocket', 'polling'], autoConnect: false, reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10_000, timeout: 8000 });
   s.on('connect', () => { failedAttempts = 0; logger.info('SOCKET', `connected to ${API_ORIGIN} via ${s.io.engine?.transport?.name ?? '?'}`); emitStatus('connected'); subscribers.forEach((sub) => sub.onSync()); });
   s.on('disconnect', (reason) => {
-    logger.warn('SOCKET', `disconnected: ${reason}`);
-    emitStatus(reason === 'io client disconnect' ? 'disconnected' : 'reconnecting');
+    // 'io client disconnect' is our own disconnect() (backgrounding / last unsubscribe), not a fault.
+    const intentional = reason === 'io client disconnect';
+    (intentional ? logger.info : logger.warn)('SOCKET', `disconnected: ${reason}`);
+    emitStatus(intentional ? 'disconnected' : 'reconnecting');
   });
   s.on('connect_error', (err) => {
     failedAttempts += 1;

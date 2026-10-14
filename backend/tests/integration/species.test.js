@@ -24,7 +24,7 @@ const send = (pond, value, extra) => env.post('/api/measurements', doReading(pon
 
 test('catalogue endpoint lists every species with its safety-profile status', async () => {
   const r = await env.get('/api/species-profiles');
-  assert.equal(r.status, 200); assert.equal(r.body.items.length, 8);
+  assert.equal(r.status, 200); assert.equal(r.body.items.length, 10);
   const by = Object.fromEntries(r.body.items.map((s) => [s.id, s.safetyProfile.status]));
   assert.equal(by.rohu, 'validated'); assert.equal(by.catla, 'reference_only'); assert.equal(by.pangasius, 'not_validated'); assert.equal(by.other, 'not_validated');
 });

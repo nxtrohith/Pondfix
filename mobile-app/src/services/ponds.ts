@@ -115,7 +115,7 @@ export async function getPondSummaries(): Promise<FleetSnapshot> {
 }
 
 export type SeriesByParameter = Record<string, SeriesPoint[]>;
-const HISTORY_LIMIT = 400; // newest measurements first (about 8 days at 15-minute spacing); a smaller page keeps opening a pond fast on a phone
+const HISTORY_LIMIT = 800; // newest measurements first. Simulated water chemistry is stored as its own measurement per reading, so this is 400 readings of the core parameters (about 4 days at 15-minute spacing) plus 400 of chemistry
 
 /** Newest measurements of a pond folded into one chronological series per parameter. Missing values stay missing. */
 export async function getPondHistory(pondId: string): Promise<SeriesByParameter> {

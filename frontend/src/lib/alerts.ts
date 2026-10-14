@@ -4,7 +4,21 @@ import type { Alert, Rule } from './api/schemas';
 import { DEFAULT_UNIT, PARAM_LABEL, formatValue, horizonLabel, unitLabel } from './format';
 
 export const ALERT_PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
-export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer };
+/** Measured and shown, but with no alert limits (see the backend risk rules): they never raise or clear an alert. */
+export const CHEMISTRY_PARAMETERS = ['ammonia', 'un_ionized_ammonia', 'nitrite', 'nitrate', 'alkalinity', 'salinity', 'turbidity'] as const;
+/** Values the backend calculates from other readings (not a sensor): shown as "Calculated". */
+export const DERIVED_PARAMETERS: readonly string[] = ['un_ionized_ammonia'];
+/** One line on why each chemistry value matters, shown under its name. */
+export const CHEMISTRY_HINT: Record<string, string> = {
+  ammonia: 'Waste from feed and stock. Harmful when high.',
+  un_ionized_ammonia: 'The toxic part of ammonia. Rises with pH and warmth.',
+  nitrite: 'Builds up when oxygen is low. Harmful to stock.',
+  nitrate: 'End product of the cycle. Builds up slowly.',
+  alkalinity: 'Holds pH steady. Low alkalinity means bigger pH swings.',
+  salinity: 'Falls with rain, rises as water evaporates.',
+  turbidity: 'Cloudiness from algae, silt or rain.',
+};
+export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer, ammonia: Flask, nitrate: Flask, turbidity: Drop, un_ionized_ammonia: Flask, nitrite: Flask, alkalinity: Flask, salinity: Drop };
 
 export const directionLabel = (d?: 'low' | 'high') => (d === 'low' ? 'Low' : d === 'high' ? 'High' : '');
 

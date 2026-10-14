@@ -41,7 +41,7 @@ export const SPECIES: SpeciesProfile[] = [
   {
     id: 'other', displayName: 'Other / custom', scientificName: null, cultureLabel: 'Custom', validation: 'not_validated', requiresCustomName: true,
     preferred: {},
-    care: 'A custom species has no safety profile in AquaGuard, so only the general safety rules apply.',
+    care: 'A custom species has no safety profile in PondFix, so only the general safety rules apply.',
   },
 ];
 

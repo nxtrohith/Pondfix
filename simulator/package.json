@@ -1,0 +1,14 @@
+{
+  "name": "aquaguard-simulator",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic sensor data for ponds whose data source is set to Server (no ML)",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:anom": "SIM_ANOMALIES=1 node src/index.js",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

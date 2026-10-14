@@ -130,6 +130,8 @@ export interface SlotAssignment { slots: (FleetRow | null)[]; shown: number; tot
  */
 export function assignSlots(rows: FleetRow[], capacity = FARM_POND_COUNT): SlotAssignment {
   const sorted = [...rows].sort((a, b) => {
+    // The demo pond (simulated data) always goes last, so it can never push a real pond out of its slot.
+    if (!!a.pond.isDemo !== !!b.pond.isDemo) return a.pond.isDemo ? 1 : -1;
     const aKey = a.pond.sourceId ?? a.pond.name;
     const bKey = b.pond.sourceId ?? b.pond.name;
     const cmp = aKey.localeCompare(bKey, undefined, { numeric: true });

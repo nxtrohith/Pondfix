@@ -1,4 +1,4 @@
-# AquaGuard backend
+# PondFix backend
 
 Node.js + Express REST API, the single source of truth for measurements, predictions, risk classification and alerts. MongoDB Atlas is the store (via the shared `database/lib/connect.js`); the existing Python model runs in a child process. No auth/roles: one farmer, many ponds (see *Security*).
 
@@ -112,3 +112,23 @@ and every request is safely repeatable. Code: `src/services/replay.js`; tests: `
 Rules, validation and defaults are documented in the root README ([Risk rules and alert lifecycle](../README.md#risk-rules-and-alert-lifecycle)). Implementation: `src/services/risk.js` (rules, `classify`, `loadRiskRules`, `observedMessage`, `pondOverallStatus`), `src/services/alerts.js` (`applyCondition`, `applyReading`: one open alert per pond, parameter, side and source) and `src/services/ingestion.js` (per-parameter newest-reading check, partial acceptance with `rejectedValues`). No database schema change: the alert side is derived as `direction` (`low` or `high`) from the stored trigger value and limit. Tests: `tests/unit/rules.test.js`, `tests/integration/alerts-multi.test.js`.
 
 `GET /api/ponds/:id/predictions` items include `risk` (`NORMAL`, `WARNING`, `CRITICAL`) and `direction` (`low` or `high`), classified by the backend's active rules at read time, so clients never apply thresholds to forecast values. Forecast *alerts* still exist for dissolved oxygen only.
+
+## Alert advisor: Jev + custom LLM (`src/services/ai/`)
+
+Off unless `JEV_API_KEY` is set (see `.env.example`). It listens to the alert bus and **never creates, resolves or re-grades an alert**; the rules in `risk.js` stay the only authority. Every failure falls back to the rule-based result and ingestion is never affected.
+
+For each new or escalated alert it computes facts in code (status, exceedance past the warning→critical band, trend, last 3 h of readings, other open alerts, recent farmer notes), then sends **one batch of independent questions to Jev** ([TypeSafe](https://docs.typesafe.ai/api), a fast classifier, bad at arithmetic, so no numbers are left to it):
+
+| Use | Jev question | Bounded by code (`policy.js`) |
+|---|---|---|
+| Priority | urgency score per parameter + "deal with first" | a CRITICAL parameter is never ranked below a WARNING one; Jev answers below 0.5 confidence are ignored, falling back to exceedance |
+| Sensor fault | P(reading is a malfunction) | ≥ 0.7 flags it and asks the farmer to verify the sensor; the alert stays open |
+| Incident grouping | P(same cause) vs each other open alert | ≥ 0.7 shares an `incidentId` |
+| Notification | urgency score | recommendation only (`in_app｜push｜sms`); observed CRITICAL ≥ push, forecasts ≤ push, suspected sensor faults ≤ push. Nothing is sent. |
+| Forecast triage | P(forecast worth acting on) | informational |
+
+For an **observed CRITICAL** alert the Jev analysis is then fed to the custom LLM (`LLM_ENDPOINT_URL`, OpenAI-compatible chat completions) for a short solution as JSON. A second Jev call **guards** that advice (implies "safe"? invents doses/products? contradicts the priority?). A failed or unavailable guard, invalid JSON, or an LLM error replaces it with the generic `guidance.js` text. The result is stored as `alert.advisory` (also `incidentId`) and announced as `alert:updated`; `advisory.solution.source` says `llm` or `rules`.
+
+**Farmer notes**: `POST /api/ponds/:id/notes {text}` (3–500 chars) and `GET /api/ponds/:id/notes`. Jev classifies the text (category, distress probability, severity); notes feed the advisor as untrusted data and never create alerts.
+
+Operations: run `npm run db:init -w database && npm run db:indexes -w database` once (adds `alerts.advisory`, `alerts.incidentId`, the `farmerNotes` collection). Pin `JEV_MODEL` to a tested version before production and evaluate the thresholds in `policy.js` on labelled ponds; they are starting values. pH/temperature limits remain provisional demo values, so the LLM is told never to call them validated. Tests: `tests/unit/ai-policy.test.js`, `tests/integration/ai-advisor.test.js` (fake Jev/LLM, no network).

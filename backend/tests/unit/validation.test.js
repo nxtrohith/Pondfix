@@ -44,3 +44,20 @@ test('object id and cursor helpers', () => {
   const c = decodeCursor(encodeCursor(d, id)); assert.equal(+c.date, +d); assert.equal(String(c.id), String(id));
   assert.throws(() => decodeCursor('garbage'), /cursor/);
 });
+
+test('water-chemistry parameters (ammonia, nitrate, turbidity) validate with canonical units and physical bounds', () => {
+  const r = ok({ source: 'simulated', values: [{ parameter: 'ammonia', value: 0.2, unit: 'mg/l' }, { parameter: 'nitrate', value: 12 }, { parameter: 'turbidity', value: 30, unit: 'ntu' }] });
+  assert.ok(r.success); assert.deepEqual(r.data.values.map((v) => v.unit), ['mg/L', 'mg/L', 'NTU']);
+  assert.ok(!ok({ values: [{ parameter: 'ammonia', value: -0.01 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'ammonia', value: 21 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'turbidity', value: 5, unit: 'mg/L' }] }).success);
+  assert.ok(ok({ values: ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'].map((parameter) => ({ parameter, value: 1 })) }).success, 'all eleven parameters in one reading');
+});
+
+test('nitrite, alkalinity, salinity and un-ionized ammonia validate with canonical units and physical bounds', () => {
+  const r = ok({ source: 'simulated', values: [{ parameter: 'nitrite', value: 0.05 }, { parameter: 'alkalinity', value: 110, unit: 'mg/l' }, { parameter: 'salinity', value: 12, unit: 'PPT' }, { parameter: 'un_ionized_ammonia', value: 0.01 }] });
+  assert.ok(r.success); assert.deepEqual(r.data.values.map((v) => v.unit), ['mg/L', 'mg/L', 'ppt', 'mg/L']);
+  assert.ok(!ok({ values: [{ parameter: 'salinity', value: 51 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'nitrite', value: -1 }] }).success);
+  assert.ok(!ok({ values: [{ parameter: 'salinity', value: 5, unit: 'mg/L' }] }).success);
+});

@@ -9,7 +9,7 @@ const withPolicies = (fn) => async () => { setActiveRules(loadRiskRules({})); se
 const problems = (body) => { try { buildSpeciesUpdate(body); return null; } catch (e) { return e; } };
 
 test('catalogue: stable ids, display and scientific names kept apart, fish/shrimp labelled', () => {
-  assert.deepEqual(SPECIES_IDS, ['rohu', 'catla', 'mrigal', 'vannamei', 'pangasius', 'common_carp', 'grass_carp', 'other']);
+  assert.deepEqual(SPECIES_IDS, ['rohu', 'catla', 'mrigal', 'vannamei', 'tilapia', 'walking_catfish', 'pangasius', 'common_carp', 'grass_carp', 'other']);
   assert.equal(getSpecies('rohu').scientificName, 'Labeo rohita');
   assert.equal(getSpecies('pangasius').scientificName, null);
   assert.equal(getSpecies('pangasius').scientificNameStatus, 'to_be_configured');
@@ -146,4 +146,21 @@ test('an invalid species policy file stops startup instead of being ignored', as
     assert.throws(() => loadConfig({ AQUAGUARD_SPECIES_POLICIES: f }), /cannot be read as JSON/);
     assert.equal(loadConfig({}).speciesPolicies.version, null, 'no file: no species is validated');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('polyculture compatibility: high saves, conditional/unverified need acknowledgement, avoid is blocked', () => {
+  const body = (ids, extra = {}) => ({ mode: 'polyculture', species: ids.map((speciesProfileId) => ({ speciesProfileId })), ...extra });
+  assert.equal(problems(body(['rohu', 'catla', 'mrigal'])), null, 'composite carp culture');
+  const cond = problems(body(['rohu', 'tilapia']));
+  assert.equal(cond.code, 'COMPATIBILITY_ACKNOWLEDGEMENT_REQUIRED'); assert.equal(cond.status, 409);
+  assert.match(cond.details[0].message, /reproduction/);
+  assert.equal(problems(body(['rohu', 'tilapia'], { acknowledgeWarnings: true })), null);
+  assert.equal(problems(body(['pangasius', 'rohu'])).code, 'COMPATIBILITY_ACKNOWLEDGEMENT_REQUIRED', 'pangasius + carp unverified');
+  assert.equal(problems(body(['common_carp', 'rohu'])).code, 'COMPATIBILITY_ACKNOWLEDGEMENT_REQUIRED', 'not in matrix = unverified');
+  const avoid = problems(body(['walking_catfish', 'rohu'], { acknowledgeWarnings: true }));
+  assert.equal(avoid.code, 'INCOMPATIBLE_SPECIES', 'acknowledgement cannot override avoid');
+  assert.equal(problems(body(['walking_catfish', 'rohu'], { acknowledgeWarnings: true, largerFishConfirmed: true })), null, 'larger fish = conditional');
+  assert.equal(problems(body(['walking_catfish', 'rohu'], { largerFishConfirmed: true })).code, 'COMPATIBILITY_ACKNOWLEDGEMENT_REQUIRED');
+  assert.equal(problems({ mode: 'single', speciesProfileId: 'rohu', acknowledgeWarnings: true }).status, 422);
+  assert.ok(serializeCatalogue().compatibility.items.some((i) => i.a === 'rohu' && i.b === 'catla' && i.level === 'high'));
 });

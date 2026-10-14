@@ -7,6 +7,7 @@ import { RULE_SCOPE_LABEL, rangeText, REFERENCE_KIND } from '@/lib/species';
 import { ALERT_STATE_TEXT, alertKind, describeForecastProblem, describeProblem, guidanceFor, levelText } from '@/lib/terms';
 import { ActionGuide } from '../illustrations/ActionGuide';
 import { Button } from '../ui/Button';
+import { AlertAdvisory } from './AlertAdvisory';
 import { SourceBadge } from '../ui/StatusPill';
 import { cx } from '../ui/cx';
 
@@ -64,6 +65,7 @@ export function AlertCard({ alert: a, pondName, onMarkSeen, busy, compact, showG
           <p className="min-w-0 text-[13px] text-ink">{a.recommendedAction ? 'Recommended next step' : 'What to check'}: {tip}</p>
         </div>
       ) : null}
+      <AlertAdvisory alert={a} />
       <section className="mt-2 text-[13px]" aria-label="Why this alert, and which limits">
         <div className="space-y-1.5">
           {!resolved && a.explanation ? <p className="text-ink-soft">{a.explanation}</p> : null}

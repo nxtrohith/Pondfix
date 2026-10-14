@@ -7,9 +7,16 @@ const UNITS = {
   ph: { canonical: 'pH', aliases: ['ph', 'ph units', 'pH units'] },
   temperature: { canonical: 'C', aliases: ['°C', 'c', 'celsius'] },
   water_level: { canonical: 'm', aliases: ['meter', 'meters', 'metre', 'metres'] },
+  ammonia: { canonical: 'mg/L', aliases: ['mg/l'] },
+  nitrate: { canonical: 'mg/L', aliases: ['mg/l'] },
+  turbidity: { canonical: 'NTU', aliases: ['ntu'] },
+  nitrite: { canonical: 'mg/L', aliases: ['mg/l'] },
+  alkalinity: { canonical: 'mg/L', aliases: ['mg/l', 'mg/L as CaCO3'] },
+  salinity: { canonical: 'ppt', aliases: ['PPT', 'g/kg'] },
+  un_ionized_ammonia: { canonical: 'mg/L', aliases: ['mg/l'] },
 };
 // Physically impossible bounds only (same as the database validator). Preferred operating ranges are risk rules, not validation.
-export const BOUNDS = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60], water_level: [0, 50] };
+export const BOUNDS = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60], water_level: [0, 50], ammonia: [0, 20], nitrate: [0, 500], turbidity: [0, 1000], nitrite: [0, 20], alkalinity: [0, 500], salinity: [0, 50], un_ionized_ammonia: [0, 5] };
 
 export const valueInput = z.object({
   parameter: z.enum(PARAMETERS),
@@ -28,7 +35,7 @@ export const measurementInput = z.object({
   pondId: z.string(),
   recordedAt: isoDateTime.optional(),
   source: z.enum(['live', 'simulated']).default('live'),
-  values: z.array(valueInput).min(1).max(4),
+  values: z.array(valueInput).min(1).max(12),
   idempotencyKey: z.string().trim().min(1).max(100).regex(/^[\w.:-]+$/, 'letters, digits and . _ : - only').optional(),
 }).strict().superRefine((m, ctx) => {
   const seen = new Set();

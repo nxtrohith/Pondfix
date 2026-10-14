@@ -101,12 +101,12 @@ describe('SpeciesSettings', () => {
   });
 
   it('shows a network failure as not saved', async () => {
-    api.saveSpecies.mockRejectedValue(new ApiError('network', 'Could not reach the AquaGuard API. Check that the backend is running.'));
+    api.saveSpecies.mockRejectedValue(new ApiError('network', 'Could not reach the PondFix API. Check that the backend is running.'));
     await open(UNSET);
     fireEvent.click(await screen.findByRole('button', { name: /Select species/ }));
     fireEvent.change(await screen.findByLabelText('Species'), { target: { value: 'rohu' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save species' }));
-    expect(await screen.findByText(/Could not reach the AquaGuard API/)).toBeInTheDocument();
+    expect(await screen.findByText(/Could not reach the PondFix API/)).toBeInTheDocument();
     expect(screen.queryByText(/^Saved\./)).toBeNull();
   });
 

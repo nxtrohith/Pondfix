@@ -1,4 +1,4 @@
-// Five destinations. The fourth is Species (an existing AquaGuard feature), not a placeholder community feature.
+// Five destinations. The fourth is Species (an existing PondFix feature), not a placeholder community feature.
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';

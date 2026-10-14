@@ -1,4 +1,4 @@
-// Screen 12: notification centre. Lists the alert activity the AquaGuard server has reported (open and resolved), newest first.
+// Screen 12: notification centre. Lists the alert activity the PondFix server has reported (open and resolved), newest first.
 // These are in-app items from the live alert feed; this app does not send push notifications.
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

@@ -12,10 +12,11 @@
 // `limits` uses the same keys and rules as AQUAGUARD_THRESHOLDS (validated by risk.validateRules). Invalid files stop startup.
 import fs from 'node:fs';
 import { getActiveRules, validateRules, UNITS } from './risk.js';
-import { badRequest, validationError } from '../utils/errors.js';
+import { ApiError, badRequest, validationError } from '../utils/errors.js';
+import { assessComposition, serializeCompatibility } from './speciesCompatibility.js';
 
 export const CULTURE_LABEL = Object.freeze({ freshwater_fish: 'Fish', shrimp: 'Shrimp', custom: 'Custom', polyculture: 'Polyculture' });
-const BRIEF = 'AquaGuard project brief (provisional reference range; not independently verified against aquaculture guidance)';
+const BRIEF = 'PondFix project brief (provisional reference range; not independently verified against aquaculture guidance)';
 const POND_FISH_PH = { min: 6.5, max: 8.5, kind: 'general_reference', source: BRIEF };
 const DO_TARGET = { min: 5, kind: 'operating_target', source: BRIEF };
 const temp = (min, max) => ({ min, max, kind: 'preferred_growth_range', source: BRIEF });
@@ -33,12 +34,14 @@ export const CATALOGUE = Object.freeze([
   {
     id: 'vannamei', displayName: 'Vannamei shrimp', scientificName: 'Litopenaeus vannamei', cultureType: 'shrimp',
     reference: { temperature: temp(28, 32), ph: { min: 7.5, max: 8.5, kind: 'general_reference', source: BRIEF }, dissolved_oxygen: { above: 4, kind: 'operating_target', source: BRIEF }, salinity: null },
-    notes: ['Salinity must be configured for the actual culture system; not every vannamei pond runs at marine salinity. AquaGuard has no salinity sensor, so salinity is not evaluated.', CARP_NOTE],
+    notes: ['Salinity must be configured for the actual culture system; not every vannamei pond runs at marine salinity. PondFix has no salinity sensor, so salinity is not evaluated.', CARP_NOTE],
   },
+  fish('tilapia', 'Tilapia', 'Oreochromis niloticus', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
+  fish('walking_catfish', 'Walking catfish', 'Clarias batrachus', {}, { notes: ['No reference ranges have been supplied for this species yet. Predatory towards small fish.'] }),
   fish('pangasius', 'Pangasius', null, {}, { scientificNameStatus: 'to_be_configured', notes: ['The exact Pangasius species still has to be configured, and no reference ranges have been supplied.'] }),
   fish('common_carp', 'Common carp', 'Cyprinus carpio', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
   fish('grass_carp', 'Grass carp', 'Ctenopharyngodon idella', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
-  { id: 'other', displayName: 'Other / custom', scientificName: null, cultureType: 'custom', reference: {}, custom: true, notes: ['A user-named species. AquaGuard has no safety profile for it, so only the general rules apply.'] },
+  { id: 'other', displayName: 'Other / custom', scientificName: null, cultureType: 'custom', reference: {}, custom: true, notes: ['A user-named species. PondFix has no safety profile for it, so only the general rules apply.'] },
 ]);
 const BY_ID = new Map(CATALOGUE.map((s) => [s.id, s]));
 export const SPECIES_IDS = Object.freeze(CATALOGUE.map((s) => s.id));
@@ -173,10 +176,12 @@ const CUSTOM_NAME = /^[\p{L}\p{N} .,'()\-\/]{1,80}$/u;
 export function buildSpeciesUpdate(body) {
   const issue = (path, message) => validationError('species configuration is invalid', [{ path, message }]);
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw badRequest('body must be a JSON object');
-  const allowed = new Set(['mode', 'speciesProfileId', 'customSpeciesName', 'species']);
+  const allowed = new Set(['mode', 'speciesProfileId', 'customSpeciesName', 'species', 'acknowledgeWarnings', 'largerFishConfirmed']);
   for (const k of Object.keys(body)) if (!allowed.has(k)) throw issue(k, 'unknown field');
   const ALL = ['cultureType', 'speciesProfileId', 'customSpeciesName', 'speciesComposition', 'profileVersion'];
   const unsetExcept = (keep) => Object.fromEntries(ALL.filter((k) => !keep.includes(k)).map((k) => [k, '']));
+  for (const f of ['acknowledgeWarnings', 'largerFishConfirmed']) if (body[f] !== undefined && typeof body[f] !== 'boolean') throw issue(f, 'must be true or false');
+  if (body.mode !== 'polyculture') for (const f of ['acknowledgeWarnings', 'largerFishConfirmed']) if (body[f] !== undefined) throw issue(f, 'only applies to a polyculture');
   if (body.mode === 'unconfigured') {
     if (Object.keys(body).length > 1) throw issue('mode', 'unconfigured takes no other fields');
     return { set: {}, unset: { ...unsetExcept([]), speciesConfiguredAt: '' } };
@@ -213,6 +218,11 @@ export function buildSpeciesUpdate(body) {
     });
     if (withShare !== 0 && withShare !== composition.length) throw issue('species', 'give a proportion for every species or for none; proportions are never assumed');
     if (withShare && Math.abs(total - 100) > 0.01) throw issue('species', `proportions must total 100% (currently ${Math.round(total * 100) / 100}%)`);
+    const verdict = assessComposition(composition.map((c) => c.speciesProfileId), { largerFishConfirmed: body.largerFishConfirmed === true });
+    const names = (id) => getSpecies(id).displayName;
+    const detail = verdict.pairs.map((p) => ({ species: [p.a, p.b], level: p.level, message: `${names(p.a)} + ${names(p.b)}: ${p.reason}` }));
+    if (verdict.level === 'avoid') throw new ApiError(422, 'INCOMPATIBLE_SPECIES', 'these species should not be stocked together in one pond', detail.filter((d) => d.level === 'avoid'));
+    if (verdict.level !== 'high' && body.acknowledgeWarnings !== true) throw new ApiError(409, 'COMPATIBILITY_ACKNOWLEDGEMENT_REQUIRED', 'this combination is conditional or unverified; review the risks and resend with acknowledgeWarnings: true to save', detail);
     const set = { cultureType: 'polyculture', speciesComposition: composition, profileVersion: composition.map((c) => `${c.speciesProfileId}@${profileVersionOf(c.speciesProfileId)}`).join(',') };
     return { set, unset: unsetExcept(Object.keys(set)) };
   }
@@ -237,6 +247,7 @@ export function serializeCatalogue() {
         reference: sp.reference, notes: sp.notes,
       };
     }),
+    compatibility: serializeCompatibility(SPECIES_IDS),
     policyVersion: active.version,
     note: 'Reference ranges are provisional context for the farmer. They are not warning or critical limits and never raise an alert by themselves.',
   };

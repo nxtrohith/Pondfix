@@ -12,6 +12,7 @@ import { AppButton } from '@/components/AppButton';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { EmptyState } from '@/components/StateViews';
 import { Panel } from '@/components/SectionHeader';
+import { AdvisoryPanel } from '@/components/AdvisoryPanel';
 import { alertTitle } from '@/components/AlertCard';
 import { formatDateTime, formatValue } from '@/lib/format';
 import { parameterLabel, parameterUnit } from '@/lib/status';
@@ -86,6 +87,8 @@ export default function AlertDetailScreen() {
           </View>
         </Panel>
       ) : null}
+
+      {alert.advisory && !resolved ? <AdvisoryPanel advisory={alert.advisory} /> : null}
 
       <Panel>
         <Text style={styles.heading}>Status</Text>

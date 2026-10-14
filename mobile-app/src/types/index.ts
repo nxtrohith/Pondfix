@@ -3,6 +3,20 @@
 export type Parameter = 'dissolved_oxygen' | 'ph' | 'temperature';
 export const PARAMETERS: readonly Parameter[] = ['dissolved_oxygen', 'ph', 'temperature'];
 
+/** Water chemistry shown for information only: no alert limits, no forecast, and never part of a pond's status. */
+export type ChemistryParameter = 'ammonia' | 'un_ionized_ammonia' | 'nitrite' | 'nitrate' | 'alkalinity' | 'salinity' | 'turbidity';
+export const CHEMISTRY_PARAMETERS: readonly ChemistryParameter[] = ['ammonia', 'un_ionized_ammonia', 'nitrite', 'nitrate', 'alkalinity', 'salinity', 'turbidity'];
+/** Values the backend calculates from other readings (not a sensor): shown as "Calculated". */
+export const DERIVED_CHEMISTRY: readonly ChemistryParameter[] = ['un_ionized_ammonia'];
+export interface ChemistryReading {
+  parameter: ChemistryParameter;
+  /** Latest value; null when the backend has none. */
+  latest: { value: number; recordedAt: string } | null;
+  /** Where the value came from (`simulated` for demo data), exactly as the backend reports it. */
+  source: string | null;
+  series: SeriesPoint[];
+}
+
 /** Status of one water-quality parameter. UNAVAILABLE and STALE are never treated as healthy. */
 export type ParameterStatus = 'NORMAL' | 'WARNING' | 'CRITICAL' | 'STALE' | 'UNAVAILABLE';
 /** Overall pond status. INCOMPLETE = some parameter has no current reading (not healthy). NO_DATA = no readings at all. */
@@ -55,7 +69,7 @@ export interface SpeciesProfile {
   requiresCustomName: boolean;
 }
 
-/** An alert exactly as the AquaGuard backend decided it. The app only presents these; it never creates or classifies them. */
+/** An alert exactly as the PondFix backend decided it. The app only presents these; it never creates or classifies them. */
 export interface AlertItem {
   id: string;
   pondId: string;
@@ -81,6 +95,41 @@ export interface AlertItem {
   raisedAt: string;
   resolvedAt: string | null;
   acknowledgedAt: string | null;
+  /** Backend alert advisor output (Jev analysis + guarded LLM solution); null when absent or malformed. Suggestions only. */
+  advisory?: AlertAdvisory | null;
+}
+
+export interface AlertAdvisory {
+  analysedBy: 'jev' | 'rules';
+  priorities: { parameter: string; status: 'WARNING' | 'CRITICAL'; urgency: number | null }[];
+  sensorFault: { probability: number; flagged: boolean } | null;
+  relatedParameters: string[];
+  channel: 'in_app' | 'push' | 'sms';
+  forecastActionable: { probability: number; actionable: boolean } | null;
+  solution: { source: 'llm' | 'rules'; summary: string; verifyFirst: string; steps: string[] } | null;
+  /** True when an AI-written answer was replaced by standard guidance because the safety check failed. */
+  aiHeldBack: boolean;
+  /** Rule-of-thumb knock-on effects the backend computed (information only). */
+  downstreamRisks: DownstreamRisk[];
+}
+
+/** "If this is moving, watch that": computed by the backend, never an alert and never part of a pond's status. */
+export interface DownstreamRisk {
+  id: string;
+  from: string;
+  affects: string;
+  effect: string;
+  leadHours: [number, number];
+  basis: string;
+  precaution: string | null;
+}
+
+export interface FarmerNote {
+  id: string;
+  text: string;
+  category: string;
+  distress: number | null;
+  createdAt: string;
 }
 
 export interface ForecastPoint { minutesAhead: 15 | 60 | 180; value: number }

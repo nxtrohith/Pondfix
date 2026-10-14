@@ -14,7 +14,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(method: 'GET' | 'PATCH', path: string, query?: Record<string, string | number | undefined>, body?: unknown): Promise<T> {
+export async function apiRequest<T>(method: 'GET' | 'PATCH' | 'POST', path: string, query?: Record<string, string | number | undefined>, body?: unknown): Promise<T> {
   if (!API_CONFIGURED) {
     logger.error('REST', `${method} ${path} not sent: ${API_CONFIG_ERROR ?? 'server address not set'}`);
     throw new ApiError(API_CONFIG_ERROR ?? 'The server address is not set.', 'not_configured');
@@ -52,3 +52,4 @@ export async function apiRequest<T>(method: 'GET' | 'PATCH', path: string, query
 
 export const apiGet = <T>(path: string, query?: Record<string, string | number | undefined>) => apiRequest<T>('GET', path, query);
 export const apiPatch = <T>(path: string, body?: unknown) => apiRequest<T>('PATCH', path, undefined, body);
+export const apiPost = <T>(path: string, body?: unknown) => apiRequest<T>('POST', path, undefined, body);

@@ -2,7 +2,7 @@
 // deliberately limited to structural and physically-impossible-value checks:
 // historical data outside a "preferred" range is never rejected here.
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level'];
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'];
 export const FIXTURE_TAG = 'aquaguard-demo-v1';
 
 const id = { bsonType: 'objectId' };
@@ -52,8 +52,18 @@ export const collections = {
         speciesProfileId: str({ minLength: 1 }), proportionPercent: { bsonType: ['double', 'int', 'long'], minimum: 0, maximum: 100 } } } },
       profileVersion: str({ description: 'Safety-profile version the species resolved to when it was saved.' }),
       speciesConfiguredAt: date,
+      dataSource: oneOfEnum(['sensor', 'simulator']),  // where this pond's readings come from; absent = sensor (set via PATCH /api/ponds/:id/data-source)
+      dataSourceChangedAt: date,
       sourceId: str({ minLength: 1, description: 'Identifier in the originating dataset (e.g. anonymised FWI pond id).' }),
       sourceDataset: str(),
+      // Demo pond metadata (additive; absent on every real pond). `demo` holds the guided-scenario run state, see backend/src/services/demoPond.js.
+      isDemo: { bsonType: 'bool', description: 'True only for the dedicated AquaGuard Demo Pond. Never set on real ponds.' },
+      demo: { bsonType: 'object', additionalProperties: false, properties: {
+        runId: str({ minLength: 1 }), status: oneOfEnum(['idle', 'running', 'complete']), stage: oneOfEnum(['A', 'B', 'C', 'D']),
+        revision: { bsonType: ['int', 'long', 'double'], minimum: 0 }, startedAt: date, updatedAt: date, lastEventAt: date,
+        history: { bsonType: 'array', maxItems: 16, items: { bsonType: 'object', additionalProperties: false, required: ['stage', 'at'], properties: {
+          stage: oneOfEnum(['A', 'B', 'C', 'D']), at: date, status: str(), expected: str(), matched: { bsonType: 'bool' }, actions: { bsonType: 'array', items: str() } } } },
+      } },
       status: oneOfEnum(['active', 'inactive', 'archived']),
       createdAt: date, updatedAt: date, fixtureTag,
     },
@@ -66,12 +76,19 @@ export const collections = {
       receivedAt: { ...date, description: 'Time the system received it (UTC).' },
       source: oneOfEnum(['historical', 'simulated', 'live']),
       values: {
-        bsonType: 'array', minItems: 1, maxItems: 8,
+        bsonType: 'array', minItems: 1, maxItems: 12,
         items: { anyOf: [
           reading('dissolved_oxygen', 'mg/L', 0, 50),
           reading('ph', 'pH', 0, 14),
           reading('temperature', 'C', -5, 60),
           reading('water_level', 'm', 0, 50),
+          reading('ammonia', 'mg/L', 0, 20),
+          reading('nitrate', 'mg/L', 0, 500),
+          reading('turbidity', 'NTU', 0, 1000),
+          reading('nitrite', 'mg/L', 0, 20),
+          reading('alkalinity', 'mg/L', 0, 500),
+          reading('salinity', 'ppt', 0, 50),
+          reading('un_ionized_ammonia', 'mg/L', 0, 5),
         ] },
       },
       provenance: {
@@ -82,9 +99,12 @@ export const collections = {
           pondSourceId: str(), sourceTimestamp: str({ description: 'Timestamp text exactly as in the source.' }),
           sourceTimezone: str(), qcFlags: { bsonType: 'array', items: str() },
           dataQuality: { bsonType: 'array', items: str(), description: 'Import-time notes, e.g. zero_value_artifact:do (value omitted).' },
+          simulation: { bsonType: 'object', additionalProperties: false, description: 'Set only on demo-simulated water chemistry derived from a historical row.',
+            properties: { version: str(), derivedFrom: str({ description: 'dedupKey of the historical measurement the values were derived from.' }) } },
         },
       },
       dedupKey: str({ minLength: 1, description: 'Optional idempotency key (e.g. dataset row id). Unique when present.' }),
+      demoRunId: str({ minLength: 1, description: 'Set only on readings produced by the guided demo scenario.' }),
       createdAt: date, fixtureTag,
     },
   },
@@ -121,8 +141,20 @@ export const collections = {
       // Snapshot of how the alert was last classified (so a later species change never rewrites it retroactively).
       ruleScope: oneOfEnum(['general', 'species']), rulesVersion: str(), speciesLabel: str(), speciesProfileId: str(), profileVersion: str(),
       referenceRange: { bsonType: 'object', properties: { min: { bsonType: ['double', 'int', 'long'] }, max: { bsonType: ['double', 'int', 'long'] }, above: { bsonType: ['double', 'int', 'long'] }, kind: str(), source: str(), unit: str() } },
+      // Written by the alert advisor (backend/src/services/ai): Jev priorities, sensor-fault flag, notify recommendation, guarded LLM solution.
+      advisory: { bsonType: 'object' }, incidentId: id,
       openKey: str({ description: 'pondId:origin:parameter while ACTIVE/ACKNOWLEDGED; $unset on RESOLVED. Unique-when-present => one open alert per condition.' }),
+      demoRunId: str({ minLength: 1, description: 'Set only on alerts opened by the guided demo scenario.' }),
       fixtureTag,
+    },
+  },
+  farmerNotes: {
+    required: ['pondId', 'text', 'category', 'createdAt'],
+    properties: {
+      _id: id, pondId: id, text: str({ minLength: 3, maxLength: 500 }),
+      category: oneOfEnum(['unclassified', 'low_oxygen_signs', 'disease_signs', 'feeding_change', 'water_appearance', 'equipment_issue', 'routine_normal', 'other']),
+      categoryConfidence: { bsonType: ['double', 'int'] }, distress: { bsonType: ['double', 'int'] }, severityScore: { bsonType: ['double', 'int'] },
+      classifiedBy: str(), createdAt: date, fixtureTag,
     },
   },
   notificationDeliveries: {

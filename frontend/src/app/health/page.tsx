@@ -29,7 +29,7 @@ export default async function HealthPage() {
   const api = serverApi();
   const { result: healthR, ms } = await timedHealth(api);
   const [fleetR, rulesR] = await Promise.allSettled([loadFleet(api), api.riskRules()]);
-  const header = <PageHeader title="System status" description="Is AquaGuard itself working? Shows whether the software, its database and the forecasting service are running. How your ponds are doing is on the Overview." />;
+  const header = <PageHeader title="System status" description="Is PondFix itself working? Shows whether the software, its database and the forecasting service are running. How your ponds are doing is on the Overview." />;
 
   const services: Svc[] = [];
   if (healthR.status === 'fulfilled') {

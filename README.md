@@ -1,524 +1,640 @@
-# AquaGuard
+# PondFix
 
-AquaGuard is an end-to-end early-warning and monitoring system for commercial aquaculture ponds. It continuously ingests water-quality telemetry, evaluates dissolved-oxygen (DO), pH, and water temperature risk, maintains a persistent alert lifecycle, and runs a machine-learning forecasting engine to predict conditions up to 3 hours ahead.
+**Early-warning monitoring for commercial aquaculture ponds.** PondFix ingests water-quality telemetry (dissolved oxygen, pH, temperature), classifies every reading against risk rules, keeps a persistent alert lifecycle, and forecasts conditions up to 3 hours ahead with a hash-pinned machine-learning model. Operators see it all in a web dashboard with a 3D digital twin of the farm, and in a mobile app.
 
-The system features an interactive **3D Digital Twin** of the pond farm, real-time fleet surveillance, read-only historical playback of 72,700+ observations, and standardized pond management across **Pond 1** through **Pond 17**.
+The system manages 17 ponds, **Pond 1** through **Pond 17**, and includes read-only replay of 72,750 historical observations from a Fish Welfare Initiative monitoring campaign.
 
-> [!NOTE]
-> **Implementation Status**
-> - **Completed & Verified:** MongoDB Atlas schema and indexes, historical data import pipeline, Express REST API, strict risk evaluation & alert engine, hash-verified Python scikit-learn forecasting worker, Next.js 16 / React 19 dashboard with Three.js 3D Digital Twin, historical pond replay, and standardized pond fleet naming.
-> - **Planned:** React Native mobile application, custom hardware sensor firmware, automated push/SMS notifications, and role-based authentication.
+> [!IMPORTANT]
+> PondFix is **not production-ready for public exposure**. It has no authentication, and the risk thresholds for pH and temperature are provisional demo values. Read [Security](#security) and [Known limitations](#known-limitations) before using it with real fish.
 
 ---
 
-## Table of Contents
+## Contents
 
-- [Key Capabilities](#key-capabilities)
-- [System Architecture](#system-architecture)
-- [Repository Layout](#repository-layout)
-- [Quick Start](#quick-start)
-  - [Option A: Instant Local Demo (Zero Setup)](#option-a-instant-local-demo-zero-setup)
-  - [Option B: Production / MongoDB Atlas Setup](#option-b-production--mongodb-atlas-setup)
-  - [Directory & Terminal Guidance](#directory--terminal-guidance)
-- [3D Digital Twin (Farm View)](#3d-digital-twin-farm-view)
-- [Standardized Pond Naming (Pond 1 – Pond 17)](#standardized-pond-naming-pond-1--pond-17)
-- [Web Dashboard Pages](#web-dashboard-pages)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Getting started](#getting-started)
 - [Configuration](#configuration)
-- [Database & Management Scripts](#database--management-scripts)
-- [Historical Data Import](#historical-data-import)
-- [REST API Reference](#rest-api-reference)
-- [Historical Replay & Simulation](#historical-replay--simulation)
-- [Risk Rules and Alert Lifecycle](#risk-rules-and-alert-lifecycle)
-- [Machine Learning Forecasting Engine](#machine-learning-forecasting-engine)
-- [Testing & Quality Assurance](#testing--quality-assurance)
+- [REST API](#rest-api)
+- [Realtime events](#realtime-events)
+- [Risk rules and alert lifecycle](#risk-rules-and-alert-lifecycle)
+- [Forecasting engine](#forecasting-engine)
+- [Data model](#data-model)
+- [Testing](#testing)
 - [Security](#security)
-- [Known Limitations](#known-limitations)
-- [Further Documentation](#further-documentation)
-- [Data Attribution](#data-attribution)
+- [Known limitations](#known-limitations)
+- [Further documentation](#further-documentation)
+- [Data attribution](#data-attribution)
 
 ---
 
-## Key Capabilities
+## Features
 
-- **Real-Time Telemetry Ingestion:** Ingests dissolved oxygen (DO in mg/L), pH, temperature (°C), and water level (m). Live and simulated readings pass through the identical validation, risk classification, and alert pipeline.
-- **Strict Risk Evaluation:** Independent evaluation of DO, pH, and temperature. Dissolved oxygen boundaries:
-  
-  | Value | Status | Action |
-  |---|---|---|
-  | `< 2.0 mg/L` | `CRITICAL` | Immediate danger; aerators required |
-  | `2.0 – < 3.0 mg/L` | `WARNING` | Approaching danger; intervention advised |
-  | `≥ 3.0 mg/L` | `NORMAL` | Healthy oxygenation; no alert |
+### Monitoring and ingestion
 
-  Stale readings (older than 60 minutes) are flagged as `STALE`, never masked as healthy.
-- **3D Digital Twin Farm:** Interactive WebGL/Three.js farm visualization representing all 17 ponds with realistic water shaders, status-colored rim lighting, 3D billboard labels, and click-to-inspect drawers.
-- **Standardized Pond Management:** Clean, sequential names (**Pond 1** through **Pond 17**) across all UI views, API responses, alerts, and 3D slots, while preserving raw sensor device IDs (`ara2_*`) in `sourceId` for complete auditability.
-- **Persistent Alert Lifecycle:** One open alert per condition, automatic severity escalation (`WARNING` → `CRITICAL`), operator acknowledgement, automatic resolution upon water recovery, and immutable audit history.
-- **ML Forecasting:** Pinned scikit-learn models predict DO, pH, and temperature at **+15, +60, and +180 minutes** ahead, triggering predictive warnings before hypoxia occurs.
-- **Historical Pond Replay:** Deterministic 24-hour and 7-day replay of 72,700+ observations from the Fish Welfare Initiative research campaign with simulated live ML forecasts.
+- **Multi-parameter telemetry.** Each reading carries up to four values: dissolved oxygen (mg/L), pH, water temperature (°C), and water level (m). Water level is stored and displayed but not classified.
+- **Channel isolation.** A bad sensor value (for example pH `99`) is rejected and reported in `rejectedValues`, while valid sibling values in the same reading are still processed.
+- **Idempotent ingestion.** An optional `idempotencyKey` makes retries safe: a repeated request returns `200` and changes nothing.
+- **Stale-data detection.** A reading older than `STALE_AFTER_MINUTES` (default 60) is reported as `STALE`. Missing or old data is never shown as healthy.
+- **Out-of-order protection.** A late reading never resurrects or resolves an alert. A parameter's alert state comes only from its newest reading.
+
+### Risk evaluation and alerts
+
+- **Strict, rule-driven classification.** Each parameter is evaluated independently against `NORMAL`, `WARNING`, and `CRITICAL` bands. Limits live in one place on the backend, and clients read them from `GET /api/risk-rules`.
+- **Persistent alert lifecycle.** There is one open alert per pond, parameter, side, and data source. Alerts escalate from `WARNING` to `CRITICAL` in place, can be acknowledged by an operator, and resolve automatically when the water recovers. Resolved alerts stay as history.
+- **Predictive alerts.** Forecast values for dissolved oxygen can open a *predicted* alert before the condition happens. These are labelled `FORECAST (not observed)`.
+- **Species-aware messaging.** Each alert names the pond's species and says whether the general safety rules or an approved species policy applied.
+
+### Forecasting
+
+- **Multi-horizon forecasts.** A scikit-learn model predicts dissolved oxygen, pH, and water temperature at **+15, +60, and +180 minutes**.
+- **Honest output.** Parameters with stale or insufficient input are *withheld*, never guessed. Warnings flag reduced reliability.
+- **Point-in-time inference.** The model only sees readings timestamped before the moment being forecast, so replays do not leak future data.
+- **Hash-pinned model.** The worker refuses to load a model file whose SHA-256 does not match `ml/MODEL_SHA256`.
+
+### Web dashboard (Next.js)
+
+- **Overview.** Farm health banner, a 3D digital twin of the farm, and a summary of current alerts.
+- **Ponds.** Card and table views of all ponds in numeric order, filterable by status.
+- **Pond details.** Live parameter badges, historical charts that show gaps as breaks (a gap is about three times the usual reading spacing, and at least 20 minutes), forecast outlook for +15m, +60m, and +180m, the pond's alert history, and species settings.
+- **Alerts.** Active, acknowledged, and resolved alerts in one table, with one-click acknowledgement.
+- **Compare ponds.** Side-by-side telemetry overlays of several ponds over a selectable time range.
+- **Demo and simulation.** Read-only historical replay (24-hour or 7-day windows, at real time or up to 10,800× speed), and a guided alert simulator that walks through warning, escalation, and resolution on the database.
+- **System status.** API uptime, database and ML worker health.
+
+### 3D digital twin
+
+- An interactive Three.js scene of the farm, built with React Three Fiber and Drei. It shows 17 ponds in a grid with berms, service lanes, and animated water.
+- Pond rim lights and labels reflect each pond's current status.
+- Click any pond to fly the camera to it and open a telemetry drawer with sparklines and a link to the detail page.
+- Orbit, pan, zoom, and a one-click reset to top-down view.
+- A 2D plan view as a fallback for low-power devices.
+- Append `?twin=demo` to the URL to inspect labelled demo states.
+
+### Mobile app (Expo)
+
+- A React Native and Expo Router app for farmers, with five tabs: **Dashboard, Alerts, Ponds, Species, and Profile**.
+- Live ponds and alerts come from the same REST API and Socket.IO channel as the web dashboard. Screens read from one shared store, and they refetch on reconnect.
+- Pond screens cover details, charts, comparison, forecast, sensors, and edit.
+- Profile and alert preferences are local to the session.
+
+### Species configuration
+
+- Each pond can be assigned a species from a catalogue: Rohu, Catla, Mrigal, Vannamei shrimp, Pangasius, Common carp, Grass carp, a custom species, or a polyculture of several species.
+- Ponds are never assigned a species automatically. Until one is chosen, the pond shows **Species not set**.
+- Catalogue reference ranges are shown for context only. **No species has validated alert limits yet.** Alerts use the general rules until a domain expert approves species limits and an operator supplies them through `AQUAGUARD_SPECIES_POLICIES`.
+
+### Historical data
+
+- **Idempotent CSV import** of Fish Welfare Initiative `ara2_*.csv` monitor files. Dry-run by default, deterministic SHA-1 row hashes, and exact-zero sensor dropouts filtered out.
+- **Standardized naming.** Ponds are shown as **Pond 1** to **Pond 17**. Raw sensor IDs stay in `sourceId` for provenance.
 
 ---
 
-## System Architecture
+## Architecture
+
+### System overview
 
 ```
-                    +------------------------------------+
- hardware sensors / |  Node.js + Express API             |   Next.js 16 Dashboard
- simulated telemetry|  backend/                          | <------------------------
-       ---------->  |  validate -> persist -> classify   |   (Three.js 3D Twin)
-                    |  -> alert engine -> inference      |
-                    +---------+------------------+-------+
-                              |                  |  JSON-lines over stdio
-                              v                  v  (isolated subprocess)
-                    +------------------+  +-------------------------------+
-                    |  MongoDB Atlas   |  | Python Worker (ml/)           |
-                    |  db: aquaguard   |  | hash-pinned scikit-learn pkl  |
-                    +------------------+  +-------------------------------+
+  Sensors / simulators                     Browsers / phones
+  POST /api/measurements                   (Next.js dashboard, Expo app)
+          │                                          ▲
+          ▼                                          │ REST (JSON) + Socket.IO
+┌───────────────────────────────────────────────────────────────────┐
+│  backend/  Node.js 22 + Express 4  (port 4000)                    │
+│                                                                   │
+│  validate ─► persist ─► classify ─► alert lifecycle ─► forecast   │
+│  (Zod)       (Mongo)    (risk.js)     (alerts.js)     (inference)│
+│                                                  │                │
+│                                       alert bus ─┴─► Socket.IO    │
+└──────────────┬───────────────────────────────────────┬────────────┘
+               │ MongoDB driver v6                      │ JSON lines over stdio
+               ▼                                        ▼ (child process, no port)
+┌─────────────────────────────┐        ┌──────────────────────────────────┐
+│  MongoDB Atlas              │        │  ml/worker.py  (Python 3.14)     │
+│  database: aquaguard        │        │  scikit-learn, SHA-256 pinned    │
+│  7 collections, JSON Schema │        │  model: aquaguard_model.pkl      │
+└─────────────────────────────┘        └──────────────────────────────────┘
 ```
 
-- **Backend:** Node.js 22+, Express 4, Zod schema validation, official MongoDB driver v6.
-- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Three.js / React Three Fiber / Drei, Recharts.
-- **Database:** MongoDB Atlas (database `aquaguard`). 7 collections with strict JSON Schema validators and compound indexes.
-- **ML Worker:** Hash-pinned Python 3.13 process communicating over stdio without network exposure.
+### Components
+
+| Component | Location | Responsibility |
+|---|---|---|
+| **API server** | `backend/` | The single source of truth. Validates input, persists measurements, applies risk rules, runs the alert lifecycle, calls the ML worker, and broadcasts changes. |
+| **Web dashboard** | `frontend/` | Next.js 16 App Router client. It has no database access and no model of its own; every value comes from the API. |
+| **Mobile app** | `mobile-app/` | Expo SDK 57 client for farmers. It consumes the same REST API and realtime channel. |
+| **ML worker** | `ml/` | A long-lived Python child process that the API starts. It talks over stdin/stdout and opens no network port. Its environment is restricted, so the database URI is never passed to it. |
+| **Database layer** | `database/` | Connection handling, JSON Schema validators, indexes, and maintenance and import scripts. Shared with the backend. |
+| **Model bundle** | `aquaguard_model.pkl` | The trained forecasting model, verified against `ml/MODEL_SHA256` before it is loaded. |
+
+### Measurement pipeline
+
+Every reading, whether from hardware, the simulator, or an import, goes through the same steps:
+
+1. **Validate.** Zod checks the shape, units, physical bounds, and duplicate parameters. Invalid values are split out so valid ones still go through.
+2. **Resolve the pond.** The pond must exist, and the reading must not be more than 5 minutes in the future.
+3. **Persist.** The measurement is stored with `recordedAt` (device time) and `receivedAt` (server time). Duplicate idempotency keys are detected here.
+4. **Classify.** Each value is checked against the active rule. A pond's species can override the general rule only when an approved species policy exists.
+5. **Settle alerts.** The alert lifecycle opens, escalates, acknowledges, or resolves alerts, using one atomic write per change.
+6. **Publish.** Changes are pushed to clients over Socket.IO.
+7. **Forecast (optional).** If this is the newest reading for its pond, the ML worker runs on the preceding 48 hours of data. Failures here are logged and never block steps 1 to 6.
+
+### Design principles
+
+- **One place for rules.** Thresholds live in `backend/src/services/risk.js`, with optional overrides from a JSON file. The Python worker reads the same key names. Clients never copy the numbers.
+- **Unknown is not healthy.** A missing, non-numeric, or disabled rule classifies as `UNKNOWN`, never `NORMAL`.
+- **Fail loudly on bad config, quietly on optional parts.** An invalid threshold or species file stops startup. A missing model or Python process degrades forecasts only; monitoring keeps running.
+- **Atlas only.** The API refuses any database URI that does not point to a `*.mongodb.net` host. There is no local-database fallback.
+- **Read-only replay.** Historical replay never writes measurements, predictions, or alert state.
+- **Dependency injection.** `createApp()` receives its database, ML worker, and clock as parameters, so tests can use isolated databases and fake workers.
 
 ---
 
-## Repository Layout
+## Tech stack
+
+| Layer | Technologies |
+|---|---|
+| API | Node.js ≥ 22, Express 4, Zod 3, MongoDB Node driver 6, Socket.IO 4, cors |
+| Web | Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS v4, Recharts, Three.js with React Three Fiber and Drei, Phosphor icons, Geist font, Zod |
+| Mobile | React Native 0.86, Expo SDK 57, Expo Router, React Native Tab View, Socket.IO client, Jest with Testing Library |
+| Database | MongoDB Atlas, JSON Schema validators, compound and partial unique indexes |
+| ML | Python 3.14, scikit-learn 1.8.0, NumPy 2.4.3, pandas 3.0.1, joblib 1.5.3 |
+| Testing | Node test runner (backend, database), Vitest (web), Jest (mobile) |
+
+---
+
+## Repository layout
 
 ```
 .
-├── backend/                     REST API server (port 4000)
-│   ├── .env / .env.example      API, database, ML and risk-rule settings (.env is git-ignored)
+├── backend/                 REST API and realtime server (port 4000)
 │   ├── src/
-│   │   ├── config/              Environment configuration & threshold rules
-│   │   ├── routes/              Express HTTP routes
-│   │   ├── services/            Risk, alerts, ingestion, inference, replay, queries
-│   │   ├── validators/          Zod request & parameter schemas
-│   │   ├── ml/                  Python subprocess client
-│   │   └── server.js            HTTP server bootstrap
-│   └── tests/                   Unit & integration test suites
-├── frontend/                    Next.js web dashboard (port 3000)
-│   ├── .env.local / .env.example Dashboard URLs and time zone (.env.local is git-ignored)
-│   ├── src/
-│   │   ├── app/                 App Router pages (Overview, Ponds, Alerts, Replay, Status)
-│   │   ├── components/
-│   │   │   ├── twin/            3D Digital Twin (React Three Fiber / Three.js)
-│   │   │   ├── charts/          Recharts telemetry & prediction visualizers
-│   │   │   └── fleet/           Pond cards, tables, and badge components
-│   │   └── lib/                 API client, fleet normalization, and color constants
-│   └── tests/                   Vitest component & utility tests
-├── database/                    MongoDB schema validators, indexes & migration scripts
-│   ├── lib/                     Connection pool, FWI dataset mappings
-│   ├── schemas/                 Collection JSON Schema validators
-│   ├── indexes/                 Index definitions for high-throughput queries
-│   ├── scripts/                 Setup, seed, check, verify, and name-standardization scripts
-│   └── fixtures/                Tagged demo data for offline testing
-├── ml/                          Python ML inference worker & model bundle
-│   ├── worker.py                JSON-lines stdio inference worker
-│   ├── aquaguard_*.py           Feature extraction & prediction pipeline
-│   ├── MODEL_SHA256             SHA-256 integrity hash of aquaguard_model.pkl
-│   └── requirements.txt         Pinned Python dependencies
+│   │   ├── app.js           createApp(): dependency-injected Express app
+│   │   ├── server.js        process entry: DB connect, ML worker, listen
+│   │   ├── realtime.js      Socket.IO transport for alert and pond events
+│   │   ├── config/          environment configuration
+│   │   ├── routes/          HTTP routes (thin handlers)
+│   │   ├── services/        risk, alerts, ingestion, inference, replay, queries, analytics, species, demo
+│   │   ├── validators/      Zod input schemas
+│   │   ├── ml/              client for the Python worker
+│   │   ├── middleware/      request logging, error handling
+│   │   └── utils/           errors, params, HTTP helpers
+│   └── tests/               unit and integration suites
+├── frontend/                Next.js web dashboard (port 3000)
+│   └── src/
+│       ├── app/             routes: Overview, Ponds, Pond details, Alerts, Compare, Simulation, System status
+│       ├── components/
+│       │   ├── farm/        3D digital twin (React Three Fiber)
+│       │   ├── features/    domain components: pond cards, alerts, replay, forecast, species
+│       │   ├── charts/      telemetry charts
+│       │   ├── shell/       app layout, refresh
+│       │   └── ui/          design-system primitives
+│       └── lib/             API client, schemas, fleet and status logic, formatting
+├── mobile-app/              Expo farmer app
+│   └── src/
+│       ├── app/             Expo Router screens: (tabs), pond and alert detail, settings
+│       ├── context/         app store and live-data store (REST + Socket.IO)
+│       ├── services/        API, alerts, ponds, realtime, config
+│       ├── lib/             status, forecast, chart, and formatting logic
+│       └── components/      shared UI
+├── database/                MongoDB tooling, shared by the backend
+│   ├── lib/                 connection handling, FWI column mapping
+│   ├── schemas/             collection JSON Schema validators
+│   ├── indexes/             index definitions
+│   ├── scripts/             ping, init, indexes, check, verify, seed, import, rename
+│   ├── fixtures/            tagged sample data
+│   └── tests/
+├── ml/                      forecasting worker and model code
+│   ├── worker.py            JSON-lines inference worker
+│   ├── aquaguard_*.py       feature preparation, inference, and configuration
+│   ├── MODEL_SHA256         pinned hash of the model bundle
+│   └── requirements.txt     pinned Python dependencies
 ├── docs/
-│   └── DATASET_AND_MODEL.md     Dataset inventory, schema mappings & model validation
-└── aquaguard_model.pkl          Trained scikit-learn model bundle
+│   ├── DATASET_AND_MODEL.md dataset inventory, mappings, and model evaluation
+│   └── UX_PLAN.md           interface plan
+├── aquaguard_model.pkl      trained model bundle
+├── package.json             npm workspaces: database, backend, frontend
+└── pyproject.toml           Python project metadata (Python ≥ 3.14)
 ```
 
 ---
 
-## Quick Start
+## Getting started
 
-### Option A: Instant Local Demo (Zero Setup)
+### Prerequisites
 
-Run AquaGuard with an isolated in-memory database pre-loaded with historical data. **No MongoDB cluster or external credentials required.**
-
-> [!TIP]
-> Always run these commands from the **repository root directory**.
-
-```bash
-# 1. Install dependencies (Node.js 22+ & Python 3.13; use a virtualenv for pip)
-npm install
-pip install -r ml/requirements.txt
-
-# 2. Set MONGODB_URI (your Atlas connection string) in backend/.env, then
-#    Terminal 1: Start the Backend (Port 4000)
-npm start
-# Wait until you see: "AquaGuard API listening on http://127.0.0.1:4000/api (database: ATLAS ...)"
-
-# 3. Terminal 2: Start the Web Dashboard (Port 3000)
-npm run dev:frontend
-```
-
-Once running:
-- **Dashboard:** Open [http://localhost:3000](http://localhost:3000) in your browser.
-- **API Health:** Verify via `curl http://127.0.0.1:4000/api/health` (returns `"database":{"status":"up","target":"local"}`).
-- **Stop:** Press `Ctrl+C` in both terminals. The local database is discarded on exit.
-
----
-
-### Option B: Production / MongoDB Atlas Setup
-
-Connect to a persistent MongoDB Atlas cluster:
-
-```bash
-# 1. Install dependencies
-npm install
-pip install -r ml/requirements.txt
-
-# 2. Configure environment
-cp backend/.env.example backend/.env
-# Open backend/.env and set MONGODB_URI to your MongoDB Atlas connection string:
-# MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/aquaguard?retryWrites=true&w=majority
-
-# 3. Initialize database collections & indexes (safe to rerun)
-npm run db:ping -w database              # Test connection
-npm run db:init -w database              # Create collections & schema validators
-npm run db:indexes -w database           # Apply compound indexes
-npm run db:check -w database             # Verify database structure
-
-# 4. Standardize pond names to 'Pond 1' ... 'Pond 17' (if migrating an existing database)
-npm run db:standardize-names -w database
-
-# 5. (Optional) Import historical FWI campaign data
-node database/scripts/import-fwi.js --dir <path-to-csvs> --write
-
-# 6. Terminal 1: Start the Backend API (Port 4000)
-npm start
-
-# 7. Terminal 2: Start the Web Dashboard (Port 3000)
-npm run dev:frontend
-```
-
----
-
-### Directory & Terminal Guidance
-
-| From Repository Root | Equivalent inside `backend/` | Equivalent inside `frontend/` | Equivalent inside `database/` |
-|---|---|---|---|
-| `npm start` | `npm start` | — | — |
-| `npm run dev:frontend` | — | `npm run dev` | — |
-| `npm test` | `npm test` | `npm test` | `npm test` |
-| `npm run db:check -w database` | — | — | `npm run db:check` |
-| `npm run db:standardize-names` | — | — | `npm run db:standardize-names` |
-
-> [!IMPORTANT]
-> - Only one API can bind port `4000`.
-> - The API only connects to MongoDB Atlas. Check it any time: `curl http://127.0.0.1:4000/api/health` shows `"target":"atlas"`.
-
----
-
-## 3D Digital Twin (Farm View)
-
-AquaGuard includes an interactive **3D Digital Twin** built with **Three.js**, **@react-three/fiber**, and **@react-three/drei** that represents the aquaculture facility.
-
-- **Pond Layout:** 17 physical pond platforms arranged in a structured farm grid with earthen berms and animated water surfaces.
-- **Real-Time Status Rim Lights:**
-  - 🟢 **Emerald (`NORMAL`):** Healthy dissolved oxygen, pH, and temperature.
-  - 🟡 **Amber (`WARNING`):** Sub-optimal parameter approaching danger thresholds.
-  - 🔴 **Crimson (`CRITICAL`):** Severe parameter violation (e.g. DO `< 2.0 mg/L`).
-  - 🟣 **Purple (`PREDICTED_RISK`):** ML model forecasts upcoming critical hypoxia.
-  - ⚪ **Slate (`STALE` / `NO_DATA`):** Missing or overdue telemetry.
-- **Interactive Billboard Badges:** Elevated 3D markers show **Pond 1** through **Pond 17** with current DO readings.
-- **Click-to-Inspect:** Clicking any pond in the 3D scene rotates the camera to that pond and slides out a telemetry drawer with real-time stats, time-series sparklines, and a direct link to the pond's detail page.
-- **Controls & Performance:**
-  - Smooth orbit, pan, and zoom controls.
-  - One-click camera reset to top-down farm view.
-  - **2D Plan View Toggle:** Instant fallback for low-power devices.
-  - **Demo Fixtures Mode:** Append `/?twin=demo` to the URL to inspect labelled demo states (healthy, warning, critical, and forecasted risk).
-
----
-
-## Standardized Pond Naming (Pond 1 – Pond 17)
-
-To ensure clarity for farm operators, AquaGuard standardizes the 17 aquaculture ponds to sequential names: **Pond 1, Pond 2, Pond 3, … Pond 17**.
-
-### Architecture & Separation of Concerns
-
-1. **Display Name (`name`):** Strictly **Pond 1** through **Pond 17**. Used across the 3D twin, hover tooltips, farm overview, pond list, pond detail headers, alerts page, and replay selectors.
-2. **Database Primary Key (`_id`):** Immutable MongoDB `ObjectId`. Unaltered during name normalization.
-3. **Source Sensor Identifier (`sourceId`):** The underlying hardware or dataset tag (e.g., `ara2_0677080b`). Kept permanently on the pond document to guarantee provenance and support future imports.
-4. **3D Twin Slot (`slot`):** 0-indexed layout position (0 to 16) corresponding to **Pond 1** through **Pond 17**.
-
-### Deterministic Fleet Mapping
-
-| Display Name | Source Identifier (`sourceId`) | 3D Twin Slot |
+| Tool | Version | Used for |
 |---|---|---|
-| **Pond 1** | `ara2_0677080b` | Slot 0 |
-| **Pond 2** | `ara2_0f143c64` | Slot 1 |
-| **Pond 3** | `ara2_148f1633` | Slot 2 |
-| **Pond 4** | `ara2_176528d3` | Slot 3 |
-| **Pond 5** | `ara2_29660d32` | Slot 4 |
-| **Pond 6** | `ara2_3b2f3973` | Slot 5 |
-| **Pond 7** | `ara2_3eab831e` | Slot 6 |
-| **Pond 8** | `ara2_3ed4df8e` | Slot 7 |
-| **Pond 9** | `ara2_45e1cde5` | Slot 8 |
-| **Pond 10** | `ara2_4f79fc8d` | Slot 9 |
-| **Pond 11** | `ara2_573a2826` | Slot 10 |
-| **Pond 12** | `ara2_6ca69422` | Slot 11 |
-| **Pond 13** | `ara2_858b914c` | Slot 12 |
-| **Pond 14** | `ara2_b3d128ac` | Slot 13 |
-| **Pond 15** | `ara2_c9cdacda` | Slot 14 |
-| **Pond 16** | `ara2_ca187575` | Slot 15 |
-| **Pond 17** | `ara2_d52ddb31` | Slot 16 |
+| Node.js and npm | ≥ 22 | backend, database, and web dashboard |
+| Python | 3.14 (see `.python-version`) | forecasting worker |
+| MongoDB Atlas cluster | any | the only supported database |
+| Expo Go, or a simulator | current | mobile app (optional) |
 
-### Name Migration Script
+> [!NOTE]
+> Keep the forecasting worker's dependencies in a virtual environment. The API starts it with `PYTHON_BIN` (default `python3`), so that interpreter must have the packages from `ml/requirements.txt`.
 
-To update an existing MongoDB database to standardized pond names without modifying IDs or measurements:
+### 1. Install
+
+```bash
+# From the repository root: installs the database, backend, and frontend workspaces
+npm install
+
+# Python dependencies for the forecasting worker (use a virtualenv)
+pip install -r ml/requirements.txt
+```
+
+The mobile app is a separate project:
+
+```bash
+cd mobile-app
+npm install --legacy-peer-deps   # the flag works around an optional peer conflict
+```
+
+### 2. Configure the database
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Set `MONGODB_URI` in `backend/.env` to your Atlas connection string:
+
+```
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/aquaguard?retryWrites=true&w=majority
+```
+
+Then prepare the database. All of these are safe to rerun:
+
+```bash
+npm run db:ping -w database       # check the connection
+npm run db:init -w database       # create collections and validators
+npm run db:indexes -w database    # create indexes
+npm run db:check -w database      # verify the structure
+```
+
+If you are migrating an existing database, rename raw sensor IDs to pond names:
 
 ```bash
 npm run db:standardize-names -w database
 ```
 
----
+To load the historical campaign (optional), dry-run first, then write:
 
-## Web Dashboard Pages
+```bash
+node database/scripts/import-fwi.js --dir <path-to-csvs>           # dry run
+node database/scripts/import-fwi.js --dir <path-to-csvs> --write   # persist
+```
 
-The web dashboard is organized into clear operational views:
+### 3. Run
 
-1. **Overview (`/`):**
-   - High-level farm health banner (total ponds, active alerts, stale monitors).
-   - **3D Digital Twin Farm View** with interactive pond inspection.
-   - Quick alerts summary.
-2. **Ponds (`/ponds`):**
-   - Grid cards and compact table view of all 17 ponds.
-   - Natural numeric sorting (**Pond 1** ... **Pond 17**).
-   - Filter by status (`ALL`, `ATTENTION`, `NORMAL`, `STALE`).
-3. **Pond Details (`/ponds/[id]`):**
-   - Live telemetry status badges (DO, pH, Temperature, Water Level).
-   - Historical time-series charts with gap detection (readings spaced > 20 min display breaks).
-   - Forward prediction cards ("What may happen next?") for +15m, +60m, and +180m horizons.
-   - Pond alert history.
-4. **Alerts (`/alerts`):**
-   - Unified alert management table (Active, Acknowledged, and Resolved history).
-   - One-click alert acknowledgement ("Mark as seen").
-5. **Compare Ponds (`/compare`):**
-   - Side-by-side telemetry overlays of multiple ponds over selectable time ranges.
-6. **Demo & Simulation (`/simulation`):**
-   - **Replay History:** Select any pond and replay a 24-hour or 7-day historical window with speed controls (1x to 60x). Completely read-only.
-   - **Test an Alert:** Guided 4-step simulator that triggers live warning, escalation, and resolution sequences on the local database.
-7. **System Status (`/status`):**
-   - Real-time diagnostic monitors for API uptime, database latency, and Python ML worker health.
+Start the API in one terminal:
+
+```bash
+npm start
+# Wait for: "AquaGuard API listening on http://127.0.0.1:4000/api (database: ATLAS ...)"
+```
+
+Start the dashboard in a second terminal:
+
+```bash
+npm run dev:frontend
+```
+
+Then open:
+
+- **Dashboard:** http://localhost:3000
+- **API health:** `curl http://127.0.0.1:4000/api/health`. Look for `"database":{"status":"up","target":"atlas"}`.
+
+The dashboard needs the API running first. Without it, every page shows "Could not reach the PondFix API".
+
+To run the mobile app:
+
+```bash
+cd mobile-app
+cp .env.example .env.local       # set EXPO_PUBLIC_API_URL to this computer's LAN address
+npm start
+```
+
+For a phone to reach the API, start the backend with `HOST=0.0.0.0`. The phone and the computer must be on the same network. Never use `localhost` in the phone's address, because it points at the phone itself.
+
+### Command reference
+
+| Command | Runs |
+|---|---|
+| `npm start` | API server (backend) |
+| `npm run dev:frontend` | Next.js dev server on port 3000 |
+| `npm run build:frontend` | production build of the dashboard |
+| `npm test` | all backend, database, and frontend tests |
+| `npm run db:*  -w database` | database maintenance (see table below) |
 
 ---
 
 ## Configuration
 
-Configuration is managed with environment variables, kept next to the code that reads them: **`backend/.env`** (API, database connection, ML worker, risk rules, import; template `backend/.env.example`) and **`frontend/.env.local`** (dashboard URLs and time zone; template `frontend/.env.example`, optional for local development). The database scripts share `backend/.env`. Real env files are git-ignored; the `.env.example` files are tracked. The table below lists the backend variables:
+Configuration comes from environment variables. The backend reads `backend/.env`. The dashboard reads `frontend/.env.local`, which is optional for local development. Real `.env` files are git-ignored, and the `.env.example` templates are tracked.
+
+### Backend
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `MONGODB_URI` | *(required)* | MongoDB Atlas connection string. Server-side only. |
-| `MONGODB_DB` | `aquaguard` | Target database name. |
-| `PORT` | `4000` | Express API HTTP port. |
-| `HOST` | `127.0.0.1` | Express API bind host. |
-| `NODE_ENV` | `development` | `production` disables test/demo endpoints. |
-| `CORS_ORIGINS` | `localhost,127.0.0.1` (3000, 5173, 8081) | Allowed browser origins. |
-| `DEMO_ENABLED` | `true` | Enables `/api/demo/*` endpoints (disabled in production). |
-| `STALE_AFTER_MINUTES` | `60` | Duration without telemetry before status is marked `STALE`. |
-| `MAX_QUERY_RANGE_DAYS` | `366` | Maximum allowed query window for telemetry queries. |
-| `ML_ENABLED` | `true` | Enables the Python ML forecasting worker. |
-| `PYTHON_BIN` | `python3` | Python binary used to launch `ml/worker.py`. |
-| `ML_TIMEOUT_MS` | `30000` | Inference request timeout (milliseconds). |
-| `AQUAGUARD_MODEL_PATH` | `aquaguard_model.pkl` | Path to the trained model bundle. |
-| `AQUAGUARD_THRESHOLDS` | *(none)* | Optional path to custom JSON risk thresholds file. |
-| `AQUAGUARD_SPECIES_POLICIES` | *(none)* | Optional path to a JSON file of expert-approved species-specific alert limits. Without it no species has validated limits and the general rules decide every alert. |
+| `MONGODB_URI` | *(required)* | Atlas connection string. Server-side only, never logged. |
+| `MONGODB_DB` | `aquaguard` | Database name. |
+| `PORT` | `4000` | API port. |
+| `HOST` | `127.0.0.1` | Bind address. Use `0.0.0.0` to allow LAN devices. |
+| `NODE_ENV` | `development` | `production` hides internal error messages in logs. It does not switch off demo endpoints; use `DEMO_ENABLED` for that. |
+| `CORS_ORIGINS` | localhost and 127.0.0.1 on ports 3000, 5173, 8081 | Comma-separated allowed browser origins. |
+| `BODY_LIMIT` | `20kb` | Maximum request body size. |
+| `MAX_QUERY_RANGE_DAYS` | `366` | Maximum span for telemetry queries. |
+| `STALE_AFTER_MINUTES` | `60` | Age after which a reading is `STALE`. |
+| `DEMO_ENABLED` | `false` | Enables `/api/demo/*`, which writes simulated readings into the database. Use only with a test database. |
+| `AQUAGUARD_THRESHOLDS` | *(none)* | Path to a JSON file overriding risk limits (keys `do`, `ph`, `temp`). An invalid file stops startup. |
+| `RISK_RULES_DISABLED` | *(none)* | Comma-separated parameters whose rule is switched off: `dissolved_oxygen`, `ph`, `temperature`. |
+| `AQUAGUARD_SPECIES_POLICIES` | *(none)* | Path to a JSON file of expert-approved species limits. Without it, no species has validated limits. |
+| `ML_ENABLED` | `true` | Starts the forecasting worker. |
+| `PYTHON_BIN` | `python3` | Interpreter that runs `ml/worker.py`. |
+| `ML_TIMEOUT_MS` | `30000` | Forecast request timeout. |
+| `AQUAGUARD_MODEL_PATH` | `aquaguard_model.pkl` | Path to the model bundle. |
 
----
+Example threshold override (`AQUAGUARD_THRESHOLDS`):
 
-## Database & Management Scripts
+```json
+{
+  "do": { "low_warn": 4.0, "low_crit": 2.5 },
+  "ph": { "low_warn": 6.5, "low_crit": 6.0, "high_warn": 8.5, "high_crit": 9.0 }
+}
+```
 
-Database: `aquaguard`. All timestamps are stored as UTC BSON `Date` objects.
+### Frontend
 
-### Collections
-
-| Collection | Description | Key Indexes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `users` | Farm operator metadata | `_id` |
-| `ponds` | Pond metadata (`name`, `sourceId`, `status`) | `_id`, `sourceId` |
-| `measurements` | Time-series observations with source and provenance | `(pondId, timestamp DESC)`, `(pondId, parameter, timestamp DESC)` |
-| `predictions` | ML forecasts (kept strictly separate from measurements) | `(pondId, timestamp DESC)` |
-| `alerts` | Persistent alert lifecycle documents with `openKey` | `openKey` (unique sparse), `(pondId, status, timestamp)` |
-| `notificationDeliveries` | Logged alert deliveries | `(alertId, timestamp)` |
-| `modelRuns` | Audit log of ML inference executions | `(pondId, timestamp)` |
+| `NEXT_PUBLIC_API_BASE_URL` | `http://127.0.0.1:4000/api` | API base URL used by the browser. Browser-safe values only. |
+| `API_BASE_URL` | same as above | Optional server-side API URL for server components. |
+| `NEXT_PUBLIC_DISPLAY_TIMEZONE` | `UTC` | Time zone for displayed timestamps. Data is stored in UTC. |
 
-### Maintenance Scripts
+### Mobile
 
-Run these scripts from the repository root using `-w database`:
+| Variable | Purpose |
+|---|---|
+| `EXPO_PUBLIC_API_URL` | Backend origin as seen from the phone, for example `http://192.168.1.20:4000`. Set in `mobile-app/.env.local`. Restart Metro after changing it. |
+
+### Database scripts
 
 | Command | Action |
 |---|---|
-| `npm run db:ping -w database` | Ping MongoDB and verify credentials |
-| `npm run db:init -w database` | Create collections and register JSON Schema validators |
-| `npm run db:indexes -w database` | Create all required compound and unique indexes |
-| `npm run db:check -w database` | Read-only check verifying collections, validators, and indexes |
-| `npm run db:standardize-names -w database` | Rename raw hashes (`ara2_*`) to **Pond 1** through **Pond 17** |
-| `npm run db:seed -w database` | Insert sample test fixtures (idempotent, rerun-safe) |
-| `npm run db:unseed -w database` | Remove seeded fixtures (dry run by default; use `-- --confirm`) |
-| `npm run db:verify -w database` | End-to-end verification of validation rules and alert lifecycles |
+| `npm run db:ping -w database` | Test the connection and credentials. |
+| `npm run db:init -w database` | Create collections and register validators. |
+| `npm run db:indexes -w database` | Create indexes. |
+| `npm run db:check -w database` | Read-only check of collections, validators, and indexes. |
+| `npm run db:standardize-names -w database` | Rename raw `ara2_*` IDs to **Pond 1** to **Pond 17**. |
+| `npm run db:seed -w database` | Insert tagged sample data (idempotent). |
+| `npm run db:unseed -w database` | Remove sample data. Dry run by default; add `-- --confirm` to delete. |
+| `npm run db:verify -w database` | End-to-end check of validation and alert lifecycles. |
 
 ---
 
-## Historical Data Import
+## REST API
 
-The import script `database/scripts/import-fwi.js` loads Fish Welfare Initiative continuous-monitor CSVs (`ara2_*.csv`):
+All endpoints live under `/api`. Successful responses return the resource directly or `{ "items": [...], "count": n }`. Errors return `{ "error": { "code": "...", "message": "..." } }`.
 
-- **Dry-Run by Default:** Inspects files and prints an action summary without writing to the database:
-  ```bash
-  node database/scripts/import-fwi.js --dir <path-to-csvs>
-  ```
-- **Persist to Database:** Add `--write` to write data:
-  ```bash
-  node database/scripts/import-fwi.js --dir <path-to-csvs> --write
-  ```
-- **Idempotent & Deterministic:** Rows use a deterministic SHA-1 content hash; rerunning skips already-imported records. Conflicting records exit with error code 2.
-- **Sensor Artifact Filtering:** Exact-zero values (sensor disconnects) are safely omitted while preserving valid sibling measurements in the same reading.
-- **Verification:** Run verification against CSV sources:
-  ```bash
-  node database/scripts/verify-import.js --dir <path-to-csvs>
-  ```
-
----
-
-## REST API Reference
-
-All endpoints are hosted under `/api`. Standard responses follow `{ "data": ... }` and errors use `{ "error": { "code": "...", "message": "..." } }`.
+### Health and configuration
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` | Health check (service status, database connectivity, and ML worker state) |
-| `GET` | `/risk-rules` | Active risk rules, thresholds, units, and rule-set version |
-| `GET` | `/ponds` | List all ponds with standardized names and latest status |
-| `GET` | `/ponds/:id` | Get metadata for a specific pond |
-| `GET` | `/ponds/:id/summary` | Get latest telemetry values, active status, and open alerts |
-| `GET` | `/ponds/:id/measurements` | Paginated historical measurements (newest first) |
-| `GET` | `/ponds/:id/measurements/latest` | Latest reading for each parameter with age and staleness |
-| `POST` | `/measurements` | Ingest new measurement (evaluates risk and triggers alert pipeline) |
-| `GET` | `/ponds/:id/predictions` | Latest ML forecasts with forward risk evaluation |
-| `GET` | `/ponds/:id/alerts` | Alert history for a specific pond |
-| `GET` | `/alerts` | Global alert query (filter by `status`, `severity`, `parameter`, `pondId`) |
-| `PATCH`| `/alerts/:id/acknowledge` | Acknowledge an active alert |
-| `GET` | `/ponds/:id/analytics` | Statistical aggregates and time-bucket distributions |
-| `GET` | `/analytics/compare` | Compare metrics across multiple ponds |
-| `GET` | `/replay/ponds` | List ponds with available historical replay data |
-| `GET` | `/replay/ponds/:id` | Get 24-hour and 7-day replay presets for a pond |
-| `GET` | `/replay/ponds/:id/window` | Fetch read-only chronological historical telemetry window |
-| `POST` | `/replay/forecast` | Run ML forecast on historical point-in-time data (read-only) |
-| `GET` | `/demo/scenarios` | List interactive demo scenarios (when `DEMO_ENABLED=true`) |
-| `POST` | `/demo/measurement` | Ingest simulated measurement for demo testing |
+| `GET` | `/health` | Service status, database connectivity, and ML worker state. |
+| `GET` | `/risk-rules` | Active limits, units, source of each rule, and rule-set version. |
+| `GET` | `/species-profiles` | Species catalogue and the status of each safety profile. |
+
+### Ponds
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/ponds` | All ponds, sorted naturally (Pond 1, Pond 2, … Pond 17). |
+| `GET` | `/ponds/summaries` | Every pond's snapshot in one call, for fleet views. |
+| `GET` | `/ponds/:id` | One pond's metadata. |
+| `PATCH` | `/ponds/:id/species` | Set or clear a pond's species. Only species fields can change. |
+| `GET` | `/ponds/:id/summary` | Latest values, status, and open alerts. |
+| `GET` | `/ponds/:id/measurements` | Cursor-paginated history, newest first. Filters: `from`, `to`, `parameter`, `source`, `limit`, `cursor`. |
+| `GET` | `/ponds/:id/measurements/latest` | Latest reading per parameter, with age and staleness. |
+| `GET` | `/ponds/:id/predictions` | Latest forecasts with forward risk evaluation. |
+| `GET` | `/ponds/:id/analytics` | Statistical aggregates and time-bucket distributions. |
+| `GET` | `/ponds/:id/alerts` | Alert history for one pond. |
+
+### Measurements
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/measurements` | Ingest a reading. Returns `201` (or `200` for a duplicate idempotency key). |
+
+Example request:
+
+```json
+{
+  "pondId": "<pond ObjectId>",
+  "source": "live",
+  "recordedAt": "2026-10-14T09:30:00Z",
+  "idempotencyKey": "sensor-7-20261014-0930",
+  "values": [
+    { "parameter": "dissolved_oxygen", "value": 2.4, "unit": "mg/L" },
+    { "parameter": "temperature", "value": 27.8, "unit": "C" }
+  ]
+}
+```
+
+| Field | Rules |
+|---|---|
+| `pondId` | Required. Must exist. |
+| `source` | `live` (default) or `simulated`. |
+| `recordedAt` | Optional ISO 8601 time. Cannot be more than 5 minutes ahead of server time. |
+| `values` | 1 to 4 items. Parameters must be unique: `dissolved_oxygen`, `ph`, `temperature`, `water_level`. |
+| `idempotencyKey` | Optional, up to 100 characters: letters, digits, `.`, `_`, `:`, `-`. |
+
+The response includes the stored measurement, the risk result for each parameter, the alert changes, any `rejectedValues`, and the forecast status.
+
+### Alerts
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/alerts` | Query alerts. Filters: `status` (`OPEN` by default, `ACTIVE`, `ACKNOWLEDGED`, `RESOLVED`, `ALL`), `origin` (`observed` or `predicted`), `parameter`, `severity` (`WARNING` or `CRITICAL`), `pondId`. |
+| `PATCH` | `/alerts/:id/acknowledge` | Mark an alert as seen. Idempotent. Returns `409` for a resolved alert. |
+
+### Analytics and replay
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/analytics/compare` | Compare metrics across ponds. |
+| `GET` | `/replay/ponds` | Ponds that have historical data. |
+| `GET` | `/replay/ponds/:id` | 24-hour and 7-day replay presets for one pond. |
+| `GET` | `/replay/ponds/:id/window` | Chronological historical telemetry for a window. |
+| `POST` | `/replay/forecast` | Forecast at a past point in time. Read-only. |
+
+### Demo (only when `DEMO_ENABLED=true`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/demo/scenarios` | Demo scenarios. |
+| `POST` | `/demo/measurement` | Write a simulated reading into the database. |
 
 ---
 
-## Historical Replay & Simulation
+## Realtime events
 
-The **Demo & Simulation** page allows operators and researchers to replay real historical pond behavior as it occurred.
+The API serves Socket.IO on the same port as HTTP. Events are **not replayed**. After every reconnect, clients refetch from REST.
 
-- **Data Integrity:** Replays strictly use recorded `historical` data. Gaps exceeding 20 minutes render as visual breaks on charts.
-- **Strict Isolation:** Replay is **100% read-only**. It never writes measurements, never stores predictions, and never mutates alert state in the database.
-- **Point-in-Time Inference:** When replaying, the ML forecasting worker is invoked using only data timestamped *prior* to that moment, simulating real-world predictive warnings.
-- **Works on Both Databases:** Replay works against both local in-memory data and MongoDB Atlas.
+| Event | Payload | Meaning |
+|---|---|---|
+| `alert:new` | alert | A new alert opened. |
+| `alert:updated` | alert | An alert changed (escalated, acknowledged, or updated). |
+| `alert:resolved` | alert | An alert resolved. |
+| `pond:reading_updated` | pond update | A pond received a new reading. |
+| `pond:updated` | pond update | Pond metadata changed, for example its species. |
+| `pond:forecast_updated` | pond update | New forecasts are available. |
 
----
-
-## Risk Rules and Alert Lifecycle
-
-### Strict Threshold Boundaries
-
-Risk rules reside in `backend/src/services/risk.js` and are broadcast to clients via `GET /api/risk-rules`. The frontend maintains no local threshold copies.
-
-| Parameter | Acceptable Range | WARNING | CRITICAL |
-|---|---|---|---|
-| **Dissolved Oxygen** | `≥ 3.0 mg/L` | `2.0 – < 3.0 mg/L` | `< 2.0 mg/L` |
-| **pH** | `6.5 – 8.5` | `< 6.5` or `> 8.5` | `< 6.0` or `> 9.0` |
-| **Temperature** | `20.0 – 32.0 °C` | `< 20.0` or `> 32.0 °C` | `< 15.0` or `> 35.0 °C` |
-
-> [!NOTE]
-> Boundaries are strictly evaluated. A dissolved oxygen reading of exactly `3.0 mg/L` is `NORMAL`, while `2.0 mg/L` is `WARNING`. Values `< 2.0 mg/L` are `CRITICAL`.
-
-### Alert Lifecycle State Machine
-
-1. **Open:** When a reading enters `WARNING` or `CRITICAL`, an alert document is opened with state `ACTIVE`. An `openKey` index guarantees only one open alert exists per pond, parameter, side, and source.
-2. **Escalate:** If an existing `WARNING` alert receives a subsequent `CRITICAL` reading, it escalates in place. An acknowledged alert returns to `ACTIVE`.
-3. **Acknowledge:** An operator marks an alert as seen via `PATCH /api/alerts/:id/acknowledge`. Its status transitions to `ACKNOWLEDGED`. The problem remains open.
-4. **Auto-Resolve:** When a new reading arrives within the `NORMAL` range, the alert automatically transitions to `RESOLVED` and is preserved in history.
-5. **Channel Isolation:** An invalid sensor value (e.g. pH 99) in one parameter does not discard valid sibling measurements (e.g. DO 4.5 mg/L) in the same ingestion payload.
+Alert payloads match the shape returned by `GET /api/alerts`.
 
 ---
 
-## Machine Learning Forecasting Engine
+## Risk rules and alert lifecycle
 
-- **Model Bundle:** `aquaguard_model.pkl` (`aquaguard-2026-10-10-2b5b58b4`), trained on cleaned aquaculture campaign telemetry.
-- **Forecasting Horizons:** 15, 60, and 180 minutes for DO, pH, and water temperature.
-- **Input Requirements:** Requires at least 24 hours of 15-minute historical readings for the pond.
-- **Worker Process:** Started lazily by Node.js as an isolated child process (`ml/worker.py`).
-- **Security Hash Pinning:** To prevent arbitrary code execution vulnerabilities from untrusted pickles, `worker.py` verifies the exact SHA-256 hash of `aquaguard_model.pkl` against `ml/MODEL_SHA256` before loading.
-- **Resilient Fallback:** If Python or the model is unavailable, telemetry ingestion and real-time threshold alerts continue operating without interruption.
+### Limits
+
+Rules are defined in `backend/src/services/risk.js`. Comparisons are strict, so a value exactly on the acceptable limit is normal.
+
+| Parameter | Acceptable | WARNING | CRITICAL | Status |
+|---|---|---|---|---|
+| Dissolved oxygen (mg/L) | ≥ 3.0 | 2.0 to < 3.0 | < 2.0 | Project default |
+| pH | 6.5 to 8.5 | < 6.5 or > 8.5 | < 6.0 or > 9.0 | **Provisional demo values** |
+| Temperature (°C) | 20 to 32 | < 20 or > 32 | < 15 or > 35 | **Provisional demo values** |
+
+Dissolved oxygen is the only parameter that can raise predictive alerts. Water level is stored but not classified.
+
+### Pond status
+
+| Status | Meaning |
+|---|---|
+| `CRITICAL` | At least one fresh reading is in the critical band. |
+| `WARNING` | At least one fresh reading is in the warning band. |
+| `NORMAL` | All fresh readings are within the acceptable range. |
+| `STALE` | The latest reading is older than `STALE_AFTER_MINUTES`. |
+| `NO_DATA` | No readings exist for the pond. |
+
+An excursion always beats a stale or healthy value elsewhere, so a fresh warning is never hidden by old data.
+
+### Alert lifecycle
+
+```
+            reading in WARNING/CRITICAL          reading back in range
+  (none) ─────────────────────────────► ACTIVE ─────────────────────────► RESOLVED
+                                         │  ▲                              (kept as history)
+                 PATCH …/acknowledge     │  │  worse reading
+                                         ▼  │  (re-opens as ACTIVE)
+                                     ACKNOWLEDGED
+```
+
+- **Open.** A reading in `WARNING` or `CRITICAL` opens one alert per pond, parameter, side, and data source. A unique index on `openKey` makes duplicates impossible.
+- **Escalate.** A `CRITICAL` reading on an open `WARNING` alert upgrades it in place. An acknowledged alert returns to `ACTIVE` if the condition gets worse.
+- **Acknowledge.** An operator marks the alert as seen. The condition stays open.
+- **Resolve.** A reading back within range closes the alert. Resolved alerts keep their history and drop `openKey`, so the same condition can open a new alert later.
+- **Isolate.** An excursion on the low side does not resolve a high-side alert for the same parameter, and an invalid value never resolves anything.
 
 ---
 
-## Testing & Quality Assurance
+## Forecasting engine
 
-AquaGuard maintains an automated test suite across all three workspaces:
+- **Model.** `aquaguard_model.pkl` (version `aquaguard-2026-10-10-2b5b58b4`), trained on cleaned aquaculture telemetry.
+- **Horizons.** +15, +60, and +180 minutes for dissolved oxygen, pH, and temperature.
+- **Input.** At least 24 hours of 15-minute readings for the pond. The API passes up to 48 hours of history, strictly before the reading being forecast.
+- **Freshness.** A parameter whose latest valid reading is older than 60 minutes is withheld, and the response says why.
+- **Reliability warnings.** Forecasts that depend on recursive chaining, or that cover a pond with mostly invalid recent data, carry a warning. Horizons beyond the validated limit are refused.
+- **Integrity.** The worker loads the model only if its SHA-256 matches `ml/MODEL_SHA256`.
+- **Isolation.** The worker runs as a child process with a minimal environment. It opens no ports, and the database URI is never passed to it.
+- **Fallback.** If Python or the model is unavailable, ingestion and threshold alerts keep working. The `/health` endpoint reports the ML state as `disabled`, `ready`, or `unavailable`.
+- **Species.** The model is trained without species information, so its forecasts are not species-specific.
+
+Model details and validation are in [`docs/DATASET_AND_MODEL.md`](docs/DATASET_AND_MODEL.md).
+
+---
+
+## Data model
+
+Database: `aquaguard`. All timestamps are UTC BSON dates. Validators are JSON Schema, and the schemas deliberately reject only structural errors and physically impossible values. Out-of-range but plausible readings are stored and flagged, not discarded.
+
+| Collection | Purpose | Key indexes |
+|---|---|---|
+| `users` | Operator accounts | unique `email` (when present) |
+| `ponds` | Pond metadata: name, source ID, species, status | unique `sourceId`, unique `(userId, name)` |
+| `measurements` | Time-series readings with source and provenance | `(pondId, recordedAt)`, unique `dedupKey` (when present), `(pondId, source, recordedAt)` |
+| `predictions` | ML forecasts, kept apart from measurements | `(pondId, parameter, forecastFor)`, unique forecast identity |
+| `alerts` | Alert lifecycle documents | unique partial `openKey`, `(pondId, status, createdAt)`, `(status, createdAt)` |
+| `notificationDeliveries` | Log of alert deliveries | `(alertId, attemptedAt)` |
+| `modelRuns` | Audit log of inference runs | `(pondId, startedAt)` |
+
+There are no TTL indexes. Measurements and resolved alerts are kept indefinitely by design.
+
+---
+
+## Testing
 
 ```bash
-# Run all test suites across backend, database, and frontend
-npm test
+npm test                          # backend, database, and frontend suites
 
-# Run backend unit tests (no database or Python required)
-npm run test:unit -w backend
+npm run test:unit -w backend      # unit tests: no database or Python needed
+npm run test:integration -w backend   # uses throwaway databases on your Atlas cluster
 
-# Run backend integration tests (uses throwaway test databases on your Atlas cluster)
-npm run test:integration -w backend
-
-# Run frontend tests (Vitest)
-npm test -w frontend
-
-# Run frontend linting & TypeScript type checking
+npm test -w frontend              # Vitest component and utility tests
 npm run lint -w frontend
 npm run typecheck -w frontend
+npm run build:frontend            # production build
 
-# Verify frontend production build
-npm run build:frontend
+cd mobile-app
+npm test                          # Jest: unit, component, and navigation tests
+npm run typecheck
+npm run lint
 ```
+
+> [!NOTE]
+> Integration tests run against the Atlas cluster in `MONGODB_URI`, but in a separate database (`MONGODB_TEST_DB`, default `aquaguard_test`). That database is dropped at the start and end of each run. The tests refuse to run if the test database name matches `MONGODB_DB`.
 
 ---
 
 ## Security
 
-- **Database Credentials:** `MONGODB_URI` is accessed strictly server-side. It is never exposed in client bundles or forwarded to child processes, and error handlers sanitize URIs before logging.
-- **Model Integrity:** `ml/worker.py` validates the SHA-256 hash of `aquaguard_model.pkl` against `ml/MODEL_SHA256` before deserialization.
-- **CORS Protection:** Configurable via `CORS_ORIGINS` to allow only trusted web origins.
-- **Payload Limits:** Request bodies are strictly restricted to 20 kB. Query parameters and date ranges are capped to prevent denial-of-service queries.
-- **No Production Auth:** AquaGuard is currently configured for trusted local intranet environments. Authentication and rate-limiting must be applied before exposing to the public internet.
+- **Credentials.** `MONGODB_URI` is read only on the server. It is never sent to the browser, the mobile app, or the ML worker, and error messages redact it.
+- **Model integrity.** Pickled models run arbitrary code when loaded, so the worker checks the SHA-256 of the bundle before loading it.
+- **Input limits.** Request bodies are capped at 20 kB, and query ranges are capped at `MAX_QUERY_RANGE_DAYS`. Page sizes have a maximum.
+- **Demo isolation.** Demo endpoints write simulated data into the database. They are disabled by default (`DEMO_ENABLED=false`), so enable them only on a test database.
+- **Browser origins.** `CORS_ORIGINS` restricts which browser origins can call the API.
+- **No authentication.** The API has no login, roles, or rate limiting. It is designed for a trusted local network. Add authentication and rate limiting before exposing it to the internet.
 
 ---
 
-## Species-Specific Pond Configuration
+## Known limitations
 
-On a pond's page, **Species and safety profile** lets the farmer choose what is raised in that pond (Rohu, Catla, Mrigal, Vannamei shrimp, Pangasius, Common carp, Grass carp, Other/custom, or a mixed-species pond). The choice is saved on the pond in MongoDB through `PATCH /api/ponds/:id/species`, the page always shows the value the server returned, and changing an existing choice asks for confirmation. The species also appears on pond cards, the Digital Twin tooltip and panel, alerts, and the simulation page.
-
-- Ponds are never assigned a species automatically; until one is chosen the pond shows **Species not set**.
-- **No species currently has validated alert limits.** The ranges in the catalogue (for example Rohu 24–31 °C, DO target ≥ 5 mg/L) are provisional *reference* values shown for context. They never raise an alert. Until a domain expert approves limits and an operator supplies them (`AQUAGUARD_SPECIES_POLICIES`, see [backend/README.md](backend/README.md)), the existing general rules decide every alert, and each alert says so (*General safety rules*) and names the pond's species.
-- Forecasts come from one model trained without species information and are **not** species-specific.
-
-See [backend/README.md](backend/README.md#species-configuration-and-species-aware-alerts-srcservicesspeciesprofilesjs-guidancejs) for the data model, rule resolution and alert behaviour.
-
----
-
-## Known Limitations
-
-- **Stale Historical Data:** Because the source FWI research campaign ended in January 2026, all imported historical ponds naturally show `STALE` in real-time mode today. Use the **Demo & Simulation** page to observe live dynamics.
-- **Thresholds are Defaults:** The pH and temperature threshold bounds are demo values for software evaluation. Calibrate limits to specific target aquatic species before production deployment.
-- **Forecast Alerts:** Machine learning predictive alerts are currently enabled for dissolved oxygen.
+- **No authentication or roles.** See [Security](#security).
+- **Provisional pH and temperature limits.** The values are software-testing defaults. Validate them for your species and site before relying on them.
+- **No species has validated alert limits.** Catalogue ranges are reference context only until an expert approves limits.
+- **Predictive alerts cover dissolved oxygen only.** pH and temperature forecasts are shown but never raise alerts.
+- **Historical data is static.** The imported monitoring campaign ended in January 2026, so imported ponds show `STALE` in live mode. Use **Demo and simulation** to see live behaviour.
+- **Forecasts are not species-specific,** and longer horizons rely on recursive chaining, which accumulates error.
+- **No push or SMS alert delivery.** The `notificationDeliveries` collection exists, but nothing in the backend writes to it yet.
+- **No hardware firmware in this repository.** Sensors are expected to post to `POST /api/measurements`.
 
 ---
 
-## Further Documentation
+## Further documentation
 
-- [Frontend Documentation](file:///Users/anudeepreddyveerati/Lassiii/Aquafix/frontend/README.md): Next.js App Router details, 3D Digital Twin setup, component rules, and UI testing.
-- [Backend Documentation](file:///Users/anudeepreddyveerati/Lassiii/Aquafix/backend/README.md): REST API contracts, alert state machine, and ML worker protocol.
-- [Database Documentation](file:///Users/anudeepreddyveerati/Lassiii/Aquafix/database/README.md): Collection schemas, index rationale, and maintenance scripts.
-- [Dataset & Model Specification](file:///Users/anudeepreddyveerati/Lassiii/Aquafix/docs/DATASET_AND_MODEL.md): Historical FWI dataset inventory, column mapping, and ML model evaluation.
+| Document | Covers |
+|---|---|
+| [`backend/README.md`](backend/README.md) | API contracts, the alert state machine, and the ML worker protocol |
+| [`frontend/README.md`](frontend/README.md) | Dashboard setup, the digital twin, component rules, and UI testing |
+| [`mobile-app/README.md`](mobile-app/README.md) | Expo setup, running on a device, and troubleshooting |
+| [`database/README.md`](database/README.md) | Collection schemas, index rationale, and maintenance scripts |
+| [`docs/DATASET_AND_MODEL.md`](docs/DATASET_AND_MODEL.md) | Dataset inventory, column mapping, and model evaluation |
 
 ---
 
-## Data Attribution
+## Data attribution
 
-The continuous-monitoring aquaculture dataset used in AquaGuard is provided by the [Fish Welfare Initiative (FWI)](https://www.fishwelfareinitiative.org/) and is shared for research and early-warning safety engineering.
+The continuous-monitoring aquaculture dataset is provided by the [Fish Welfare Initiative (FWI)](https://www.fishwelfareinitiative.org/) for research and early-warning safety engineering.

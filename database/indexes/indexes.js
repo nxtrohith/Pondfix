@@ -20,6 +20,9 @@ export const indexes = {
     { name: 'forecast_identity_unique', key: { pondId: 1, parameter: 1, forecastFor: 1, generatedAt: 1 }, options: { unique: true }, purpose: 'Re-running one inference does not duplicate its forecasts' },
     { name: 'modelRunId', key: { modelRunId: 1 }, options: { sparse: true }, purpose: 'Predictions produced by a model run' },
   ],
+  farmerNotes: [
+    { name: 'pond_createdAt', key: { pondId: 1, createdAt: -1 }, options: {}, purpose: 'Recent field notes per pond' },
+  ],
   alerts: [
     { name: 'pond_status_createdAt', key: { pondId: 1, status: 1, createdAt: -1 }, options: {}, purpose: 'Pond alert history / active alerts' },
     { name: 'status_createdAt', key: { status: 1, createdAt: -1 }, options: {}, purpose: 'All active alerts across ponds' },

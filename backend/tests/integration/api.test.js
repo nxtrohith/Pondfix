@@ -219,7 +219,7 @@ test('risk-rules exposes the backend thresholds', async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.dissolvedOxygen, { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 });
   assert.equal(r.body.staleAfterMinutes, 60);
-  assert.deepEqual(r.body.unclassifiedParameters, ['water_level']);
+  assert.deepEqual(r.body.unclassifiedParameters, ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia']);
   assert.equal(r.body.mode, 'provisional_demo');
   assert.deepEqual(r.body.parameters.ph, { label: 'pH', unit: 'pH', enabled: true, source: 'provisional_demo', acceptableRange: { min: 6.5, max: 8.5 }, lowWarning: 6.5, lowCritical: 6, highWarning: 8.5, highCritical: 9 });
 });

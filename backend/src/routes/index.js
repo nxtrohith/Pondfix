@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler, parseObjectId } from '../utils/http.js';
-import { ApiError } from '../utils/errors.js';
+import { ApiError, validationError } from '../utils/errors.js';
 import { ingestMeasurement } from '../services/ingestion.js';
 import { listMeasurements, latestByParameter, pondSummary, listPredictions, listAlerts, requirePond, serializePond, serializeAlert, withPondNames } from '../services/queries.js';
 import { pondAnalytics, comparePonds } from '../services/analytics.js';
@@ -10,6 +10,10 @@ import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
 import { publishAlertChanges } from '../services/alertEvents.js';
 import { allSnapshots, publishPondUpdate } from '../services/pondSync.js';
+import { addNote, listNotes } from '../services/ai/farmerNotes.js';
+import { whatIf } from '../services/whatIf.js';
+import { pondDownstreamRisks } from '../services/downstream.js';
+import * as demoPond from '../services/demoPond.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 import { buildSensorRoutes } from '../sensors/index.js';
 
@@ -23,7 +27,7 @@ export function buildRouter(deps) {
     let ml = 'disabled';
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
-    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ml: { status: ml } });
+    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), llm: Boolean(deps.advisor && config.ai?.llm?.url) }, ml: { status: ml } });
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.
@@ -39,7 +43,7 @@ export function buildRouter(deps) {
     res.json({
       dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
       parameters, mode, version,
-      unclassifiedParameters: ['water_level'],
+      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'],
       staleAfterMinutes: config.staleAfterMinutes,
       boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
       note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
@@ -54,6 +58,31 @@ export function buildRouter(deps) {
   }));
   // One call for the whole fleet: every pond's snapshot (see services/pondSync.js). Registered before /ponds/:id.
   r.get('/ponds/summaries', asyncHandler(async (req, res) => res.json(await allSnapshots(db, config, now()))));
+  const dataSourceBody = (body) => {
+    const v = body?.dataSource;
+    if (v !== 'sensor' && v !== 'simulator') throw validationError('request validation failed', [{ path: 'dataSource', message: 'must be "sensor" or "simulator"' }]);
+    return v;
+  };
+  const setDataSource = async (filter, dataSource) => {
+    const at = now();
+    try { await db.collection('ponds').updateMany(filter, { $set: { dataSource, dataSourceChangedAt: at, updatedAt: at } }); } catch (e) {
+      if (e?.code === 121) throw new ApiError(503, 'SCHEMA_OUTDATED', 'the database does not accept the dataSource field yet; run "npm run db:init -w database" to update the collection validators');
+      throw e;
+    }
+  };
+  r.patch('/ponds/data-source', asyncHandler(async (req, res) => {
+    const dataSource = dataSourceBody(req.body);
+    await setDataSource({ status: 'active' }, dataSource);
+    const ponds = await db.collection('ponds').find({ status: 'active' }).toArray();
+    for (const p of ponds) await publishPondUpdate({ db, config, events, now }, p._id);
+    res.json({ dataSource, updated: ponds.length });
+  }));
+  r.patch('/ponds/:id/data-source', asyncHandler(async (req, res) => {
+    const pond = await requirePond(db, req.params.id);
+    await setDataSource({ _id: pond._id }, dataSourceBody(req.body));
+    await publishPondUpdate({ db, config, events, now }, pond._id);
+    res.json(serializePond(await requirePond(db, req.params.id)));
+  }));
   r.get('/ponds/:id', asyncHandler(async (req, res) => res.json(serializePond(await requirePond(db, req.params.id)))));
   // Species catalogue and the status of each safety profile (reference ranges are context, not alert limits).
   r.get('/species-profiles', (req, res) => res.json(serializeCatalogue()));
@@ -87,6 +116,8 @@ export function buildRouter(deps) {
     }));
     res.json({ pondId: pond._id, parameters, staleAfterMinutes: config.staleAfterMinutes });
   }));
+  r.get('/ponds/:id/downstream-risks', asyncHandler(async (req, res) => res.json(await pondDownstreamRisks(db, await requirePond(db, req.params.id), now))));
+  r.post('/what-if', (req, res) => res.json(whatIf(req.body)));
   r.get('/ponds/:id/measurements', asyncHandler(async (req, res) => res.json(await listMeasurements(db, config, (await requirePond(db, req.params.id))._id, req.query))));
 
   r.post('/measurements', asyncHandler(async (req, res) => {
@@ -108,6 +139,9 @@ export function buildRouter(deps) {
   r.get('/ponds/:id/analytics', asyncHandler(async (req, res) => res.json(await pondAnalytics(db, config, await requirePond(db, req.params.id), req.query))));
   r.get('/analytics/compare', asyncHandler(async (req, res) => res.json(await comparePonds(db, config, req.query))));
 
+  r.get('/ponds/:id/notes', asyncHandler(async (req, res) => res.json(await listNotes(db, await requirePond(db, req.params.id), Number.parseInt(req.query.limit, 10) || 20))));
+  r.post('/ponds/:id/notes', asyncHandler(async (req, res) => res.status(201).json(await addNote({ db, jev: deps.jev, now }, await requirePond(db, req.params.id), req.body))));
+
   r.get('/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query))));
   r.patch('/alerts/:id/acknowledge', asyncHandler(async (req, res) => {
     const { alert, changed } = await acknowledge(db, parseObjectId(req.params.id, 'alert id'), now());
@@ -122,6 +156,11 @@ export function buildRouter(deps) {
       const out = await demoMeasurement(deps, req.body);
       res.status(out.status).json(out.body);
     }));
+    r.get('/demo/pond', asyncHandler(async (req, res) => res.json(await demoPond.status(deps))));
+    r.post('/demo/pond/setup', asyncHandler(async (req, res) => res.status(200).json(await demoPond.setup(deps, req.body))));
+    r.post('/demo/pond/start', asyncHandler(async (req, res) => res.status(201).json(await demoPond.start(deps, req.body))));
+    r.post('/demo/pond/advance', asyncHandler(async (req, res) => res.json(await demoPond.advance(deps, req.body))));
+    r.post('/demo/pond/reset', asyncHandler(async (req, res) => res.json(await demoPond.reset(deps, req.body))));
   }
   return r;
 }

@@ -21,5 +21,5 @@ export function summarizeOverview(stats: FleetStats, current: Pick<Alert, 'pondI
   if (stats.critical + stats.warning > 0) return { headline: stats.critical > 0 ? `${plural(stats.critical, 'pond is', 'ponds are')} in a critical condition` : `${plural(stats.warning, 'pond needs', 'ponds need')} attention`, detail: tail, tone: stats.critical > 0 ? 'critical' : 'warning', testData: false };
   if (stats.healthy === stats.total) return { headline: stats.total === 1 ? 'Your pond is healthy' : `All ${stats.total} ponds are healthy`, detail: 'Everything is within the acceptable range.', tone: 'healthy', testData: false };
   if (stats.healthy > 0) return { headline: `${stats.healthy} of ${stats.total} ponds are healthy`, detail: quiet ? `${quiet} with no recent reading` : '', tone: 'healthy', testData: false };
-  return { headline: 'No recent readings from any pond', detail: 'AquaGuard cannot tell how your ponds are doing until new readings arrive.', tone: 'muted', testData: false };
+  return { headline: 'No recent readings from any pond', detail: 'PondFix cannot tell how your ponds are doing until new readings arrive.', tone: 'muted', testData: false };
 }
