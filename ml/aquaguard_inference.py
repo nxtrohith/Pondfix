@@ -325,4 +325,4 @@ if __name__ == '__main__':
     pond = sys.argv[1] if len(sys.argv) > 1 else 'ara2_4f79fc8d'
     h = d[d.pond_id == pond].tail(400)
     ts = pd.Timestamp(h.timestamp.iloc[-1]) + pd.Timedelta(hours=1)
-    print(json.dumps(predict(pond, h, ts), indent=2, default=str))
+    print(json.dumps(predict(pond, h, ts), indent=2, default=str))~
