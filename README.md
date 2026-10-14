@@ -2,11 +2,11 @@
 
 AquaGuard is an early-warning system for aquaculture ponds. It stores water-quality measurements, classifies dissolved-oxygen (DO) risk, keeps a persistent alert history, and runs a forecasting model that predicts DO, pH and water temperature ahead of time.
 
-The backend is the single source of truth. The website and mobile app will consume its REST API. Neither is built yet.
+The backend is the single source of truth. The web dashboard (`frontend/`) and the future mobile app consume its REST API.
 
 > **Status**
-> - **Done and verified:** MongoDB Atlas schema and indexes, historical data import, REST API, risk and alert engine, Python forecasting worker.
-> - **Not started:** website, React Native app, hardware firmware, notifications, authentication.
+> - **Done and verified:** MongoDB Atlas schema and indexes, historical data import, REST API, risk and alert engine, Python forecasting worker, web dashboard (`frontend/`).
+> - **Not started:** React Native app, hardware firmware, notifications, authentication.
 
 ---
 
@@ -16,6 +16,7 @@ The backend is the single source of truth. The website and mobile app will consu
 - [Architecture](#architecture)
 - [Repository layout](#repository-layout)
 - [Quick start](#quick-start)
+- [Web dashboard](#web-dashboard)
 - [Configuration](#configuration)
 - [Database](#database)
 - [Historical data import](#historical-data-import)
@@ -84,6 +85,7 @@ The backend is the single source of truth. The website and mobile app will consu
 │   │   ├── app.js           Express app factory (dependencies injected)
 │   │   └── server.js        process entry point
 │   └── tests/               unit and integration tests
+├── frontend/                Next.js web dashboard (see frontend/README.md)
 ├── database/                MongoDB setup, fixtures and import (see database/README.md)
 │   ├── lib/                 connection, setup, FWI import mapping
 │   ├── schemas/             collection validators
@@ -135,6 +137,23 @@ Check that it is running:
 curl http://127.0.0.1:4000/api/health
 ```
 
+## Web dashboard
+
+Start the API first, then the dashboard, in two terminals:
+
+```bash
+# Terminal 1: API (pick one)
+npm start                  # real data on Atlas (needs .env), http://127.0.0.1:4000/api
+npm run dev:local          # throwaway local database with the historical data; safe for Simulation
+
+curl http://127.0.0.1:4000/api/health      # expect "status":"ok", database "up"
+
+# Terminal 2: dashboard
+npm run dev:frontend       # http://localhost:3000
+```
+
+Stop each with `Ctrl+C`. If the dashboard shows "Could not reach the AquaGuard API", the API is not running. `npm run dev:local` writes only to an in-memory database, so you can use the Simulation page without adding demo records to Atlas. Pages: Overview, Ponds, pond details, Forecasts, Alerts, Analytics, Simulation, System Health. Setup details, troubleshooting, API usage and design notes: [`frontend/README.md`](frontend/README.md).
+
 ## Configuration
 
 All settings come from environment variables. Copy `.env.example` to `.env`, which Git ignores. Never commit `.env` or paste its contents into chats, tickets or logs.
@@ -146,7 +165,7 @@ All settings come from environment variables. Copy `.env.example` to `.env`, whi
 | `PORT` | `4000` | API port |
 | `HOST` | `127.0.0.1` | API bind address |
 | `NODE_ENV` | `development` | `production` turns off demo routes by default |
-| `CORS_ORIGINS` | local dev origins | Comma-separated allowed browser origins |
+| `CORS_ORIGINS` | `localhost` and `127.0.0.1` on 3000, 5173, 8081 | Comma-separated allowed browser origins |
 | `DEMO_ENABLED` | `true` (off in production) | Enables `/api/demo/*` |
 | `STALE_AFTER_MINUTES` | `60` | Age after which a reading is reported `STALE` |
 | `MAX_QUERY_RANGE_DAYS` | `366` | Largest allowed query window |
@@ -221,6 +240,7 @@ All routes are under `/api`. Full request and response examples are in [`backend
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Service, database and ML status |
+| `GET` | `/risk-rules` | Thresholds and stale window the backend applies |
 | `GET` | `/ponds` | List ponds |
 | `GET` | `/ponds/:id` | One pond |
 | `GET` | `/ponds/:id/summary` | Risk status, latest values and open alerts |
@@ -278,7 +298,7 @@ Details: [`docs/DATASET_AND_MODEL.md`](docs/DATASET_AND_MODEL.md).
 ## Testing
 
 ```bash
-npm test                     # everything below
+npm test                     # backend + database + frontend
 npm run test:unit -w backend         # no database or Python needed
 npm run test:integration -w backend  # starts an ephemeral local MongoDB
 ```
@@ -286,6 +306,7 @@ npm run test:integration -w backend  # starts an ephemeral local MongoDB
 - **Unit tests** cover risk boundaries, validation rules and helper functions.
 - **Integration tests** run the API against an ephemeral local `mongod`, with the same validators and indexes as Atlas. They never touch Atlas. The first run downloads a MongoDB binary.
 - **The real-model test** runs the Python worker on stored historical data. It is skipped unless the CSVs and Python dependencies are present.
+- **Frontend tests** (Vitest) cover the API client, formatting, chart gap handling, aggregation and simulation validation. `npm run lint|typecheck|build -w frontend` check the rest.
 - **Database tests** cover the import mapping, the import's idempotency and conflict handling, and the setup scripts.
 
 ## Security
@@ -299,13 +320,14 @@ npm run test:integration -w backend  # starts an ephemeral local MongoDB
 ## Limitations
 
 - Atlas setup and the historical import have been run and verified against the real cluster. The full automated test suite has been run on a local database only.
-- No website, mobile app, hardware code or notifications exist yet.
+- No mobile app, hardware code or notifications exist yet.
 - Imported ponds show `STALE` today because the data ends in January 2026.
 - Pond metadata (location, area, species) is not recorded because the source data does not include it.
 - Thresholds are project defaults, not validated species limits.
 
 ## Further documentation
 
+- [`frontend/README.md`](frontend/README.md): dashboard pages, API usage, data-integrity and design rules
 - [`backend/README.md`](backend/README.md): API reference, pipeline, alert lifecycle, worker protocol
 - [`database/README.md`](database/README.md): schema, indexes, relationships, retention, scripts
 - [`docs/DATASET_AND_MODEL.md`](docs/DATASET_AND_MODEL.md): dataset inventory, import mapping, model requirements

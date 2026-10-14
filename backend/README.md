@@ -20,6 +20,8 @@ pip install -r ml/requirements.txt   # scikit-learn 1.8.0, numpy, pandas, joblib
 npm run db:init -w database && npm run db:indexes -w database      # collections, validators, indexes (idempotent)
 npm start                       # API on http://127.0.0.1:4000/api ; spawns the Python inference worker lazily
 ```
+Local development without Atlas: `npm run dev:local` (ephemeral database with the historical data, API on :4000).
+
 Historical import: `node database/scripts/import-fwi.js --dir <Preprocess/csv>` (dry run), add `--write` to persist, then `node database/scripts/verify-import.js --dir <Preprocess/csv>`.
 
 Tests: `npm test` (root) = backend unit + integration + database tests. Unit tests need nothing; integration tests start an **ephemeral local mongod** (mongodb-memory-server; first run downloads a binary) and never touch Atlas. The real-model test needs Python deps and `~/Preprocess/csv/ara2_4f79fc8d.csv`, otherwise it skips.
@@ -45,6 +47,7 @@ Dissolved oxygen: `< 2.0` CRITICAL, `2.0 ≤ x < 3.0` WARNING, `≥ 3.0` no warn
 | Method & path | Notes |
 |---|---|
 | `GET /health` | `{status: ok｜degraded｜down, database:{status}, ml:{status: ready｜unavailable｜disabled}}`; `503` if the DB is down. No URIs/internals. |
+| `GET /risk-rules` | `{dissolvedOxygen:{unit,criticalBelow,warningBelow}, unclassifiedParameters, staleAfterMinutes, note}`: the rules the backend applies, for clients to display instead of duplicating |
 | `GET /ponds`, `GET /ponds/:id` | pond metadata (`sourceId` for imported ponds) |
 | `GET /ponds/:id/summary` | `riskStatus` (CRITICAL｜WARNING｜NORMAL｜STALE｜NO_DATA, based on DO), per-parameter latest value + age + `dataState`, open alert counts |
 | `GET /ponds/:id/measurements` | newest first. Query: `from`,`to` (ISO, max range 366 d), `parameter`, `source` (`historical｜simulated｜live`), `limit` (≤1000, default 100), `cursor` → `{items,count,nextCursor}` |

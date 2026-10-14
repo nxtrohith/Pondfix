@@ -8,7 +8,9 @@ export function loadConfig(env = process.env) {
     production,
     port: int(env.PORT, 4000),
     host: env.HOST || '127.0.0.1',
-    corsOrigins: (env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,http://localhost:8081').split(',').map((s) => s.trim()).filter(Boolean),
+    // Local development origins for the web dashboard (3000), Vite (5173) and Expo web (8081). Both hostnames are
+    // listed because a browser treats localhost and 127.0.0.1 as different origins.
+    corsOrigins: (env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081').split(',').map((s) => s.trim()).filter(Boolean),
     bodyLimit: env.BODY_LIMIT || '20kb',
     demoEnabled: bool(env.DEMO_ENABLED, !production),
     // A reading older than this is "stale", not healthy. 60 min mirrors the forecasting model's own MAX_AGE (4 x 15 min).

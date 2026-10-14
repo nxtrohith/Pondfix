@@ -32,6 +32,12 @@ test('config defaults: demo off in production, secrets not part of config', () =
   assert.equal(loadConfig({}).demoEnabled, true);
   assert.ok(!JSON.stringify(loadConfig({ MONGODB_URI: 'mongodb://secret' })).includes('secret'));
 });
+test('config: default CORS origins cover localhost and 127.0.0.1 and contain no wildcard', () => {
+  const o = loadConfig({}).corsOrigins;
+  assert.ok(o.includes('http://localhost:3000') && o.includes('http://127.0.0.1:3000'));
+  assert.ok(!o.some((x) => x.includes('*')));
+  assert.deepEqual(loadConfig({ CORS_ORIGINS: 'http://a.test' }).corsOrigins, ['http://a.test']);
+});
 test('object id and cursor helpers', () => {
   assert.throws(() => parseObjectId('xyz'), /ObjectId/);
   const id = parseObjectId('a'.repeat(24)); const d = new Date('2026-01-01T00:00:00Z');

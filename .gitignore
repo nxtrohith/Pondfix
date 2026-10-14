@@ -22,3 +22,8 @@ coverage/
 database/reports/
 *.env
 *credentials*
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo

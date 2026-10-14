@@ -6,6 +6,7 @@ import { listMeasurements, latestByParameter, pondSummary, listPredictions, list
 import { pondAnalytics, comparePonds } from '../services/analytics.js';
 import { acknowledge } from '../services/alerts.js';
 import { demoMeasurement, SCENARIOS } from '../services/demo.js';
+import { THRESHOLDS } from '../services/risk.js';
 
 export function buildRouter(deps) {
   const { db, config, now } = deps;
@@ -18,6 +19,14 @@ export function buildRouter(deps) {
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
     res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database }, ml: { status: ml } });
+  }));
+
+  // The backend owns the rules; clients read them here instead of duplicating numbers.
+  r.get('/risk-rules', (req, res) => res.json({
+    dissolvedOxygen: { unit: THRESHOLDS.dissolved_oxygen.unit, criticalBelow: THRESHOLDS.dissolved_oxygen.low_crit, warningBelow: THRESHOLDS.dissolved_oxygen.low_warn },
+    unclassifiedParameters: ['ph', 'temperature', 'water_level'],
+    staleAfterMinutes: config.staleAfterMinutes,
+    note: 'Project default thresholds, not validated species-specific limits. pH, temperature and water level have no validated rules.',
   }));
 
   r.get('/ponds', asyncHandler(async (req, res) => {
