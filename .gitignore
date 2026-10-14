@@ -27,3 +27,4 @@ database/reports/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+*.pt
