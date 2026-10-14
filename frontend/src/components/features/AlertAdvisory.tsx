@@ -2,6 +2,7 @@ import { BellRinging, Cpu, LinkSimple, ListNumbers, ShieldCheck, Sparkle, Warnin
 import type { Alert } from '@/lib/api/schemas';
 import { PARAM_LABEL } from '@/lib/format';
 import { cx } from '../ui/cx';
+import { DownstreamRiskList } from './DownstreamRisks';
 
 const CHANNEL = { in_app: 'In-app only', push: 'Push notification', sms: 'SMS or phone call' } as const;
 const label = (p: string) => PARAM_LABEL[p] ?? p;
@@ -58,6 +59,14 @@ export function AlertAdvisory({ alert: a }: { alert: Alert }) {
           <p className="mt-1.5 text-ink"><span className="font-medium">Check first:</span> {sol.verifyFirst}</p>
           <ol className="mt-1.5 list-decimal space-y-0.5 pl-5 text-ink">{sol.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
           {held ? <p className="mt-1.5 text-xs text-ink-soft">An AI-written answer was held back by the safety check, so standard guidance is shown instead.</p> : null}
+        </div>
+      ) : null}
+
+      {adv.downstreamRisks?.length ? (
+        <div className="mt-3" aria-label="What this may lead to">
+          <p className="font-medium text-ink">What this may lead to</p>
+          <p className="text-xs text-ink-soft">Rules of thumb from the current readings, not forecasts or alerts.</p>
+          <DownstreamRiskList risks={adv.downstreamRisks} compact />
         </div>
       ) : null}
 

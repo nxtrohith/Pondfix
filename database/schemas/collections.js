@@ -2,7 +2,7 @@
 // deliberately limited to structural and physically-impossible-value checks:
 // historical data outside a "preferred" range is never rejected here.
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'];
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'];
 export const FIXTURE_TAG = 'aquaguard-demo-v1';
 
 const id = { bsonType: 'objectId' };
@@ -76,7 +76,7 @@ export const collections = {
       receivedAt: { ...date, description: 'Time the system received it (UTC).' },
       source: oneOfEnum(['historical', 'simulated', 'live']),
       values: {
-        bsonType: 'array', minItems: 1, maxItems: 8,
+        bsonType: 'array', minItems: 1, maxItems: 12,
         items: { anyOf: [
           reading('dissolved_oxygen', 'mg/L', 0, 50),
           reading('ph', 'pH', 0, 14),
@@ -85,6 +85,10 @@ export const collections = {
           reading('ammonia', 'mg/L', 0, 20),
           reading('nitrate', 'mg/L', 0, 500),
           reading('turbidity', 'NTU', 0, 1000),
+          reading('nitrite', 'mg/L', 0, 20),
+          reading('alkalinity', 'mg/L', 0, 500),
+          reading('salinity', 'ppt', 0, 50),
+          reading('un_ionized_ammonia', 'mg/L', 0, 5),
         ] },
       },
       provenance: {

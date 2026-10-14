@@ -2,7 +2,8 @@ import { initialPondsState, pondsReducer, type PondsState } from '@/lib/pondStat
 import { chemistryFor, readingsFor } from '@/lib/pondView';
 import { summarizePond } from '@/lib/pondSummary';
 import { formatValue } from '@/lib/format';
-import { parameterLabel, parameterUnit } from '@/lib/status';
+import { parameterLabel, parameterUnit, CHEMISTRY_HINT, CHEMISTRY_LABEL } from '@/lib/status';
+import { CHEMISTRY_PARAMETERS, DERIVED_CHEMISTRY } from '@/types';
 import type { PondSnapshot } from '@/services/ponds';
 import type { Pond } from '@/types';
 
@@ -16,9 +17,9 @@ const boot = (parameters: PondSnapshot['parameters']): PondsState =>
 describe('water chemistry (ammonia, nitrate, turbidity)', () => {
   it('is read from the snapshot with its source; a missing parameter is null, never zero', () => {
     const c = chemistryFor(boot({ ammonia: param(0.12), turbidity: param(31.4) }), pond);
-    expect(c.map((x) => x.parameter)).toEqual(['ammonia', 'nitrate', 'turbidity']);
+    expect(c.map((x) => x.parameter)).toEqual(['ammonia', 'un_ionized_ammonia', 'nitrite', 'nitrate', 'alkalinity', 'salinity', 'turbidity']);
     expect(c[0]).toMatchObject({ latest: { value: 0.12, recordedAt: T0 }, source: 'simulated' });
-    expect(c[1]).toMatchObject({ latest: null, source: null });
+    expect(c[3]).toMatchObject({ parameter: 'nitrate', latest: null, source: null });
   });
 
   it('never changes the pond status or the core readings', () => {
@@ -35,5 +36,14 @@ describe('water chemistry (ammonia, nitrate, turbidity)', () => {
     expect(parameterUnit('nitrate')).toBe('mg/L');
     expect(formatValue(0.1234, 'ammonia')).toBe('0.12');
     expect(formatValue(31.26, 'turbidity')).toBe('31.3');
+    expect(parameterLabel('nitrite')).toBe('Nitrite');
+    expect(parameterUnit('salinity')).toBe('ppt');
+    expect(formatValue(0.01234, 'un_ionized_ammonia')).toBe('0.012');
+    expect(formatValue(112.4, 'alkalinity')).toBe('112');
+  });
+
+  it('knows which value is calculated and has a hint for every parameter', () => {
+    expect(DERIVED_CHEMISTRY).toEqual(['un_ionized_ammonia']);
+    for (const p of CHEMISTRY_PARAMETERS) { expect(CHEMISTRY_LABEL[p]).toBeTruthy(); expect(CHEMISTRY_HINT[p]).toBeTruthy(); }
   });
 });

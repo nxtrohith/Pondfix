@@ -7,6 +7,7 @@ import { fontSize, radius, spacing } from '@/constants/theme';
 import type { AlertAdvisory } from '@/types';
 import { parameterLabel } from '@/lib/status';
 import { Panel } from './SectionHeader';
+import { DownstreamRiskList } from './DownstreamRiskList';
 
 const CHANNEL = { in_app: 'In-app only', push: 'Push notification', sms: 'SMS or phone call' } as const;
 const urgencyText = (u: number | null) => (u === null ? null : u < 0.75 ? 'keep monitoring' : u < 1.5 ? 'needs attention soon' : 'needs action now');
@@ -48,6 +49,14 @@ export function AdvisoryPanel({ advisory: a }: { advisory: AlertAdvisory }) {
           <Text style={styles.body}><Text style={styles.bold}>Check first:</Text> {sol.verifyFirst}</Text>
           {sol.steps.map((s, i) => <Text key={i} style={styles.body}>{i + 1}. {s}</Text>)}
           {a.aiHeldBack ? <Text style={styles.small}>An AI-written answer was held back by the safety check, so standard guidance is shown instead.</Text> : null}
+        </View>
+      ) : null}
+
+      {a.downstreamRisks.length ? (
+        <View style={{ gap: 4 }} testID="advisory-downstream">
+          <Text style={styles.bold}>What this may lead to</Text>
+          <Text style={styles.small}>Rules of thumb from the current readings, not forecasts or alerts.</Text>
+          <DownstreamRiskList risks={a.downstreamRisks} />
         </View>
       ) : null}
 

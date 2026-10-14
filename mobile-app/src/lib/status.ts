@@ -100,8 +100,18 @@ export const PARAMETER_SHORT: Record<Parameter, string> = { dissolved_oxygen: 'D
 export const PARAMETER_UNIT: Record<Parameter, string> = { dissolved_oxygen: 'mg/L', ph: 'pH', temperature: '°C' };
 
 /** Label/unit for any parameter name the backend may send. Unknown names are shown readable instead of failing. */
-export const CHEMISTRY_LABEL: Record<ChemistryParameter, string> = { ammonia: 'Ammonia', nitrate: 'Nitrate', turbidity: 'Turbidity' };
-export const CHEMISTRY_UNIT: Record<ChemistryParameter, string> = { ammonia: 'mg/L', nitrate: 'mg/L', turbidity: 'NTU' };
+export const CHEMISTRY_LABEL: Record<ChemistryParameter, string> = { ammonia: 'Ammonia', un_ionized_ammonia: 'Un-ionized ammonia (NH₃)', nitrite: 'Nitrite', nitrate: 'Nitrate', alkalinity: 'Alkalinity', salinity: 'Salinity', turbidity: 'Turbidity' };
+export const CHEMISTRY_UNIT: Record<ChemistryParameter, string> = { ammonia: 'mg/L', un_ionized_ammonia: 'mg/L', nitrite: 'mg/L', nitrate: 'mg/L', alkalinity: 'mg/L', salinity: 'ppt', turbidity: 'NTU' };
+/** One line on why each chemistry value matters. */
+export const CHEMISTRY_HINT: Record<ChemistryParameter, string> = {
+  ammonia: 'Waste from feed and stock. Harmful when high.',
+  un_ionized_ammonia: 'The toxic part of ammonia. Rises with pH and warmth.',
+  nitrite: 'Builds up when oxygen is low. Harmful to stock.',
+  nitrate: 'End product of the cycle. Builds up slowly.',
+  alkalinity: 'Holds pH steady. Low alkalinity means bigger pH swings.',
+  salinity: 'Falls with rain, rises as water evaporates.',
+  turbidity: 'Cloudiness from algae, silt or rain.',
+};
 
 export function parameterLabel(parameter: string): string {
   if (parameter in PARAMETER_LABEL) return PARAMETER_LABEL[parameter as Parameter];

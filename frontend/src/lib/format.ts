@@ -9,8 +9,12 @@ export const PARAM_LABEL: Record<string, string> = {
   ammonia: 'Ammonia',
   nitrate: 'Nitrate',
   turbidity: 'Turbidity',
+  nitrite: 'Nitrite',
+  alkalinity: 'Alkalinity',
+  salinity: 'Salinity',
+  un_ionized_ammonia: 'Un-ionized ammonia (NH₃)',
 };
-export const PARAM_SHORT: Record<string, string> = { dissolved_oxygen: 'Oxygen', ph: 'pH', temperature: 'Temp', water_level: 'Level', ammonia: 'Ammonia', nitrate: 'Nitrate', turbidity: 'Turbidity' };
+export const PARAM_SHORT: Record<string, string> = { dissolved_oxygen: 'Oxygen', ph: 'pH', temperature: 'Temp', water_level: 'Level', ammonia: 'Ammonia', nitrate: 'Nitrate', turbidity: 'Turbidity', nitrite: 'Nitrite', alkalinity: 'Alkalinity', salinity: 'Salinity', un_ionized_ammonia: 'NH₃' };
 
 export function unitLabel(unit?: string | null): string {
   if (!unit) return '';
@@ -19,7 +23,7 @@ export function unitLabel(unit?: string | null): string {
   return unit;
 }
 
-const DECIMALS: Record<string, number> = { dissolved_oxygen: 2, ph: 2, temperature: 1, water_level: 2, ammonia: 3, nitrate: 2, turbidity: 1 };
+const DECIMALS: Record<string, number> = { dissolved_oxygen: 2, ph: 2, temperature: 1, water_level: 2, ammonia: 3, nitrate: 2, turbidity: 1, nitrite: 3, alkalinity: 0, salinity: 1, un_ionized_ammonia: 4 };
 export function formatValue(value: number | null | undefined, parameter: string, withUnit = false, unit?: string): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return 'n/a';
   const text = value.toFixed(DECIMALS[parameter] ?? 2);
@@ -68,7 +72,7 @@ export const horizonLabel = (minutes?: number) => (minutes === undefined ? 'n/a'
 export const isParameter = (p: string): p is Parameter => p in PARAM_LABEL;
 
 /** Canonical display unit per parameter (alerts store the threshold but not the unit). */
-export const DEFAULT_UNIT: Record<string, string> = { dissolved_oxygen: 'mg/L', ph: '', temperature: '°C', water_level: 'm', ammonia: 'mg/L', nitrate: 'mg/L', turbidity: 'NTU' };
+export const DEFAULT_UNIT: Record<string, string> = { dissolved_oxygen: 'mg/L', ph: '', temperature: '°C', water_level: 'm', ammonia: 'mg/L', nitrate: 'mg/L', turbidity: 'NTU', nitrite: 'mg/L', alkalinity: 'mg/L', salinity: 'ppt', un_ionized_ammonia: 'mg/L' };
 
 /** Thresholds come from the API as plain numbers (2, 3); show them with one decimal like the rules are written (2.0, 3.0). */
 export const fmtThreshold = (n: number) => n.toFixed(1);

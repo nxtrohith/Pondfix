@@ -2,7 +2,7 @@
 // Only fields the UI reads are required; everything else is optional so additive backend changes do not break the app.
 import { z } from 'zod';
 
-export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity'] as const;
+export const PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature', 'water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'] as const;
 export const FORECAST_PARAMETERS = ['dissolved_oxygen', 'ph', 'temperature'] as const;
 export type Parameter = (typeof PARAMETERS)[number];
 export type ForecastParameter = (typeof FORECAST_PARAMETERS)[number];
@@ -149,6 +149,21 @@ export const predictionSchema = z.object({
 export type Prediction = z.infer<typeof predictionSchema>;
 export const predictionsResponse = z.object({ items: z.array(predictionSchema), generatedAt: iso.nullable(), note: z.string().optional() });
 
+/** A rule-of-thumb knock-on effect computed by the backend (backend/src/services/ai/couplings.js). Information only: never an alert. */
+export const downstreamRiskSchema = z.object({
+  id: z.string(), from: z.string(), affects: z.string(), effect: z.string(),
+  leadHours: z.tuple([z.number(), z.number()]), basis: z.string(), precaution: z.string().optional(),
+});
+export type DownstreamRisk = z.infer<typeof downstreamRiskSchema>;
+export const whatIfResponse = z.object({
+  hypothetical: z.literal(true), hourIst: z.number(), note: z.string(),
+  status: z.record(z.string(), z.object({ label: z.string(), value: z.number(), status: riskStatusSchema, direction: z.enum(['low', 'high']).optional(), threshold: z.number().optional() })),
+  derived: z.object({ unionizedFractionPercent: z.number().optional(), unIonizedAmmonia: z.number().optional() }),
+  risks: z.array(downstreamRiskSchema),
+});
+export type WhatIfResult = z.infer<typeof whatIfResponse>;
+export const downstreamRisksResponse = z.object({ pondId: z.string(), generatedAt: iso, risks: z.array(downstreamRiskSchema) });
+
 /** Written by the backend alert advisor (Jev analysis + guarded LLM solution). Suggestions only: the alert itself comes from the safety limits. */
 export const advisorySchema = z.object({
   analysedBy: z.enum(['jev', 'rules']),
@@ -162,6 +177,7 @@ export const advisorySchema = z.object({
   guard: z.object({ passed: z.boolean(), reasons: z.array(z.string()) }).optional(),
   jevModel: z.string().optional(), llmModel: z.string().optional(),
   errors: z.array(z.string()).optional(),
+  downstreamRisks: z.array(downstreamRiskSchema).optional(),
 });
 export type Advisory = z.infer<typeof advisorySchema>;
 

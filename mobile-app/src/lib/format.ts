@@ -1,7 +1,7 @@
 // Presentation helpers. Numbers are shown with fixed decimals so a reading never looks more precise than the sensor.
 import type { ChemistryParameter, Parameter } from '@/types';
 
-const DECIMALS: Record<Parameter | ChemistryParameter, number> = { dissolved_oxygen: 1, ph: 1, temperature: 1, ammonia: 2, nitrate: 1, turbidity: 1 };
+const DECIMALS: Record<Parameter | ChemistryParameter, number> = { dissolved_oxygen: 1, ph: 1, temperature: 1, ammonia: 2, un_ionized_ammonia: 3, nitrite: 2, nitrate: 1, alkalinity: 0, salinity: 1, turbidity: 1 };
 
 /** "2.6", or an explicit "No value" when the reading is missing (never a made-up number). */
 export function formatValue(value: number | null | undefined, parameter: string): string {

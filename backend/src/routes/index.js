@@ -11,6 +11,8 @@ import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfi
 import { publishAlertChanges } from '../services/alertEvents.js';
 import { allSnapshots, publishPondUpdate } from '../services/pondSync.js';
 import { addNote, listNotes } from '../services/ai/farmerNotes.js';
+import { whatIf } from '../services/whatIf.js';
+import { pondDownstreamRisks } from '../services/downstream.js';
 import * as demoPond from '../services/demoPond.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
@@ -40,7 +42,7 @@ export function buildRouter(deps) {
     res.json({
       dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
       parameters, mode, version,
-      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity'], // measured and shown, but no alert limits are defined
+      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'], // measured and shown, but no alert limits are defined
       staleAfterMinutes: config.staleAfterMinutes,
       boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
       note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
@@ -114,6 +116,10 @@ export function buildRouter(deps) {
     }));
     res.json({ pondId: pond._id, parameters, staleAfterMinutes: config.staleAfterMinutes });
   }));
+  // Rule-of-thumb knock-on effects (e.g. rising temperature -> falling oxygen). Information only; never an alert.
+  r.get('/ponds/:id/downstream-risks', asyncHandler(async (req, res) => res.json(await pondDownstreamRisks(db, await requirePond(db, req.params.id), now))));
+  // Hypothetical conditions in, classification + knock-on watch-outs out. Stateless: writes nothing.
+  r.post('/what-if', (req, res) => res.json(whatIf(req.body)));
   r.get('/ponds/:id/measurements', asyncHandler(async (req, res) => res.json(await listMeasurements(db, config, (await requirePond(db, req.params.id))._id, req.query))));
 
   r.post('/measurements', asyncHandler(async (req, res) => {

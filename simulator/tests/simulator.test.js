@@ -17,10 +17,10 @@ test('deterministic per seed, different between ponds', () => {
   assert.notDeepEqual(run('a', 50), run('b', 50));
 });
 
-test('every reading is a valid measurement with all seven parameters', () => {
+test('every reading is a valid measurement with all eleven parameters', () => {
   for (const seed of seeds) for (const { at, v } of run(seed, 96 * 3)) {
     const values = Object.entries(v).map(([parameter, value]) => ({ parameter, value }));
-    assert.equal(values.length, 7);
+    assert.equal(values.length, 11);
     const r = measurementInput.safeParse({ pondId: 'x', recordedAt: new Date(at).toISOString(), source: 'simulated', values });
     assert.ok(r.success, `${seed} ${JSON.stringify(v)} ${r.error?.message}`);
   }
@@ -36,6 +36,10 @@ test('values stay in plausible pond ranges over two weeks for all 17 ponds', () 
   assert.ok(lo.ammonia >= 0.01 && hi.ammonia < 4, `nh3 ${lo.ammonia}-${hi.ammonia}`);
   assert.ok(lo.nitrate >= 0 && hi.nitrate < 100, `no3 ${lo.nitrate}-${hi.nitrate}`);
   assert.ok(lo.turbidity >= 1 && hi.turbidity < 300, `ntu ${lo.turbidity}-${hi.turbidity}`);
+  assert.ok(lo.nitrite > 0 && hi.nitrite < 5, `no2 ${lo.nitrite}-${hi.nitrite}`);
+  assert.ok(lo.alkalinity >= 20 && hi.alkalinity < 300, `alk ${lo.alkalinity}-${hi.alkalinity}`);
+  assert.ok(lo.salinity >= 0 && hi.salinity < 45, `sal ${lo.salinity}-${hi.salinity}`);
+  assert.ok(lo.un_ionized_ammonia >= 0 && hi.un_ionized_ammonia < 2, `nh3 ${lo.un_ionized_ammonia}-${hi.un_ionized_ammonia}`);
 });
 
 test('daily cycle: afternoon oxygen, pH and temperature exceed pre-dawn values', () => {
@@ -80,7 +84,7 @@ test('runner only posts for ponds set to Server, backfills, then adds one slot p
   const first = await runner.tick();
   assert.equal(first.ponds, 1);
   assert.equal(first.posted, 8); // 10:15 .. 12:00 = 8 slots
-  assert.ok(api.posts.every((p) => p.pondId === 'p1' && p.source === 'simulated' && p.values.length === 7));
+  assert.ok(api.posts.every((p) => p.pondId === 'p1' && p.source === 'simulated' && p.values.length === 11));
   assert.equal(new Set(api.posts.map((p) => p.idempotencyKey)).size, 8);
   assert.equal((await runner.tick()).posted, 0, 'same slot is not repeated');
   clock += 15 * 60000;

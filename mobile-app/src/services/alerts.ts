@@ -1,6 +1,6 @@
 // Alert service. The backend decides whether an alert exists (backend/src/services/alerts.js); this file only fetches, validates and
 // subscribes to what it produced. There is deliberately no threshold or classification logic here.
-import type { AlertAdvisory, AlertItem } from '@/types';
+import type { AlertAdvisory, AlertItem, DownstreamRisk } from '@/types';
 import { apiGet, apiPatch } from './api';
 
 type Raw = Record<string, unknown>;
@@ -31,7 +31,19 @@ export function normalizeAdvisory(input: unknown): AlertAdvisory | null {
     ? { source: sol.source as 'llm' | 'rules', summary: str(sol.summary)!, verifyFirst: str(sol.verifyFirst)!, steps } : null;
   const guard = isObj(input.guard) ? input.guard : null;
   const aiHeldBack = !!guard && guard.passed === false && solution?.source === 'rules' && strArr(guard.reasons).some((r) => !r.startsWith('llm failed'));
-  return { analysedBy, priorities, sensorFault: sf, relatedParameters: isObj(input.incident) ? strArr(input.incident.relatedParameters) : [], channel, forecastActionable: fa, solution, aiHeldBack };
+  return { analysedBy, priorities, sensorFault: sf, relatedParameters: isObj(input.incident) ? strArr(input.incident.relatedParameters) : [], channel, forecastActionable: fa, solution, aiHeldBack, downstreamRisks: normalizeRisks(input.downstreamRisks) };
+}
+
+/** Validates the knock-on effects list; a malformed entry is dropped on its own. */
+export function normalizeRisks(input: unknown): DownstreamRisk[] {
+  if (!Array.isArray(input)) return [];
+  return input.flatMap((r) => {
+    if (!isObj(r)) return [];
+    const id = str(r.id); const from = str(r.from); const affects = str(r.affects); const effect = str(r.effect); const basis = str(r.basis);
+    const lead = Array.isArray(r.leadHours) && r.leadHours.length === 2 ? [num(r.leadHours[0]), num(r.leadHours[1])] : null;
+    if (!id || !from || !affects || !effect || !basis || !lead || lead[0] === null || lead[1] === null) return [];
+    return [{ id, from, affects, effect, basis, leadHours: [lead[0], lead[1]] as [number, number], precaution: str(r.precaution) }];
+  });
 }
 
 /** Validates one backend alert. Returns null for a malformed payload so one bad record can never crash the app. */

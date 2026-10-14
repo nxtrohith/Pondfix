@@ -14,6 +14,9 @@ import { LastUpdated } from '@/components/ui/LastUpdated';
 import { ErrorState } from '@/components/ui/states';
 import { MeasurementTrend } from '@/components/features/MeasurementTrend';
 import { WaterQualityCard } from '@/components/features/WaterQualityCard';
+import { ChemistryPanel } from '@/components/features/ChemistryPanel';
+import { DownstreamRisks } from '@/components/features/DownstreamRisks';
+import { LinkedTrends } from '@/components/features/LinkedTrends';
 import { ForecastOutlook } from '@/components/features/ForecastOutlook';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
@@ -45,8 +48,8 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
     if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound();
     return <Card><ErrorState server error={e} title="Could not load this pond" /></Card>;
   }
-  const [summaryR, predsR, openR, pastR, rulesR] = await Promise.allSettled([
-    api.pondSummary(id), api.predictions(id), api.pondAlerts(id, { status: 'OPEN', origin: 'observed', limit: 20 }), api.pondAlerts(id, { status: 'RESOLVED', limit: 5 }), api.riskRules(),
+  const [summaryR, predsR, openR, pastR, rulesR, downstreamR] = await Promise.allSettled([
+    api.pondSummary(id), api.predictions(id), api.pondAlerts(id, { status: 'OPEN', origin: 'observed', limit: 20 }), api.pondAlerts(id, { status: 'RESOLVED', limit: 5 }), api.riskRules(), api.downstreamRisks(id),
   ]);
   const summary = summaryR.status === 'fulfilled' ? summaryR.value : null;
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
@@ -87,17 +90,27 @@ export default async function PondDetailPage({ params }: { params: Promise<{ id:
           </Section>
         ) : null}
 
+        {downstreamR.status === 'fulfilled' && summary ? (
+          <Section id="watch" title="What to watch for" hint="If one reading is moving, it can push another. These are rules of thumb from the latest readings, not measurements, and they never raise an alert.">
+            <DownstreamRisks risks={downstreamR.value.risks} />
+          </Section>
+        ) : null}
+
         {summary && CHEMISTRY_PARAMETERS.some((p) => summary.parameters[p]) ? (
-          <Section id="chemistry" title="Other water chemistry" hint="Ammonia, nitrate and turbidity. No alert limits are set for these, so they never raise an alert.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {CHEMISTRY_PARAMETERS.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} />)}
-            </div>
+          <Section id="chemistry" title="Other water chemistry" hint="No alert limits are set for these, so they never raise an alert or change the pond status. Test data and calculated values are labelled.">
+            <ChemistryPanel readings={summary.parameters} />
           </Section>
         ) : null}
 
         {row.latestAt && summary ? (
           <Section id="trends" title="Water quality over time">
             <MeasurementTrend ponds={[{ id: pond.id, name: row.pond.name, latestAt: row.latestAt, latestAgeMinutes: row.latestAgeMinutes }]} initialPondId={pond.id} rules={rules} allowPondChange={false} forecast={preds ?? undefined} title="Trends" />
+          </Section>
+        ) : null}
+
+        {row.latestAt && summary ? (
+          <Section id="together" title="How readings move together" hint="Pick up to four readings and compare them on one time axis, for example temperature, oxygen and ammonia.">
+            <LinkedTrends pondId={pond.id} latestAt={row.latestAt} rules={rules} />
           </Section>
         ) : null}
 

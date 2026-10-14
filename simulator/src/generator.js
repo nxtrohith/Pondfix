@@ -5,7 +5,7 @@
 //                     weaker on cloudy days, minus a penalty when ammonia is high; cloudy spells can push a pond into low-DO alerts
 //   ph  follows oxygen (photosynthesis removes CO2), so it peaks in the afternoon and bottoms out before dawn
 //   water_level  slow evaporation, occasional rain, and a refill when the pond gets low
-//   ammonia / nitrate / turbidity  from database/lib/wq-simulator.js, driven by the DO, pH and temperature produced here
+//   ammonia / nitrate / turbidity / nitrite / alkalinity / salinity / un-ionized ammonia  from database/lib/wq-simulator.js, driven by the DO, pH and temperature produced here
 // Deterministic: the same seed text and the same sequence of times always give the same readings. Values are NOT measurements.
 import { createHash } from 'node:crypto';
 import { createSimulator as createChemistry } from '../../database/lib/wq-simulator.js';
@@ -96,15 +96,15 @@ export function createPondGenerator(seedText, initial = {}) {
     if (s.water_level < pond.depth - 0.2 && r.uniform() < dt / 6) s.water_level = pond.depth + 0.02 * r.uniform();
     s.water_level = clamp(s.water_level, 0.3, 50);
 
-    const [ammonia, nitrate, turbidity] = chem.step({ recordedAt, do: s.dissolved_oxygen, ph: s.ph, temp: T });
-    s.ammonia = ammonia.value;
+    const chemistry = chem.step({ recordedAt, do: s.dissolved_oxygen, ph: s.ph, temp: T });
+    s.ammonia = chemistry.find((v) => v.parameter === 'ammonia').value;
 
     return [
       { parameter: 'dissolved_oxygen', value: round(s.dissolved_oxygen, 2), unit: 'mg/L' },
       { parameter: 'ph', value: round(s.ph, 2), unit: 'pH' },
       { parameter: 'temperature', value: round(T + 0.03 * r.normal(), 2), unit: 'C' },
       { parameter: 'water_level', value: round(s.water_level + 0.003 * r.normal(), 3), unit: 'm' },
-      ammonia, nitrate, turbidity,
+      ...chemistry,
     ];
   }
   return { step, personality: Object.freeze({ ...pond }) };

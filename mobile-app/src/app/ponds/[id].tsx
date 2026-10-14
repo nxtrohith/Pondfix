@@ -1,5 +1,5 @@
 // Screen 4: pond details. Each parameter has its own status. Missing or stale readings show as unavailable, never as healthy.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { AppButton } from '@/components/AppButton';
 import { PondNotesPanel } from '@/components/PondNotesPanel';
 import { AlertCard } from '@/components/AlertCard';
+import { DownstreamRiskList } from '@/components/DownstreamRiskList';
+import { getDownstreamRisks } from '@/services/downstream';
 import { ConnectionBanner } from '@/components/ConnectionBanner';
 import { EmptyState } from '@/components/StateViews';
 import { SectionHeader, Panel } from '@/components/SectionHeader';
@@ -22,7 +24,7 @@ import { WHY_IT_MATTERS } from '@/data/whyItMatters';
 import { summarizePond } from '@/lib/pondSummary';
 import { ageMinutes, classifyValue, PARAMETER_LABEL, POND_PRESENTATION } from '@/lib/status';
 import { formatDateTime, formatTime } from '@/lib/format';
-import { CHEMISTRY_PARAMETERS, PARAMETERS } from '@/types';
+import { CHEMISTRY_PARAMETERS, PARAMETERS, type DownstreamRisk } from '@/types';
 import { param, routes } from '@/lib/routes';
 
 export default function PondDetailScreen() {
@@ -33,6 +35,15 @@ export default function PondDetailScreen() {
   const pond = ponds.find((p) => p.id === id);
   const hasPond = !!pond;
   useEffect(() => { if (hasPond) ensureHistory(id); }, [hasPond, id, ensureHistory]);
+  // Knock-on effects follow the newest reading: re-fetched when a newer one arrives. A failed fetch just hides the section.
+  const [risks, setRisks] = useState<DownstreamRisk[]>([]);
+  const newestReading = (readings[id] ?? []).map((r) => r.latest?.recordedAt ?? '').sort().at(-1) ?? '';
+  useEffect(() => {
+    if (!hasPond) return undefined;
+    let live = true;
+    getDownstreamRisks(id).then((r) => { if (live) setRisks(r); }, () => { if (live) setRisks([]); });
+    return () => { live = false; };
+  }, [hasPond, id, newestReading]);
 
   if (!pond) {
     return (
@@ -99,9 +110,16 @@ export default function PondDetailScreen() {
         })}
       </View>
 
+      {risks.length ? (
+        <>
+          <SectionHeader title="What to watch for" hint="If one reading is moving, it can push another. Rules of thumb from the latest readings: not measurements, and they never raise an alert." />
+          <DownstreamRiskList risks={risks} testID="downstream-risks" />
+        </>
+      ) : null}
+
       {(chemistry[pond.id] ?? []).some((c) => c.latest) ? (
         <>
-          <SectionHeader title="Water chemistry" hint="Ammonia, nitrate and turbidity. No alert limits are set for these, so they do not change the pond status." />
+          <SectionHeader title="Water chemistry" hint="No alert limits are set for these, so they do not change the pond status. Simulated and calculated values are labelled." />
           <View style={styles.metrics}>
             {CHEMISTRY_PARAMETERS.map((cp) => {
               const c = (chemistry[pond.id] ?? []).find((x) => x.parameter === cp);

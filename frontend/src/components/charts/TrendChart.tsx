@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatAxisTime, formatDateTime, formatValue, unitLabel } from '@/lib/format';
 import { axisTicks, chartDomain, summarize, type Point } from '@/lib/chart';
@@ -9,9 +10,13 @@ export interface Threshold { y: number; label: string; tone: 'warn' | 'crit' }
 const TONE = { warn: '#A66D25', crit: '#B64D43' } as const;
 export const SERIES_COLOR = { observed: '#637957', secondary: '#7D9274', forecast: '#A66D25', muted: '#9a9c92' } as const;
 
-interface Props { /** Vertical marker (e.g. the replay position), ms since epoch. */ cursorAt?: number; series: Series[]; parameter: string; unit?: string; thresholds?: Threshold[]; height?: number; domain?: [number, number]; summaryLabel: string }
+interface Props { /** Vertical marker (e.g. the replay position), ms since epoch. */ cursorAt?: number; series: Series[]; parameter: string; unit?: string; thresholds?: Threshold[]; height?: number; domain?: [number, number]; summaryLabel: string;
+  /** Called with the hovered time (ms) while the pointer is over the chart, and null when it leaves. Lets stacked charts share one cursor. */
+  onCursor?: (t: number | null) => void;
+  /** Hide the legend (for stacked charts that explain the line styles once, elsewhere). */
+  compact?: boolean }
 
-export function TrendChart({ cursorAt, series, parameter, unit, thresholds = [], height = 280, domain, summaryLabel }: Props) {
+export function TrendChart({ cursorAt, onCursor, compact = false, series, parameter, unit, thresholds = [], height = 280, domain, summaryLabel }: Props) {
   const all = series.flatMap((s) => s.points.filter((p): p is { t: number; v: number } => p.v !== null));
   const [t0, t1] = chartDomain(all.map((p) => p.t), domain);
   const span = Math.max(t1 - t0, 1);
@@ -29,12 +34,12 @@ export function TrendChart({ cursorAt, series, parameter, unit, thresholds = [],
           <ComposedChart margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
             <CartesianGrid stroke="#E5E3D9" strokeDasharray="0" vertical={false} />
             <XAxis type="number" dataKey="t" domain={[t0, t1]} scale="time" ticks={axisTicks(t0, t1, 5)} tickFormatter={(v: number) => formatAxisTime(v, span)} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={{ stroke: '#E5E3D9' }} tickLine={false} allowDuplicatedCategory={false} padding={{ left: 16, right: 16 }} />
-            <YAxis type="number" domain={['auto', 'auto']} width={44} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatValue(v, parameter)} />
+            <YAxis type="number" domain={['auto', 'auto']} width={compact ? 58 : 44} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatValue(v, parameter)} />
             {cursorAt !== undefined && cursorAt >= t0 && cursorAt <= t1 ? <ReferenceLine x={cursorAt} stroke="#34372F" strokeWidth={1.25} ifOverflow="visible" /> : null}
             {thresholds.map((th) => (
               <ReferenceLine key={th.label} y={th.y} stroke={TONE[th.tone]} strokeDasharray="4 4" strokeWidth={1} ifOverflow="extendDomain" />
             ))}
-            <Tooltip cursor={{ stroke: '#B8B6AA', strokeWidth: 1 }} content={<ChartTooltip parameter={parameter} unit={unit} />} isAnimationActive={false} />
+            <Tooltip cursor={{ stroke: '#B8B6AA', strokeWidth: 1 }} content={<ChartTooltip parameter={parameter} unit={unit} onCursor={onCursor} />} isAnimationActive={false} />
             {series.map((s) => (
               <Line
                 key={s.key}
@@ -55,7 +60,7 @@ export function TrendChart({ cursorAt, series, parameter, unit, thresholds = [],
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      {series.filter((s) => !s.hideLegend).length > 1 || thresholds.length ? (
+      {!compact && (series.filter((s) => !s.hideLegend).length > 1 || thresholds.length) ? (
         <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 px-1 text-xs text-ink-soft" aria-label="Chart legend">
           {series.filter((s) => !s.hideLegend).map((s) => (
             <li key={s.key} className="flex items-center gap-2">
@@ -72,11 +77,16 @@ export function TrendChart({ cursorAt, series, parameter, unit, thresholds = [],
   );
 }
 
-interface TipProps { active?: boolean; payload?: { name?: string; value?: number | null; color?: string; stroke?: string; payload?: { t: number } }[]; parameter: string; unit?: string }
-function ChartTooltip({ active, payload, parameter, unit }: TipProps) {
+interface TipProps { active?: boolean; payload?: { name?: string; value?: number | null; color?: string; stroke?: string; payload?: { t: number } }[]; parameter: string; unit?: string; onCursor?: (t: number | null) => void }
+function ChartTooltip({ active, payload, parameter, unit, onCursor }: TipProps) {
   const rows = (payload ?? []).filter((p) => typeof p.value === 'number');
+  const t = active && rows.length ? rows[0]!.payload?.t : undefined;
+  useEffect(() => {
+    if (!onCursor || t === undefined) return undefined;
+    onCursor(t);
+    return () => onCursor(null);
+  }, [onCursor, t]);
   if (!active || !rows.length) return null;
-  const t = rows[0]!.payload?.t;
   return (
     <div className="rounded-lg border border-line bg-card px-3 py-2 text-xs shadow-[0_2px_8px_rgba(52,55,47,0.08)]">
       {t !== undefined ? <p className="mb-1 font-medium text-ink">{formatDateTime(new Date(t).toISOString())}</p> : null}

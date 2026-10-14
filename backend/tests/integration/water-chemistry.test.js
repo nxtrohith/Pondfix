@@ -41,3 +41,28 @@ test('the measurement list can be filtered to a chemistry parameter', async () =
   assert.ok(res.body.items.length >= 1);
   assert.ok(res.body.items.every((m) => m.values.length === 1 && m.values[0].parameter === 'nitrate'));
 });
+
+test('downstream-risks: low oxygen plus simulated chemistry gives a nitrite watch-out, uses fresh chemistry, and never creates an alert', async () => {
+  const p2 = await env.makePond('Pond 2');
+  const recordedAt = env.state.now.toISOString();
+  await env.post('/api/measurements', { pondId: String(p2._id), source: 'live', recordedAt, values: [{ parameter: 'dissolved_oxygen', value: 2.5, unit: 'mg/L' }] });
+  await env.post('/api/measurements', { pondId: String(p2._id), source: 'simulated', recordedAt, values: [{ parameter: 'nitrite', value: 0.4, unit: 'mg/L' }, { parameter: 'alkalinity', value: 35, unit: 'mg/L' }] });
+  const res = await env.get(`/api/ponds/${p2._id}/downstream-risks`);
+  assert.equal(res.status, 200);
+  const ids = res.body.risks.map((r) => r.id);
+  assert.ok(ids.includes('low_oxygen_nitrite') && ids.includes('low_alkalinity_ph_swings'), `got ${ids}`);
+  assert.match(res.body.risks.find((r) => r.id === 'low_oxygen_nitrite').basis, /0\.400/);
+  const none = await env.get(`/api/ponds/${(await env.makePond('Pond 3'))._id}/downstream-risks`);
+  assert.deepEqual(none.body.risks, []);
+  assert.equal((await env.get('/api/ponds/not-an-id/downstream-risks')).status, 400);
+});
+
+test('what-if: hypothetical conditions return watch-outs over HTTP, write nothing, and reject bad input with 422', async () => {
+  const before = await env.db.collection('measurements').countDocuments();
+  const res = await env.post('/api/what-if', { temperature: 31.5, temperatureTrend: 'rising', dissolvedOxygen: 5, ph: 8.6, hourIst: 15 });
+  assert.equal(res.status, 200); assert.equal(res.body.hypothetical, true);
+  assert.ok(res.body.risks.some((r) => r.id === 'temperature_rising_oxygen'));
+  assert.equal(await env.db.collection('measurements').countDocuments(), before);
+  assert.equal((await env.db.collection('alerts').countDocuments({ origin: 'observed', createdAt: { $gte: new Date(Date.now() - 60000) } })), 0);
+  assert.equal((await env.post('/api/what-if', { ph: 99 })).status, 422);
+});

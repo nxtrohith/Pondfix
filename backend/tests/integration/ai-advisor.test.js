@@ -88,3 +88,12 @@ test('farmer notes: invalid text is rejected, valid notes are stored (unclassifi
   const list = await env.get(`/api/ponds/${pond._id}/notes`);
   assert.equal(list.body.count, 1);
 });
+
+test('knock-on effects computed in code are given to the model as facts and stored on the advisory', async () => {
+  const a = await critical(1.5);
+  const ids = (a.advisory.downstreamRisks ?? []).map((d) => d.id);
+  assert.ok(ids.includes('low_oxygen_nitrite'), `got ${ids}`);
+  const sent = JSON.parse(llmCalls[0].user);
+  assert.ok(sent.facts.downstreamRisks.some((d) => d.affects === 'nitrite'));
+  assert.equal(a.severity, 'CRITICAL', 'downstream risks never change the alert severity');
+});

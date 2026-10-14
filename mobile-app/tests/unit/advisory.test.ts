@@ -1,4 +1,5 @@
-import { normalizeAdvisory, normalizeAlert } from '@/services/alerts';
+import { normalizeAdvisory, normalizeAlert, normalizeRisks } from '@/services/alerts';
+import { leadText } from '@/lib/risks';
 import { normalizeNote, normalizeNotes } from '@/services/notes';
 
 const advisory = {
@@ -42,5 +43,24 @@ describe('normalizeNote', () => {
     for (const bad of [null, {}, { ...note, text: '' }, { ...note, createdAt: 'nope' }, { ...note, id: 5 }]) expect(normalizeNote(bad)).toBeNull();
     expect(normalizeNotes({ items: [note, { x: 1 }] })).toHaveLength(1);
     expect(normalizeNotes({ items: 'x' })).toEqual([]);
+  });
+});
+
+describe('downstream risks', () => {
+  const risk = { id: 'temperature_rising_oxygen', from: 'temperature', affects: 'dissolved_oxygen', effect: 'falls', leadHours: [2, 4], basis: 'Water temperature is rising.', precaution: 'Check aeration.' };
+  it('keeps valid entries, drops malformed ones, and tolerates a missing list', () => {
+    expect(normalizeRisks([risk, { ...risk, leadHours: [2] }, { ...risk, id: '' }, 'x', null])).toEqual([{ ...risk, leadHours: [2, 4] }]);
+    expect(normalizeRisks([{ ...risk, precaution: undefined }])[0].precaution).toBeNull();
+    expect(normalizeRisks(undefined)).toEqual([]);
+  });
+  it('rides along on the advisory without affecting it', () => {
+    expect(normalizeAdvisory({ ...advisory, downstreamRisks: [risk] })?.downstreamRisks).toHaveLength(1);
+    expect(normalizeAdvisory(advisory)?.downstreamRisks).toEqual([]);
+  });
+  it('words lead times in plain language', () => {
+    expect(leadText([2, 4])).toBe('in about 2–4 h');
+    expect(leadText([0, 3])).toBe('within 3 h');
+    expect(leadText([0, 1])).toBe('within an hour');
+    expect(leadText([6, 6])).toBe('in about 6 h');
   });
 });

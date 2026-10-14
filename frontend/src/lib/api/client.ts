@@ -106,6 +106,8 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     pondAlerts: (id: string, query: { status?: string; origin?: string; limit?: number; cursor?: string } = {}, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/alerts`, { schema: S.alertsResponse, query, signal }),
     acknowledgeAlert: (id: string, signal?: AbortSignal) => request(`/alerts/${enc(id)}/acknowledge`, { schema: S.ackResponse, method: 'PATCH', signal }),
+    downstreamRisks: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/downstream-risks`, { schema: S.downstreamRisksResponse, signal }),
+    whatIf: (body: Record<string, unknown>, signal?: AbortSignal) => request('/what-if', { schema: S.whatIfResponse, method: 'POST', body, signal }),
     notes: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.notesResponse, query: { limit: 20 }, signal }),
     addNote: (id: string, text: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.noteSchema, method: 'POST', body: { text }, signal }),
     analytics: (id: string, query: { parameter?: string; from?: string; to?: string; source?: string; bucket?: 'none' | 'hour' | 'day' }, signal?: AbortSignal) =>
