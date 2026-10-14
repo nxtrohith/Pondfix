@@ -28,7 +28,7 @@ function splitValues(raw) {
   return good.length && rejected.length ? { raw: { ...raw, values: good }, rejected } : { raw, rejected: [] };
 }
 
-export async function ingestMeasurement({ db, ml, config, events, log = () => {}, now = () => new Date() }, rawInput, { extraMeta, strictValues = false } = {}) {
+export async function ingestMeasurement({ db, ml, config, events, log = () => {}, now = () => new Date() }, rawInput, { extraMeta, strictValues = false, measurementExtra, alertExtra } = {}) {
   const { raw: cleaned, rejected } = strictValues ? { raw: rawInput, rejected: [] } : splitValues(rawInput);
   const input = parse(measurementInput, cleaned);
   const pondId = parseObjectId(input.pondId, 'pondId');
@@ -41,7 +41,7 @@ export async function ingestMeasurement({ db, ml, config, events, log = () => {}
 
   // Persist (idempotent when the caller supplies an idempotencyKey)
   const dedupKey = input.idempotencyKey ? `api:${pondId}:${input.idempotencyKey}` : undefined;
-  let measurement = { _id: new ObjectId(), pondId, recordedAt, receivedAt, source: input.source, values: input.values, createdAt: receivedAt, ...(dedupKey ? { dedupKey } : {}) };
+  let measurement = { _id: new ObjectId(), pondId, recordedAt, receivedAt, source: input.source, values: input.values, createdAt: receivedAt, ...(dedupKey ? { dedupKey } : {}), ...(measurementExtra ?? {}) };
   let duplicate = false;
   try {
     await db.collection('measurements').insertOne(measurement);
@@ -72,7 +72,7 @@ export async function ingestMeasurement({ db, ml, config, events, log = () => {}
       pondId, origin: 'observed', parameter: v.parameter, rule, dataSource: measurement.source, cls, triggerValue: v.value,
       at: measurement.recordedAt, now: receivedAt,
       message: cls.status === 'NORMAL' ? '' : observedMessage(v.parameter, v.value, cls),
-      extra: { triggerMeasurementId: measurement._id, ...alertContext(pond, v.parameter) },
+      extra: { triggerMeasurementId: measurement._id, ...alertContext(pond, v.parameter), ...(alertExtra ?? {}) },
     });
     for (const r of results) alertResults.push({ parameter: v.parameter, ...r });
     await publishAlertChanges({ db, events }, results);

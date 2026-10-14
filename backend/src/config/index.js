@@ -24,6 +24,9 @@ export function loadConfig(env = process.env) {
     // Demo endpoints write simulated readings into the connected database. The API is Atlas-only, so they are off unless
     // explicitly enabled.
     demoEnabled: bool(env.DEMO_ENABLED, false),
+    // The guided demo pond writes simulated data, so it insists on a dedicated database (name contains "demo" or "test") unless overridden.
+    demoAllowAnyDb: bool(env.DEMO_ALLOW_ANY_DB, false),
+    demoSpecies: env.DEMO_SPECIES || 'rohu',
     // A reading older than this is "stale", not healthy. 60 min mirrors the forecasting model's own MAX_AGE (4 x 15 min).
     staleAfterMinutes: int(env.STALE_AFTER_MINUTES, 60),
     maxFutureSkewMinutes: 5,

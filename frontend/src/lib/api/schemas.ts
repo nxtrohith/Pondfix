@@ -67,6 +67,8 @@ export const pondSchema = z.object({
   species: z.string().optional(),
   /** Optional so an older API (without species support) still parses; absent means unconfigured. */
   speciesConfig: speciesConfigSchema.optional(),
+  /** True only for the dedicated demo pond (simulated data). */
+  isDemo: z.boolean().optional(),
   location: z.object({ description: z.string().optional(), latitude: z.number().optional(), longitude: z.number().optional() }).partial().optional(),
   area: z.object({ value: z.number(), unit: z.string() }).optional(),
   createdAt: iso.optional(),

@@ -54,6 +54,14 @@ export const collections = {
       speciesConfiguredAt: date,
       sourceId: str({ minLength: 1, description: 'Identifier in the originating dataset (e.g. anonymised FWI pond id).' }),
       sourceDataset: str(),
+      // Demo pond metadata (additive; absent on every real pond). `demo` holds the guided-scenario run state, see backend/src/services/demoPond.js.
+      isDemo: { bsonType: 'bool', description: 'True only for the dedicated AquaGuard Demo Pond. Never set on real ponds.' },
+      demo: { bsonType: 'object', additionalProperties: false, properties: {
+        runId: str({ minLength: 1 }), status: oneOfEnum(['idle', 'running', 'complete']), stage: oneOfEnum(['A', 'B', 'C', 'D']),
+        revision: { bsonType: ['int', 'long', 'double'], minimum: 0 }, startedAt: date, updatedAt: date, lastEventAt: date,
+        history: { bsonType: 'array', maxItems: 16, items: { bsonType: 'object', additionalProperties: false, required: ['stage', 'at'], properties: {
+          stage: oneOfEnum(['A', 'B', 'C', 'D']), at: date, status: str(), expected: str(), matched: { bsonType: 'bool' }, actions: { bsonType: 'array', items: str() } } } },
+      } },
       status: oneOfEnum(['active', 'inactive', 'archived']),
       createdAt: date, updatedAt: date, fixtureTag,
     },
@@ -85,6 +93,7 @@ export const collections = {
         },
       },
       dedupKey: str({ minLength: 1, description: 'Optional idempotency key (e.g. dataset row id). Unique when present.' }),
+      demoRunId: str({ minLength: 1, description: 'Set only on readings produced by the guided demo scenario.' }),
       createdAt: date, fixtureTag,
     },
   },
@@ -122,6 +131,7 @@ export const collections = {
       ruleScope: oneOfEnum(['general', 'species']), rulesVersion: str(), speciesLabel: str(), speciesProfileId: str(), profileVersion: str(),
       referenceRange: { bsonType: 'object', properties: { min: { bsonType: ['double', 'int', 'long'] }, max: { bsonType: ['double', 'int', 'long'] }, above: { bsonType: ['double', 'int', 'long'] }, kind: str(), source: str(), unit: str() } },
       openKey: str({ description: 'pondId:origin:parameter while ACTIVE/ACKNOWLEDGED; $unset on RESOLVED. Unique-when-present => one open alert per condition.' }),
+      demoRunId: str({ minLength: 1, description: 'Set only on alerts opened by the guided demo scenario.' }),
       fixtureTag,
     },
   },

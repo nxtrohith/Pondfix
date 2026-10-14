@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAMERA, FARM, FARM_POND_COUNT, GAP, MARGIN, POND, TALL, assignSlots, cameraOffset, fitZoom, needsAttention, slotLabel, snapshotOf, toneOf, viewFor, type Rect } from '@/lib/farm';
 import { demoFarm, DEMO_POND_COUNT } from '@/lib/farmDemo';
-import { toRow } from '@/lib/fleet';
+import { toRow, type FleetRow } from '@/lib/fleet';
 import type { PondSummary, RiskStatus } from '@/lib/api/schemas';
 
 const inside = (px: number, pz: number, half: number, r: Rect, pad = 0) => px - half >= r.x + pad && px + half <= r.x + r.w - pad && pz - half >= r.z + pad && pz + half <= r.z + r.d - pad;
@@ -154,5 +154,16 @@ describe('demo fixtures', () => {
   it('mark old data as old and give no readings to the no-data pond', () => {
     const stale = rows.filter((r) => r.risk === 'STALE'); expect(stale.every((r) => Object.values(r.summary!.parameters).every((p) => p.risk === 'STALE' && p.ageMinutes === 360))).toBe(true);
     const none = rows.find((r) => r.risk === 'NO_DATA')!; expect(none.latestAt).toBeNull(); expect(Object.keys(none.summary!.parameters)).toHaveLength(0);
+  });
+});
+
+describe('the demo pond in the farm view', () => {
+  const row = (id: string, sourceId: string, isDemo?: boolean): FleetRow => ({ pond: { id, name: id, sourceId, status: 'active', ...(isDemo ? { isDemo } : {}) }, summary: null, latestAt: null, latestAgeMinutes: null, risk: 'NORMAL' as const });
+  it('never takes a real pond\'s slot, even when its source id sorts first', () => {
+    const real = Array.from({ length: 17 }, (_, i) => row(`p${i}`, `ara2_${String(i).padStart(2, '0')}`));
+    const a = assignSlots([...real, row('demo', 'aquaguard-demo-pond', true)]);
+    expect(a.slots.map((s) => s?.pond.id)).toEqual(real.map((r) => r.pond.id));
+    expect(a.hidden).toBe(1);
+    expect(assignSlots(real).slots.map((s) => s?.pond.id)).toEqual(a.slots.map((s) => s?.pond.id));
   });
 });

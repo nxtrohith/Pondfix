@@ -10,6 +10,7 @@ import { getActiveRules, PARAMETER_LABEL } from '../services/risk.js';
 import { buildSpeciesUpdate, serializeCatalogue } from '../services/speciesProfiles.js';
 import { publishAlertChanges } from '../services/alertEvents.js';
 import { allSnapshots, publishPondUpdate } from '../services/pondSync.js';
+import * as demoPond from '../services/demoPond.js';
 import { replayPonds, replayCoverage, replayWindow, replayForecast } from '../services/replay.js';
 
 export function buildRouter(deps) {
@@ -118,6 +119,14 @@ export function buildRouter(deps) {
       const out = await demoMeasurement(deps, req.body);
       res.status(out.status).json(out.body);
     }));
+
+    // Guided end-to-end demo on the dedicated AquaGuard Demo Pond (services/demoPond.js). No route takes a pond id: the demo pond is the
+    // only pond they can touch. Mutating routes also require a dedicated database (name contains "demo" or "test").
+    r.get('/demo/pond', asyncHandler(async (req, res) => res.json(await demoPond.status(deps))));
+    r.post('/demo/pond/setup', asyncHandler(async (req, res) => res.status(200).json(await demoPond.setup(deps, req.body))));
+    r.post('/demo/pond/start', asyncHandler(async (req, res) => res.status(201).json(await demoPond.start(deps, req.body))));
+    r.post('/demo/pond/advance', asyncHandler(async (req, res) => res.json(await demoPond.advance(deps, req.body))));
+    r.post('/demo/pond/reset', asyncHandler(async (req, res) => res.json(await demoPond.reset(deps, req.body))));
   }
   return r;
 }

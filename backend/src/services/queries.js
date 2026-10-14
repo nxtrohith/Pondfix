@@ -29,7 +29,7 @@ export async function requirePond(db, idText) {
   return pond;
 }
 
-export const serializePond = (p) => ({ id: p._id, name: p.name, sourceId: p.sourceId, sourceDataset: p.sourceDataset, status: p.status, location: p.location, area: p.area, species: p.species, speciesConfig: describeSpecies(p), createdAt: p.createdAt, updatedAt: p.updatedAt });
+export const serializePond = (p) => ({ id: p._id, name: p.name, sourceId: p.sourceId, sourceDataset: p.sourceDataset, status: p.status, location: p.location, area: p.area, species: p.species, speciesConfig: describeSpecies(p), ...(p.isDemo === true ? { isDemo: true } : {}), createdAt: p.createdAt, updatedAt: p.updatedAt });
 
 /** Newest-first, keyset-paginated. Returns observed data only: nothing is interpolated or filled. */
 export async function listMeasurements(db, config, pondId, rawQuery) {
