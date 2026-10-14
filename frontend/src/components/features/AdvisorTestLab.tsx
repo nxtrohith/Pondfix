@@ -107,6 +107,7 @@ export function AdvisorTestLab({ ponds }: { ponds: { id: string; name: string }[
               <Row state={h ? (demoOn ? 'done' : 'fail') : 'todo'} title="Test readings allowed">{h && !demoOn ? 'Set DEMO_ENABLED=true in backend/.env and restart the backend.' : null}</Row>
               <Row state={h ? (h.ai?.advisor ? 'done' : 'fail') : 'todo'} title="Jev analysis configured">{h && !h.ai?.advisor ? 'Set TYPESAFE_API_KEY (or JEV_API_KEY) in backend/.env and restart the backend.' : null}</Row>
               <Row state={h ? (h.ai?.llm ? 'done' : 'warn') : 'todo'} title="LLM endpoint configured">{h && !h.ai?.llm ? 'Set LLM_ENDPOINT_URL (and LLM_API_KEY, LLM_MODEL) in backend/.env. Without it the standard guidance is used.' : null}</Row>
+              <Row state={h ? (h.ai?.call ? 'done' : 'warn') : 'todo'} title="Sarvam phone call configured">{h && !h.ai?.call ? (h.ai?.callMissing?.length ? `Missing in backend/.env: ${h.ai.callMissing.join(', ')}.` : 'Set ALERT_CALLS_ENABLED=true and the SARVAM_* values in backend/.env. Without them no call is placed.') : null}</Row>
             </ul>
           )}
         </CardBody>
@@ -146,6 +147,9 @@ export function AdvisorTestLab({ ponds }: { ponds: { id: string; name: string }[
               </Row>
               <Row state={adv?.guard ? (adv.guard.passed ? 'done' : 'warn') : adv?.solution ? 'skip' : waiting && crit.length ? 'running' : 'todo'} title="5. Jev checked the LLM’s advice">
                 {adv?.guard ? (adv.guard.passed ? 'Passed: does not claim the pond is safe, gives no doses, follows the priority.' : `Blocked: ${adv.guard.reasons.join('; ')}.`) : adv?.solution ? 'Skipped: no LLM answer to check.' : null}
+              </Row>
+              <Row state={adv?.call ? (adv.call.status === 'queued' ? 'done' : 'warn') : adv ? 'skip' : waiting && crit.length ? 'running' : 'todo'} title="6. Sarvam agent called the farmer">
+                {adv?.call ? (adv.call.status === 'queued' ? `Call queued to ${adv.call.to ?? 'the farmer'} (attempt ${adv.call.attemptId}). Your phone should ring within seconds.` : adv.call.status === 'skipped' ? `Not called: ${adv.call.reason}.` : `Call could not be placed (${adv.call.error}).`) : adv ? 'Skipped: calls are not configured, or this alert is not an observed critical one.' : null}
               </Row>
             </ol>
             {run.phase === 'timeout' ? <Notice tone="warning">No result after {TIMEOUT_S} seconds. Look for “[ADVISOR]” lines in the backend terminal and check the three switches above.</Notice> : null}

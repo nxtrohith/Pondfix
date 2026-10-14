@@ -11,6 +11,7 @@ In `backend/.env`:
 | `TYPESAFE_API_KEY` (or `JEV_API_KEY`) | Jev analysis |
 | `LLM_ENDPOINT_URL`, `LLM_API_KEY`, `LLM_MODEL` | The written solution. A base URL such as `https://host/openai/v1` or the full `.../chat/completions` URL both work. |
 | `DEMO_ENABLED=true` | Test readings (the Tests page) |
+| `ALERT_CALLS_ENABLED=true`, `SARVAM_API_KEY`, `SARVAM_ORG_ID`, `SARVAM_WORKSPACE_ID`, `SARVAM_AGENT_ID`, `SARVAM_CONNECTION_ID`, `SARVAM_AGENT_PHONE_NUMBER`, `ALERT_CALL_TO_NUMBER` | Step 6: the Sarvam agent "pondfix" phones the farmer after an observed CRITICAL alert (one call per pond per `ALERT_CALL_COOLDOWN_MINUTES`). **A real phone rings.** |
 
 Then restart the backend (`npm run dev:backend`) and run the database setup once if you have not: `npm run db:init -w database && npm run db:indexes -w database`. Stop the simulator while testing, or it will overwrite the test readings.
 

@@ -6,6 +6,18 @@
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
       "computedHash": "6d838b246d0e35d0b53f4f23f98ba7a1dd561937e64f7d0c7553b0928e376c3e"
+    },
+    "sarvam-mcp": {
+      "source": "sarvamai/skills",
+      "sourceType": "github",
+      "skillPath": "sarvam-mcp/SKILL.md",
+      "computedHash": "044e352e63f29f46569db478c00505bc90cf1301faa5fc6c5ef46ca79a6dda2c"
+    },
+    "voice-agents": {
+      "source": "sarvamai/skills",
+      "sourceType": "github",
+      "skillPath": "voice-agents/SKILL.md",
+      "computedHash": "ce304c38f42c0835f185082c07ce4a97b449ec3bd3cdef4dcc23f2ddf86ea6ca"
     }
   }
 }

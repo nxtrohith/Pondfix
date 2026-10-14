@@ -1,14 +1,17 @@
-# Graph Report - Aquafix  (2026-10-14)
+# Graph Report - Aquafix  (2026-10-15)
 
 ## Corpus Check
-- 356 files · ~228,047 words
-- Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 10 file(s) not represented in the graph (top: (none) 4, .example 3, .pkl 1)
+- cluster-only mode — file stats not available
 
 ## Summary
 - 2397 nodes · 7304 edges · 111 communities (99 shown, 12 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 97 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `897c2c98`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - Web Pond Detail Page
@@ -51,73 +54,73 @@
 - What-If Simulation Form
 - Replay Tests
 - Mobile Alert Detail & Notifications
-- Community 40
-- Community 41
-- Community 42
-- Community 43
-- Community 44
-- Community 45
-- Community 46
-- Community 47
-- Community 48
-- Community 49
-- Community 50
-- Community 51
-- Community 52
-- Community 53
-- Community 54
-- Community 55
-- Community 56
-- Community 57
-- Community 58
-- Community 59
-- Community 60
-- Community 61
-- Community 62
-- Community 63
-- Community 64
-- Community 65
-- Community 66
-- Community 67
-- Community 68
-- Community 69
-- Community 70
-- Community 71
-- Community 72
-- Community 73
-- Community 74
-- Community 75
-- Community 76
-- Community 77
-- Community 78
-- Community 79
-- Community 80
-- Community 81
-- Community 82
-- Community 83
-- Community 84
-- Community 85
-- Community 86
-- Community 87
-- Community 88
-- Community 89
-- Community 90
-- Community 91
-- Community 92
-- Community 93
-- Community 94
-- Community 95
-- Community 96
-- Community 97
-- Community 98
-- Community 99
-- Community 100
-- Community 101
-- Community 102
-- Community 103
-- Community 104
-- Community 105
-- Community 110
+- scripts
+- pondState.test.ts
+- species.ts
+- expo
+- services/alerts.ts
+- compilerOptions
+- aquaguard_common.py
+- app.js
+- dependencies
+- wq-simulator.test.js
+- devDependencies
+- farm-layout.test.ts
+- aquaguard_inference.py
+- alertState.ts
+- fishTracker.ts
+- inference.js
+- risk.js
+- overview.test.tsx
+- demo_fish_video.py
+- FishStatsPanel.tsx
+- species.tsx
+- whatIf.js
+- scripts
+- behaviour.test.ts
+- helpers.ts
+- dependencies
+- liveData.test.tsx
+- PondFix system
+- FarmTwin
+- vitest
+- worker.py
+- aquaguard_config.py
+- AppStore.tsx
+- inference_server.py
+- compilerOptions
+- liveScreens.test.tsx
+- alerts-multi.test.tsx
+- devDependencies
+- notes.ts
+- simulator/package.json
+- expo
+- analytics.test.tsx
+- simulation-form.test.tsx
+- scripts
+- frontend/README.md
+- FishTracker
+- backend/README.md
+- server.js
+- ref_node_fs
+- mobile-app/tsconfig.json
+- aquaguard-vision/README.md
+- inferenceLogger.ts
+- database/README.md
+- scripts
+- ingest-log.test.js
+- AlertsStore
+- Historical replay (FWI data)
+- Forecasting engine
+- couplings.test.js
+- frontend/AGENTS.md
+- eslint.config.js
+- jest
+- mobile-app/README.md
+- eslint.config.mjs
+- engines
+- postcss.config.mjs
+- aquafix
 
 ## God Nodes (most connected - your core abstractions)
 1. `cx()` - 61 edges
@@ -138,10 +141,10 @@
   frontend/tests/alerts-multi.test.tsx → mobile-app/tests/unit/liveData.test.tsx
 - `pred()` --indirect_call--> `T()`  [INFERRED]
   frontend/tests/plain-language.test.tsx → mobile-app/tests/unit/liveData.test.tsx
+- `Mobile live data` --references--> `REST API`  [INFERRED]
+  mobile-app/README.md → README.md
 - `PondFix Vision fish activity monitor` --conceptually_related_to--> `PondFix system`  [INFERRED]
   aquaguard-vision/README.md → README.md
-- `Simulation historical replay` --conceptually_related_to--> `Historical replay (FWI data)`  [INFERRED]
-  frontend/README.md → README.md
 
 ## Import Cycles
 - 3-file cycle: `backend/src/services/alertEvents.js -> backend/src/services/queries.js -> backend/src/services/ingestion.js -> backend/src/services/alertEvents.js`
@@ -149,8 +152,8 @@
 - 4-file cycle: `backend/src/services/alertEvents.js -> backend/src/services/queries.js -> backend/src/services/ingestion.js -> backend/src/services/inference.js -> backend/src/services/alertEvents.js`
 
 ## Hyperedges (group relationships)
-- **Measurement to alert flow** — readme_measurement_pipeline, readme_risk_rules, readme_alert_lifecycle, backend_readme_advisor [INFERRED 0.85]
 - **PondFix client apps on shared API** — readme_frontend, readme_mobile, readme_rest_api [EXTRACTED 1.00]
+- **Measurement to alert flow** — readme_measurement_pipeline, readme_risk_rules, readme_alert_lifecycle, backend_readme_advisor [INFERRED 0.85]
 
 ## Communities (111 total, 12 thin omitted)
 
@@ -314,261 +317,261 @@ Nodes (18): api, charts, click(), coverage, DO, flush(), iso(), open() (+10 more
 Cohesion: 0.16
 Nodes (17): STATE_TEXT, styles, styles, Tab, AdvisoryPanel(), CHANNEL, styles, urgencyText() (+9 more)
 
-### Community 40 - "Community 40"
+### Community 40 - "scripts"
 Cohesion: 0.09
 Nodes (21): dependencies, mongodb, description, engines, node, mongodb, name, private (+13 more)
 
-### Community 41 - "Community 41"
+### Community 41 - "pondState.test.ts"
 Cohesion: 0.19
 Nodes (19): addMeasurement(), applySnapshot(), initialPondsState, isNewerSnapshot(), mergeSeries(), PondsAction, pondsReducer(), PondsState (+11 more)
 
-### Community 42 - "Community 42"
+### Community 42 - "species.ts"
 Cohesion: 0.12
 Nodes (18): SpeciesSettings(), save(), startEdit(), submit(), CatalogueEntry, ReferenceRange, SpeciesRequest, buildSpeciesRequest() (+10 more)
 
-### Community 43 - "Community 43"
+### Community 43 - "expo"
 Cohesion: 0.10
 Nodes (20): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, predictiveBackGestureEnabled, expo, android (+12 more)
 
-### Community 44 - "Community 44"
+### Community 44 - "services/alerts.ts"
 Cohesion: 0.22
 Nodes (17): acknowledgeAlert(), date(), getActiveAlerts(), getAlertHistory(), getPondAlerts(), isObj(), normalizeAdvisory(), normalizeAlert() (+9 more)
 
-### Community 45 - "Community 45"
+### Community 45 - "compilerOptions"
 Cohesion: 0.10
 Nodes (19): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+11 more)
 
-### Community 46 - "Community 46"
+### Community 46 - "aquaguard_common.py"
 Cohesion: 0.22
 Nodes (10): base_features(), build_features(), clip_pred(), feature_columns(), forecast_block(), k_features(), make_grid(), _pick() (+2 more)
 
-### Community 47 - "Community 47"
+### Community 47 - "app.js"
 Cohesion: 0.20
 Nodes (12): createApp(), errorHandler(), notFoundHandler(), requestLogger(), AiError, createJevClient(), evaluate(), sleep() (+4 more)
 
-### Community 48 - "Community 48"
+### Community 48 - "dependencies"
 Cohesion: 0.11
 Nodes (18): dependencies, expo, expo-asset, expo-constants, expo-linking, expo-router, expo-status-bar, @expo/vector-icons (+10 more)
 
-### Community 49 - "Community 49"
+### Community 49 - "wq-simulator.test.js"
 Cohesion: 0.18
 Nodes (12): bump(), clamp(), createSimulator(), step(), DERIVED_PARAMETERS, NEUTRAL, rng(), SIM_PARAMETERS (+4 more)
 
-### Community 50 - "Community 50"
+### Community 50 - "devDependencies"
 Cohesion: 0.12
 Nodes (17): devDependencies, eslint, eslint-config-next, jsdom, postcss, tailwindcss, @tailwindcss/postcss, @testing-library/jest-dom (+9 more)
 
-### Community 51 - "Community 51"
+### Community 51 - "farm-layout.test.ts"
 Cohesion: 0.14
 Nodes (12): applyView(), CAMERA, cameraOffset(), cross(), dot(), FARM_POND_COUNT, fitZoom(), GAP (+4 more)
 
-### Community 52 - "Community 52"
+### Community 52 - "aquaguard_inference.py"
 Cohesion: 0.25
 Nodes (9): ForecastError, InsufficientHistoryError, load_artifact(), predict(), predict_all_parameters(), _steps_between(), UnsupportedHorizonError, _validate() (+1 more)
 
-### Community 53 - "Community 53"
+### Community 53 - "alertState.ts"
 Cohesion: 0.18
 Nodes (15): Props, AlertsAction, alertsReducer(), AlertsState, initialAlertsState, LoadState, RANK, upsert() (+7 more)
 
-### Community 54 - "Community 54"
+### Community 54 - "fishTracker.ts"
 Cohesion: 0.20
 Nodes (13): advanceTimers(), BehaviourState, CLASSIFIED, ClassifierInput, classifyBehaviour(), isClassified(), angleDeg(), BehaviourTransition (+5 more)
 
-### Community 55 - "Community 55"
+### Community 55 - "inference.js"
 Cohesion: 0.20
 Nodes (14): applyCondition(), applyReading(), CONTEXT_KEYS, openKeyFor(), SOURCE_FOR_ALERT, buildHistory(), FROM_API, istToDate() (+6 more)
 
-### Community 56 - "Community 56"
+### Community 56 - "risk.js"
 Cohesion: 0.17
 Nodes (13): active, dataState(), DECIMALS, DEFAULT_LIMITS, DEFAULT_SOURCE, FILE_KEYS, LIMIT_KEYS, PHYSICAL (+5 more)
 
-### Community 57 - "Community 57"
+### Community 57 - "overview.test.tsx"
 Cohesion: 0.17
 Nodes (9): listeners, read(), subscribe(), WelcomeCard(), Stats, OverviewSummary, plural(), summarizeOverview() (+1 more)
 
-### Community 58 - "Community 58"
+### Community 58 - "demo_fish_video.py"
 Cohesion: 0.25
 Nodes (6): color(), main(), print_description(), print_final_report(), run_video(), stamp()
 
-### Community 59 - "Community 59"
+### Community 59 - "FishStatsPanel.tsx"
 Cohesion: 0.18
 Nodes (13): BoundingBoxOverlay(), COLOUR_MAP, Props, styles, BEHAVIOUR_COLOUR, Card(), FishStatsPanel, Props (+5 more)
 
-### Community 60 - "Community 60"
+### Community 60 - "species.tsx"
 Cohesion: 0.20
 Nodes (10): SpeciesDetail(), SpeciesScreen(), styles, Props, styles, DemoLabel(), styles, Range (+2 more)
 
-### Community 61 - "Community 61"
+### Community 61 - "whatIf.js"
 Cohesion: 0.24
 Nodes (9): downstreamRisks(), fmt(), istHour(), unionizedFraction(), PARAMETER_LABEL, atIstHour(), schema, TREND (+1 more)
 
-### Community 62 - "Community 62"
+### Community 62 - "scripts"
 Cohesion: 0.14
 Nodes (13): name, private, scripts, build:frontend, db:standardize-names, dev:backend, dev:frontend, simulator (+5 more)
 
-### Community 63 - "Community 63"
+### Community 63 - "behaviour.test.ts"
 Cohesion: 0.23
 Nodes (8): DEFAULT_BEHAVIOUR_CONFIG, REFERENCE_FRAME_WIDTH, resolveConfig(), computeStats(), EMPTY_STATS, iou(), assertInvariants(), stats()
 
-### Community 64 - "Community 64"
+### Community 64 - "helpers.ts"
 Cohesion: 0.23
 Nodes (8): BehaviourConfig, BBox, Detection, TrackerUpdate, box(), det(), range(), Rig
 
-### Community 65 - "Community 65"
+### Community 65 - "dependencies"
 Cohesion: 0.15
 Nodes (13): dependencies, clsx, geist, next, @phosphor-icons/react, react, react-dom, @react-three/drei (+5 more)
 
-### Community 66 - "Community 66"
+### Community 66 - "liveData.test.tsx"
 Cohesion: 0.26
 Nodes (11): mk(), pred(), AlertProbe(), fleet(), mocks, mount(), pond(), Probe() (+3 more)
 
-### Community 67 - "Community 67"
+### Community 67 - "PondFix system"
 Cohesion: 0.21
 Nodes (11): Dashboard UX plan, Alert lifecycle, Web dashboard (Next.js), Idempotent ingestion, Measurement pipeline, Mobile app (Expo), PondFix system, Realtime events (+3 more)
 
-### Community 68 - "Community 68"
+### Community 68 - "FarmTwin"
 Cohesion: 0.20
 Nodes (10): FarmFallback(), FarmScene, FarmTwin(), SceneBoundary, SceneSkeleton(), useReducedMotion(), assignSlots(), needsAttention() (+2 more)
 
-### Community 69 - "Community 69"
+### Community 69 - "vitest"
 Cohesion: 0.18
 Nodes (6): api, ponds, SEQUENCE, @testing-library/jest-dom, @testing-library/react, vitest
 
-### Community 70 - "Community 70"
+### Community 70 - "worker.py"
 Cohesion: 0.27
 Nodes (6): clean(), handle(), load_model(), log(), main(), sha256()
 
-### Community 71 - "Community 71"
+### Community 71 - "aquaguard_config.py"
 Cohesion: 0.23
 Nodes (4): classify_do(), classify_value(), get_thresholds(), validate()
 
-### Community 72 - "Community 72"
+### Community 72 - "AppStore.tsx"
 Cohesion: 0.29
 Nodes (8): AppActions, AppState, AppStore, Ctx, DEFAULT_SETTINGS, DEMO_PROFILE, AlertSettings, FarmerProfile
 
-### Community 74 - "Community 74"
+### Community 74 - "compilerOptions"
 Cohesion: 0.18
 Nodes (10): compilerOptions, allowImportingTsExtensions, baseUrl, ignoreDeprecations, paths, strict, exclude, extends (+2 more)
 
-### Community 75 - "Community 75"
+### Community 75 - "liveScreens.test.tsx"
 Cohesion: 0.22
 Nodes (3): openAlerts(), renderLiveApp(), REAL_PONDS
 
-### Community 76 - "Community 76"
+### Community 76 - "alerts-multi.test.tsx"
 Cohesion: 0.18
 Nodes (9): PARAMETER_DEMO_STEPS, ACK, ALL, api, DO, FC, PH, RES (+1 more)
 
-### Community 77 - "Community 77"
+### Community 77 - "devDependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, eslint, eslint-config-expo, jest, jest-expo, @react-native/jest-preset, react-test-renderer, @testing-library/react-native (+3 more)
 
-### Community 78 - "Community 78"
+### Community 78 - "notes.ts"
 Cohesion: 0.31
 Nodes (9): save(), addNote(), getNotes(), isObj(), normalizeNote(), normalizeNotes(), Raw, advisory (+1 more)
 
-### Community 79 - "Community 79"
+### Community 79 - "simulator/package.json"
 Cohesion: 0.18
 Nodes (10): description, engines, node, name, private, scripts, start, start:anom (+2 more)
 
-### Community 80 - "Community 80"
+### Community 80 - "expo"
 Cohesion: 0.20
 Nodes (9): expo, extra, name, orientation, plugins, slug, userInterfaceStyle, version (+1 more)
 
-### Community 81 - "Community 81"
+### Community 81 - "analytics.test.tsx"
 Cohesion: 0.20
 Nodes (7): api, byParam, charts, ponds, renderIt(), rules, series
 
-### Community 82 - "Community 82"
+### Community 82 - "simulation-form.test.tsx"
 Cohesion: 0.20
 Nodes (5): api, form(), ponds, response, rules
 
-### Community 83 - "Community 83"
+### Community 83 - "scripts"
 Cohesion: 0.20
 Nodes (10): scripts, android, ios, lint, start, test, test:e2e, test:watch (+2 more)
 
-### Community 84 - "Community 84"
+### Community 84 - "frontend/README.md"
 Cohesion: 0.22
 Nodes (7): Anti-slop frontend design skill, Brief inference, Frontend design system, Farm view (Digital Twin), Data-integrity rules, Simulation historical replay, 3D digital twin
 
-### Community 86 - "Community 86"
+### Community 86 - "backend/README.md"
 Cohesion: 0.28
 Nodes (6): Alert advisor Jev + LLM, Alert lifecycle (alerts collection), Backend risk rules service, Species profiles and guidance, Alert assistant tests, Risk rules
 
-### Community 87 - "Community 87"
+### Community 87 - "server.js"
 Cohesion: 0.28
 Nodes (8): config, events, io, lanAddresses(), server, stop(), target, closeDb()
 
-### Community 88 - "Community 88"
+### Community 88 - "ref_node_fs"
 Cohesion: 0.22
 Nodes (3): dir, sample, @vitejs/plugin-react
 
-### Community 89 - "Community 89"
+### Community 89 - "mobile-app/tsconfig.json"
 Cohesion: 0.22
 Nodes (8): compilerOptions, paths, strict, types, exclude, extends, include, expo/tsconfig.base
 
-### Community 90 - "Community 90"
+### Community 90 - "aquaguard-vision/README.md"
 Cohesion: 0.39
 Nodes (5): ByteTrack tracker config, Behaviour classification and tuning, Local computer vision server, Detection model, PondFix Vision fish activity monitor
 
-### Community 91 - "Community 91"
+### Community 91 - "inferenceLogger.ts"
 Cohesion: 0.43
 Nodes (7): countsLine(), createLogger(), DEFAULT_LOG_SETTINGS, f(), iso(), LogSettings, trackLine()
 
-### Community 92 - "Community 92"
+### Community 92 - "database/README.md"
 Cohesion: 0.29
 Nodes (6): Database collections, Deduplication and lifecycle, Indexes, Simulated water chemistry, Backend (Express), MongoDB Atlas database
 
-### Community 93 - "Community 93"
+### Community 93 - "scripts"
 Cohesion: 0.29
 Nodes (7): scripts, build, dev, lint, start, test, typecheck
 
-### Community 94 - "Community 94"
+### Community 94 - "ingest-log.test.js"
 Cohesion: 0.47
 Nodes (5): at(), last(), lines(), post(), v()
 
-### Community 96 - "Community 96"
+### Community 96 - "Historical replay (FWI data)"
 Cohesion: 0.50
 Nodes (4): Historical replay (read-only), FWI monitoring dataset, FWI import mapping, Historical replay (FWI data)
 
-### Community 97 - "Community 97"
+### Community 97 - "Forecasting engine"
 Cohesion: 0.40
 Nodes (4): Inference worker (ml/worker.py), ML model requirements, Pinned scikit-learn model dependencies, Forecasting engine
 
-### Community 98 - "Community 98"
+### Community 98 - "couplings.test.js"
 Cohesion: 0.40
 Nodes (3): AFTERNOON, NIGHT, p()
 
-### Community 100 - "Community 100"
+### Community 100 - "eslint.config.js"
 Cohesion: 0.40
 Nodes (3): { defineConfig }, expoConfig, eslint-config-expo
 
-### Community 101 - "Community 101"
+### Community 101 - "jest"
 Cohesion: 0.40
 Nodes (5): jest, moduleNameMapper, preset, setupFilesAfterEnv, testPathIgnorePatterns
 
-### Community 102 - "Community 102"
+### Community 102 - "mobile-app/README.md"
 Cohesion: 0.50
 Nodes (3): Mobile live data, Mobile navigation, Mobile status rules
 
 ## Knowledge Gaps
-- **66 isolated node(s):** `@expo/vector-icons`, `expo`, `expo-constants`, `expo-status-bar`, `react` (+61 more)
+- **66 isolated node(s):** `aquafix`, `expo`, `expo-constants`, `expo-status-bar`, `@expo/vector-icons` (+61 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 927 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `expo-router` connect `Mobile Alert & Login Screens` to `Mobile Forecast & Pond Detail`, `Mobile Diagnostics & Layout`, `Web Comparison Tables`, `Mobile Alert Detail & Notifications`, `Community 75`, `Mobile Providers & Ponds Data`, `Mobile App Dependencies`, `Community 60`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **What connects `@expo/vector-icons`, `expo`, `expo-constants` to the rest of the system?**
+- **Why does `expo-router` connect `Mobile Alert & Login Screens` to `Mobile Forecast & Pond Detail`, `Mobile Diagnostics & Layout`, `Web Comparison Tables`, `Mobile Alert Detail & Notifications`, `liveScreens.test.tsx`, `Mobile Providers & Ponds Data`, `Mobile App Dependencies`, `species.tsx`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **What connects `aquafix`, `expo`, `expo-constants` to the rest of the system?**
   _66 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Web Pond Detail Page` be split into smaller, more focused modules?**
   _Cohesion score 0.07372346528973035 - nodes in this community are weakly interconnected._
-- **Why does `vitest` connect `Community 69` to `Web Pond Detail Page`, `Web Trend Charts`, `Web Pond Panel & Advisor Lab`, `Frontend Dependencies`, `Farm Demo Data`, `Replay Tests`, `Community 76`, `Alert Advisory & Downstream Risks`, `Community 81`, `Community 82`, `Community 51`, `Community 88`, `Community 57`, `Historical Replay`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Should `Mobile Alert & Login Screens` be split into smaller, more focused modules?**
-  _Cohesion score 0.09725986148750376 - nodes in this community are weakly interconnected._
 - **Why does `next` connect `Web Alerts & Analytics Pages` to `Web Pond Detail Page`, `Web Pond Panel & Advisor Lab`, `Frontend Dependencies`, `Web Farm Twin View`, `What-If Simulation Form`, `Pond Badge & Alert Demo`, `Web Root Layout`, `FWI Dataset Mapping`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Should `Mobile Alert & Login Screens` be split into smaller, more focused modules?**
+  _Cohesion score 0.09725986148750376 - nodes in this community are weakly interconnected._
+- **Why does `vitest` connect `vitest` to `Web Pond Detail Page`, `Web Trend Charts`, `Web Pond Panel & Advisor Lab`, `Frontend Dependencies`, `Farm Demo Data`, `Replay Tests`, `alerts-multi.test.tsx`, `Alert Advisory & Downstream Risks`, `analytics.test.tsx`, `simulation-form.test.tsx`, `farm-layout.test.ts`, `ref_node_fs`, `overview.test.tsx`, `Historical Replay`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Should `Web Trend Charts` be split into smaller, more focused modules?**
   _Cohesion score 0.06882716049382716 - nodes in this community are weakly interconnected._

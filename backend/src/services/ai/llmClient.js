@@ -11,7 +11,8 @@ export function chatUrl(url) {
 
 export function createLlmClient(cfg, fetchImpl = globalThis.fetch) {
   const endpoint = chatUrl(cfg.url);
-  async function complete({ system, user, maxTokens = 700 }) {
+  // Reasoning models spend part of the budget thinking before the JSON, so the cap must leave room for both.
+  async function complete({ system, user, maxTokens = 2500 }) {
     let res;
     try {
       res = await fetchImpl(endpoint, {
@@ -23,6 +24,7 @@ export function createLlmClient(cfg, fetchImpl = globalThis.fetch) {
     } catch (e) { throw new AiError(e?.name === 'TimeoutError' ? 'LLM_TIMEOUT' : 'LLM_UNREACHABLE', 'LLM request failed'); }
     if (!res.ok) throw new AiError(`LLM_HTTP_${res.status}`, `LLM returned HTTP ${res.status}`);
     let body; try { body = await res.json(); } catch { throw new AiError('LLM_BAD_RESPONSE', 'LLM returned invalid JSON'); }
+    if (body?.choices?.[0]?.finish_reason === 'length') throw new AiError('LLM_TRUNCATED', 'LLM reply was cut off at the token limit');
     const text = body?.choices?.[0]?.message?.content;
     if (typeof text !== 'string' || !text.trim()) throw new AiError('LLM_BAD_RESPONSE', 'LLM reply has no content');
     return { text, model: body.model ?? cfg.model };

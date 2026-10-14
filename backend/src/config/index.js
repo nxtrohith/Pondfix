@@ -13,6 +13,23 @@ function aiConfig(env) {
     enabled: bool(env.AI_ADVISOR_ENABLED, Boolean(jevKey)) && Boolean(jevKey),
     jev: { url: httpUrl(env.JEV_API_URL || 'https://api.typesafe.ai/v1/systemone', 'JEV_API_URL'), apiKey: jevKey, model: env.JEV_MODEL || 'jev-latest', timeoutMs: int(env.JEV_TIMEOUT_MS, 8000) },
     llm: { url: llmUrl, apiKey: env.LLM_API_KEY || '', model: env.LLM_MODEL || 'default', timeoutMs: int(env.LLM_TIMEOUT_MS, 30000) },
+    call: callConfig(env),
+  };
+}
+
+// Farmer phone call through a Sarvam Voice Agent. On only when ALERT_CALLS_ENABLED is true AND every identifier Sarvam needs is present.
+const SARVAM_REQUIRED = ['SARVAM_API_KEY', 'SARVAM_ORG_ID', 'SARVAM_WORKSPACE_ID', 'SARVAM_AGENT_ID', 'SARVAM_CONNECTION_ID', 'SARVAM_AGENT_PHONE_NUMBER', 'ALERT_CALL_TO_NUMBER'];
+function callConfig(env) {
+  const missing = SARVAM_REQUIRED.filter((k) => !env[k]);
+  return {
+    enabled: bool(env.ALERT_CALLS_ENABLED, false) && !missing.length,
+    missing: bool(env.ALERT_CALLS_ENABLED, false) ? missing : [],
+    apiKey: env.SARVAM_API_KEY || '', orgId: env.SARVAM_ORG_ID || '', workspaceId: env.SARVAM_WORKSPACE_ID || '',
+    appId: env.SARVAM_AGENT_ID || '', appVersion: int(env.SARVAM_AGENT_VERSION, 1), connectionId: env.SARVAM_CONNECTION_ID || '',
+    agentPhone: env.SARVAM_AGENT_PHONE_NUMBER || '', farmerPhone: env.ALERT_CALL_TO_NUMBER || '',
+    baseUrl: httpUrl(env.SARVAM_API_URL || 'https://apps.sarvam.ai/api/outbounds/v1', 'SARVAM_API_URL'),
+    timeoutMs: int(env.SARVAM_TIMEOUT_MS, 10000), cooldownMinutes: int(env.ALERT_CALL_COOLDOWN_MINUTES, 30), testMode: bool(env.ALERT_CALL_TEST_MODE, false),
+    variables: (env.SARVAM_AGENT_VARIABLES || '').split(',').map((v) => v.trim()).filter(Boolean),
   };
 }
 

@@ -176,6 +176,8 @@ export const advisorySchema = z.object({
   forecastActionable: z.object({ probability: z.number(), actionable: z.boolean() }).optional(),
   solution: z.object({ source: z.enum(['llm', 'rules']), summary: z.string(), verifyFirst: z.string(), steps: z.array(z.string()) }).optional(),
   guard: z.object({ passed: z.boolean(), reasons: z.array(z.string()) }).optional(),
+  /** Sarvam voice-agent call to the farmer: queued with an attempt id, skipped (cooldown), or failed with an error code. */
+  call: z.object({ status: z.enum(['queued', 'skipped', 'failed']), attemptId: z.string().optional(), to: z.string().nullable().optional(), reason: z.string().optional(), error: z.string().optional() }).optional(),
   jevModel: z.string().optional(), llmModel: z.string().optional(),
   errors: z.array(z.string()).optional(),
   downstreamRisks: z.array(downstreamRiskSchema).optional(),
@@ -261,7 +263,7 @@ export const healthResponse = z.object({
   // demo: whether the API accepts simulated readings (DEMO_ENABLED). Off by default; simulated readings are written to Atlas.
   demo: z.object({ enabled: z.boolean() }).optional(),
   /** advisor: Jev analysis is configured; llm: a custom LLM endpoint is configured. Optional so an older API still parses. */
-  ai: z.object({ advisor: z.boolean(), llm: z.boolean() }).optional(),
+  ai: z.object({ advisor: z.boolean(), llm: z.boolean(), call: z.boolean().optional(), callMissing: z.array(z.string()).optional() }).optional(),
   ml: z.object({ status: z.string() }),
 });
 export type HealthResponse = z.infer<typeof healthResponse>;

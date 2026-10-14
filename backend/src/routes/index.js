@@ -26,7 +26,7 @@ export function buildRouter(deps) {
     let ml = 'disabled';
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
-    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), llm: Boolean(deps.advisor && config.ai?.llm?.url) }, ml: { status: ml } });
+    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), llm: Boolean(deps.advisor && config.ai?.llm?.url), call: Boolean(deps.advisor && config.ai?.call?.enabled), callMissing: config.ai?.call?.missing ?? [] }, ml: { status: ml } });
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.
