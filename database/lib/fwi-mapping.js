@@ -22,6 +22,37 @@ const PARAMS = [
 export const pondObjectId = (sourceId) =>
   new ObjectId(createHash('sha1').update(`${DATASET}:${sourceId}`).digest().subarray(0, 12));
 
+/**
+ * The 17 continuous-monitor ponds sorted deterministically by source identifier.
+ * Matches the 3D layout slots 0..16 and provides friendly display names 'Pond 1' ... 'Pond 17'.
+ */
+export const POND_SOURCE_IDS = Object.freeze([
+  'ara2_0677080b',
+  'ara2_0f143c64',
+  'ara2_148f1633',
+  'ara2_176528d3',
+  'ara2_29660d32',
+  'ara2_3b2f3973',
+  'ara2_3eab831e',
+  'ara2_3ed4df8e',
+  'ara2_45e1cde5',
+  'ara2_4f79fc8d',
+  'ara2_573a2826',
+  'ara2_6ca69422',
+  'ara2_858b914c',
+  'ara2_b3d128ac',
+  'ara2_c9cdacda',
+  'ara2_ca187575',
+  'ara2_d52ddb31',
+]);
+
+export const POND_NAMES = Object.freeze(
+  Object.fromEntries(POND_SOURCE_IDS.map((id, index) => [id, `Pond ${index + 1}`]))
+);
+
+export const pondDisplayName = (sourceId, fallback = null) =>
+  POND_NAMES[sourceId] ?? fallback ?? sourceId;
+
 export function parseIstTimestamp(text) {
   const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/.exec(String(text ?? '').trim());
   if (!m) return null;

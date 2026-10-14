@@ -109,7 +109,7 @@ describe('slot assignment', () => {
   it('reports ponds beyond 17 instead of silently dropping them', () => {
     const r = assignSlots(ponds(20)); expect(r.slots).toHaveLength(17); expect(r).toMatchObject({ shown: 17, total: 20, hidden: 3 });
   });
-  it('labels places 01 to 17', () => { expect([0, 8, 16].map(slotLabel)).toEqual(['01', '09', '17']); });
+  it('labels places Pond 1 to Pond 17', () => { expect([0, 8, 16].map(slotLabel)).toEqual(['Pond 1', 'Pond 9', 'Pond 17']); });
 });
 
 describe('status shown on the farm', () => {

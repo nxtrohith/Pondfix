@@ -45,6 +45,7 @@ export function buildRouter(deps) {
 
   r.get('/ponds', asyncHandler(async (req, res) => {
     const ponds = await db.collection('ponds').find({}).sort({ name: 1 }).limit(200).toArray();
+    ponds.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', undefined, { numeric: true }));
     res.json({ items: ponds.map(serializePond), count: ponds.length });
   }));
   r.get('/ponds/:id', asyncHandler(async (req, res) => res.json(serializePond(await requirePond(db, req.params.id)))));

@@ -44,8 +44,8 @@ export function FarmFallback({ ponds, names, hoveredId, selectedId, dimHealthy, 
             <rect x={p.x - half} y={p.z - half} width={POND} height={POND} rx={CORNER} fill="#dcdfdd" />
             {!p.empty ? <rect x={p.x - half + 1.6} y={p.z - half + 1.6} width={POND - 3.2} height={POND - 3.2} rx={CORNER - 1} fill={p.tone === 'unknown' ? '#9fb0b5' : p.tone === 'critical' ? '#6b7280' : '#27a39f'} /> : null}
             <g transform={`translate(${p.x} ${p.z})`}>
-              <rect x={-3.6} y={-1.7} width={7.2} height={3.4} rx={1.7} fill="#fff" stroke={p.empty ? '#c9c7bb' : col} strokeWidth={0.35} />
-              <text x={0} y={0.9} textAnchor="middle" fontSize={p.empty ? 1.5 : 2.2} fontWeight={600} fill="#34372f">{p.empty ? 'Unassigned' : `${p.tone === 'critical' ? '!! ' : p.tone === 'warning' ? '! ' : p.tone === 'unknown' ? '– ' : ''}${p.label}`}</text>
+              <rect x={-4.5} y={-1.7} width={9} height={3.4} rx={1.7} fill="#fff" stroke={p.empty ? '#c9c7bb' : col} strokeWidth={0.35} />
+              <text x={0} y={0.8} textAnchor="middle" fontSize={p.empty ? 1.4 : 1.7} fontWeight={600} fill="#34372f">{p.empty ? 'Unassigned' : `${p.tone === 'critical' ? '!! ' : p.tone === 'warning' ? '! ' : p.tone === 'unknown' ? '– ' : ''}${p.label}`}</text>
             </g>
           </g>
         );

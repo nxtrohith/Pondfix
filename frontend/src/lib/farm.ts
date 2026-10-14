@@ -128,8 +128,12 @@ export interface SlotAssignment { slots: (FleetRow | null)[]; shown: number; tot
  * for as long as the set of ponds does not change. Empty slots stay empty; ponds beyond 17 are counted, never silently dropped.
  */
 export function assignSlots(rows: FleetRow[], capacity = FARM_POND_COUNT): SlotAssignment {
-  const key = (r: FleetRow) => `${r.pond.sourceId ?? r.pond.name}\u0000${r.pond.id}`;
-  const sorted = [...rows].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  const sorted = [...rows].sort((a, b) => {
+    const aKey = a.pond.sourceId ?? a.pond.name;
+    const bKey = b.pond.sourceId ?? b.pond.name;
+    const cmp = aKey.localeCompare(bKey, undefined, { numeric: true });
+    return cmp !== 0 ? cmp : a.pond.id.localeCompare(b.pond.id);
+  });
   const slots: (FleetRow | null)[] = Array.from({ length: capacity }, (_, i) => sorted[i] ?? null);
   return { slots, shown: Math.min(sorted.length, capacity), total: sorted.length, hidden: Math.max(0, sorted.length - capacity) };
 }
@@ -167,8 +171,8 @@ const dot = (a: number[], b: number[]) => a[0]! * b[0]! + a[1]! * b[1]! + a[2]! 
 const cross = (a: number[], b: number[]): [number, number, number] => [a[1]! * b[2]! - a[2]! * b[1]!, a[2]! * b[0]! - a[0]! * b[2]!, a[0]! * b[1]! - a[1]! * b[0]!];
 function norm(v: [number, number, number]): [number, number, number] { const l = Math.hypot(...v) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }
 
-/** Short label drawn on the pond: its place in the farm, "01" to "17". Names and IDs live in the tooltip and panel. */
-export const slotLabel = (slot: number) => String(slot + 1).padStart(2, '0');
+/** Clean, sequential label drawn on the pond: "Pond 1" to "Pond 17". */
+export const slotLabel = (slot: number) => `Pond ${slot + 1}`;
 
 export interface PondSnapshot {
   id: string; name: string; sourceId?: string; risk: RiskStatus | 'ERROR'; tone: Tone;

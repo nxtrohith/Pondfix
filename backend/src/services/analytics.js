@@ -62,6 +62,7 @@ export async function comparePonds(db, config, raw) {
   const q = parse(query(config), raw);
   const filter = q.pondIds ? { _id: { $in: q.pondIds.split(',').slice(0, 50).map((s) => parseObjectId(s.trim(), 'pondIds')) } } : {};
   const ponds = await db.collection('ponds').find(filter).sort({ name: 1 }).limit(100).toArray();
+  ponds.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', undefined, { numeric: true }));
   if (!ponds.length) return { parameter: q.parameter, ponds: [] };
   const range = await resolveRange(db, ponds.map((p) => p._id), q);
   if (!range) return { parameter: q.parameter, range: null, ponds: [] };

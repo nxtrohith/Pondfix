@@ -21,7 +21,7 @@ export function PondsDirectory({ rows, initialQuery = '' }: { rows: FleetRow[]; 
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase();
     let list = rows.filter((r) => (!term || r.pond.name.toLowerCase().includes(term) || r.pond.id.toLowerCase().includes(term) || (r.pond.sourceId ?? '').toLowerCase().includes(term)) && (status === 'ALL' || r.risk === status));
-    list = sort === 'name' ? [...list].sort((a, b) => a.pond.name.localeCompare(b.pond.name)) : sortRows(list);
+    list = sort === 'name' ? [...list].sort((a, b) => a.pond.name.localeCompare(b.pond.name, undefined, { numeric: true })) : sortRows(list);
     return list;
   }, [rows, q, status, sort]);
 

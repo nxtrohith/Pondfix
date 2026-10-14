@@ -28,7 +28,7 @@ describe('farm view, 3D path', () => {
     expect(ponds.map((p) => [p.x, p.z])).toEqual(FARM.ponds.map((p) => [p.x, p.z]));
     expect(ponds.map((p) => p.label)).toEqual(Array.from({ length: 17 }, (_, i) => slotLabel(i)));
     expect(ponds.map((p) => p.tone).reduce<Record<string, number>>((m, t) => ({ ...m, [t]: (m[t] ?? 0) + 1 }), {})).toEqual({ healthy: 9, warning: 3, critical: 2, unknown: 3 });
-    expect(ponds.filter((p) => p.attention).map((p) => p.label)).toEqual(['04', '06', '08', '11', '13']);
+    expect(ponds.filter((p) => p.attention).map((p) => p.label)).toEqual(['Pond 4', 'Pond 6', 'Pond 8', 'Pond 11', 'Pond 13']);
     expect(new Set(ponds.map((p) => p.id)).size).toBe(17);
   });
   it('draws a text tag for every pond over the scene, plus legend and camera controls', () => {
@@ -39,7 +39,7 @@ describe('farm view, 3D path', () => {
     expect(screen.queryByText(/3D view is not available/)).toBeNull();
   });
   it('hovering a pond in the scene shows that pond\'s card; selecting it opens the panel', () => {
-    setup(); const id = (props().ponds as { id: string; label: string }[]).find((p) => p.label === '11')!.id;
+    setup(); const id = (props().ponds as { id: string; label: string }[]).find((p) => p.label === 'Pond 11')!.id;
     fireEvent.pointerMove(screen.getByRole('img', { name: /^Farm plan with/ }), { clientX: 50, clientY: 50, pointerType: 'mouse' });
     act(() => props().onHover(id)); expect(props().hoveredId).toBe(id); expect(screen.getByRole('status')).toHaveTextContent('Demo pond 11');
     act(() => props().onHover(null)); expect(screen.queryByRole('status')).toBeNull();

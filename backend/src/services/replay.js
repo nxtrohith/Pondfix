@@ -26,6 +26,7 @@ export async function replayPonds(db) {
   ]).toArray();
   const byId = new Map(agg.map((a) => [String(a._id), a]));
   const ponds = await db.collection('ponds').find({ _id: { $in: agg.map((a) => a._id) } }).sort({ name: 1 }).toArray();
+  ponds.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', undefined, { numeric: true }));
   return { items: ponds.map((p) => { const a = byId.get(String(p._id)); return { ...serializePond(p), records: a.records, first: a.first, last: a.last }; }), expectedIntervalMinutes: EXPECTED_INTERVAL_MIN };
 }
 
