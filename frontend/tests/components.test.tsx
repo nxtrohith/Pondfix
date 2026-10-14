@@ -20,8 +20,8 @@ describe('ui primitives', () => {
   it('empty state explains how to proceed', () => { render(<EmptyState title="No ponds yet">Import one.</EmptyState>); expect(screen.getByText('No ponds yet')).toBeInTheDocument(); expect(screen.getByText('Import one.')).toBeInTheDocument(); });
   it('error state is announced and offers retry only for recoverable errors', () => {
     const onRetry = vi.fn();
-    const { rerender } = render(<ErrorState error={new ApiError('network', 'Could not reach the AquaGuard API.')} onRetry={onRetry} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not reach the AquaGuard API.');
+    const { rerender } = render(<ErrorState error={new ApiError('network', 'Could not reach the PondFix API.')} onRetry={onRetry} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not reach the PondFix API.');
     fireEvent.click(screen.getByRole('button', { name: /try again/i })); expect(onRetry).toHaveBeenCalledOnce();
     rerender(<ErrorState error={new ApiError('http', 'pond not found', 404, 'NOT_FOUND')} onRetry={onRetry} />);
     expect(screen.queryByRole('button', { name: /try again/i })).toBeNull(); expect(screen.getByRole('alert')).toHaveTextContent('NOT_FOUND');

@@ -69,7 +69,7 @@ export interface SpeciesProfile {
   requiresCustomName: boolean;
 }
 
-/** An alert exactly as the AquaGuard backend decided it. The app only presents these; it never creates or classifies them. */
+/** An alert exactly as the PondFix backend decided it. The app only presents these; it never creates or classifies them. */
 export interface AlertItem {
   id: string;
   pondId: string;

@@ -1,4 +1,4 @@
-// The real screens, real services and real provider, fed the responses captured from the real AquaGuard API.
+// The real screens, real services and real provider, fed the responses captured from the real PondFix API.
 // Only the network edge (apiGet and the socket) is replaced. Counts here are what a farmer would see.
 import { act, screen, fireEvent } from 'expo-router/testing-library';
 import { renderLiveApp } from './harness';

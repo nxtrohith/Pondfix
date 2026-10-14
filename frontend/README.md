@@ -1,10 +1,10 @@
-# AquaGuard frontend
+# PondFix frontend
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind CSS v4, with Recharts for charts, Phosphor icons and Geist type. It is a thin client of the AquaGuard REST API (`backend/`): it holds no database credentials, runs no model, and has no data of its own.
+Next.js 16 (App Router) + React 19 + TypeScript (strict) + Tailwind CSS v4, with Recharts for charts, Phosphor icons and Geist type. It is a thin client of the PondFix REST API (`backend/`): it holds no database credentials, runs no model, and has no data of its own.
 
 ## Run (verified workflow)
 
-The dashboard needs the API running. **Start the backend first, in its own terminal, then the frontend in a second one.** The dashboard does not start the API for you; if it is not running, every page shows "Could not reach the AquaGuard API".
+The dashboard needs the API running. **Start the backend first, in its own terminal, then the frontend in a second one.** The dashboard does not start the API for you; if it is not running, every page shows "Could not reach the PondFix API".
 
 The API runs against MongoDB Atlas only; there is no local database mode.
 
@@ -32,7 +32,7 @@ Put overrides in `frontend/.env.local` (git-ignored; template: `frontend/.env.ex
 
 The demo and the Simulation page save simulated readings (marked "Simulated") to the Atlas database, so they are **off by default**. Use them only when you accept that.
 
-1. **Enable demo mode:** set `DEMO_ENABLED=true` in `backend/.env`, then **Terminal 1:** `npm start` and wait for `AquaGuard API listening ... (database: ATLAS ...)`.
+1. **Enable demo mode:** set `DEMO_ENABLED=true` in `backend/.env`, then **Terminal 1:** `npm start` and wait for `PondFix API listening ... (database: ATLAS ...)`.
 2. **Check it:** `curl http://127.0.0.1:4000/api/health` must show `"database":{"status":"up","target":"atlas"}` and `"demo":{"enabled":true}`.
 3. **Terminal 2:** `npm run dev:frontend`, then open http://localhost:3000.
 4. Open **Alerts** in one browser tab (it should say "No active problems") and **Demo & simulation** in another (choose **Test an alert**).
@@ -55,13 +55,13 @@ The Guided demo is **disabled unless the API reports demo mode on** (`demo.enabl
 
 | Symptom | Cause and fix |
 |---|---|
-| Every page says "Could not reach the AquaGuard API" and the sidebar says "API unreachable" | The backend is not running, or is on another port. Run `curl http://127.0.0.1:4000/api/health`. If it is refused, start it with `npm start`. If it uses another `PORT`, set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to match. |
+| Every page says "Could not reach the PondFix API" and the sidebar says "API unreachable" | The backend is not running, or is on another port. Run `curl http://127.0.0.1:4000/api/health`. If it is refused, start it with `npm start`. If it uses another `PORT`, set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to match. |
 | Pages load but charts, forecasts, Alerts or Simulation never fill in | Browser-side requests are blocked. Open the dashboard as `http://localhost:3000` or `http://127.0.0.1:3000`; for any other host (for example a LAN address) add its origin to the API's `CORS_ORIGINS` and, for `next dev`, to `allowedDevOrigins` in `next.config.ts`. |
 | Health shows "Degraded", forecasts say "unavailable" | The API is up but the Python worker is not: install `ml/requirements.txt` (scikit-learn 1.8.0) and check `PYTHON_BIN`. Measurements and alerts keep working. |
 | Health shows the database as unreachable, or the API exits at start-up | `MONGODB_URI` is missing or wrong, or your IP is not allowed in Atlas Network Access. The API prints a sanitized error. |
 | "The API returned a response in an unexpected format" | The frontend and backend versions differ. Update both and restart. |
 | "The demo is disabled" on the Simulation page | Demo mode is off on the API. Set `DEMO_ENABLED=true` in `backend/.env` and restart `npm start`; `curl http://127.0.0.1:4000/api/health` then shows `"demo":{"enabled":true}`. Simulated readings are saved to Atlas. |
-| `FATAL: port 4000 is already in use` | Another AquaGuard API is running. Find it with `lsof -nP -iTCP:4000 -sTCP:LISTEN`, check what it is connected to, then stop it with `Ctrl+C` in its terminal. |
+| `FATAL: port 4000 is already in use` | Another PondFix API is running. Find it with `lsof -nP -iTCP:4000 -sTCP:LISTEN`, check what it is connected to, then stop it with `Ctrl+C` in its terminal. |
 | Everything shows "Stale" | Expected: the imported data ends in January 2026, so it is historical, not live. |
 
 ## Pages

@@ -19,9 +19,9 @@ const SYSTEM: Record<SystemState, { label: string; cls: string; Icon: typeof Che
 
 function Brand({ compact }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="AquaGuard overview">
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg" aria-label="PondFix overview">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-olive text-white" aria-hidden="true"><Drop size={18} weight="fill" /></span>
-      <span className={cx('text-[17px] font-medium tracking-tight text-ink', compact && 'md:hidden lg:inline')}>AquaGuard</span>
+      <span className={cx('text-[17px] font-medium tracking-tight text-ink', compact && 'md:hidden lg:inline')}>PondFix</span>
     </Link>
   );
 }

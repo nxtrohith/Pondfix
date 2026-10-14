@@ -1,4 +1,4 @@
-# AquaGuard Vision — Mobile Fish Activity Monitor (Phase 1 PoC)
+# PondFix Vision — Mobile Fish Activity Monitor (Phase 1 PoC)
 
 A standalone mobile application and local computer-vision inference pipeline for detecting fish, tracking movement across consecutive frames, and identifying sustained inactivity in aquaculture environments.
 
@@ -8,7 +8,7 @@ A standalone mobile application and local computer-vision inference pipeline for
 
 ```
 ┌─────────────────────────────────┐           HTTP POST (base64 JPEG)
-│  AquaGuard Vision Mobile App    │ ──────────────────────────────────────────► ┌────────────────────────────────────────┐
+│  PondFix Vision Mobile App    │ ──────────────────────────────────────────► ┌────────────────────────────────────────┐
 │  (Expo Go / React Native)       │                                             │  inference_server.py (Flask + YOLOv8)  │
 │  - Live Camera Preview          │ ◄────────────────────────────────────────── │  - Ultralytics YOLOv8 inference        │
 │  - Real-time Bounding Boxes     │           JSON Detections + Coordinates     │  - Fish detection bounding boxes       │

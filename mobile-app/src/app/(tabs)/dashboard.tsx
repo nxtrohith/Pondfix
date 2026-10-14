@@ -86,7 +86,7 @@ export default function DashboardScreen() {
       )}
       <Panel>
         <Text style={styles.noteTitle}>About these numbers</Text>
-        <Text style={styles.noteBody}>Ponds, readings and alerts come from the AquaGuard server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.</Text>
+        <Text style={styles.noteBody}>Ponds, readings and alerts come from the PondFix server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.</Text>
       </Panel>
     </ScreenContainer>
   );

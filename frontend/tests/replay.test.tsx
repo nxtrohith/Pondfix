@@ -133,10 +133,10 @@ describe('historical replay page', () => {
   });
 
   it('a failed forecast is shown as an error with retry; the replay keeps going and nothing is invented', async () => {
-    api.replayForecast.mockRejectedValueOnce(new ApiError('network', 'Could not reach the AquaGuard API.'));
+    api.replayForecast.mockRejectedValueOnce(new ApiError('network', 'Could not reach the PondFix API.'));
     await open(); fake(); speed('900');
     click('Start'); await flush(); await run(400);
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not reach the AquaGuard API.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not reach the PondFix API.');
     expect(screen.getByTestId('replay-status')).toHaveTextContent('Playing');
     expect(screen.queryByText(/Made from readings/)).toBeNull();                         // no fabricated forecast
     expect(api.replayForecast).toHaveBeenCalledTimes(1);                                  // no automatic retry loop

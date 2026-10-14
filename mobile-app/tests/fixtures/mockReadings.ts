@@ -79,7 +79,7 @@ export function demoReadings(pondId: string): ParameterReading[] {
   return (SPECS[pondId] ?? []).map(build);
 }
 
-/** Forecast values are ILLUSTRATIVE demo numbers. They are not produced by the AquaGuard forecasting model. */
+/** Forecast values are ILLUSTRATIVE demo numbers. They are not produced by the PondFix forecasting model. */
 export const DEMO_FORECASTS: Record<string, Partial<Record<Parameter, { minutesAhead: 15 | 60 | 180; value: number }[]>>> = {
   'pond-1': {
     dissolved_oxygen: [{ minutesAhead: 15, value: 1.7 }, { minutesAhead: 60, value: 1.5 }, { minutesAhead: 180, value: 1.4 }],

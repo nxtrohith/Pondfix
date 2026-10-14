@@ -1,4 +1,4 @@
-// Zod mirrors of the AquaGuard backend responses (see backend/README.md and backend/src/routes/index.js).
+// Zod mirrors of the PondFix backend responses (see backend/README.md and backend/src/routes/index.js).
 // Only fields the UI reads are required; everything else is optional so additive backend changes do not break the app.
 import { z } from 'zod';
 

@@ -1,4 +1,4 @@
-// Screen 14: forecasting. ALL values here are ILLUSTRATIVE demo forecasts. They are not produced by the AquaGuard forecasting model.
+// Screen 14: forecasting. ALL values here are ILLUSTRATIVE demo forecasts. They are not produced by the PondFix forecasting model.
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -91,7 +91,7 @@ export default function ForecastScreen() {
             <Text style={styles.title}>Risk outlook</Text>
             {outlook && outlook.status !== 'UNKNOWN' ? <StatusBadge status={outlook.status} /> : null}
             <Text style={styles.body}>{outlook?.text}</Text>
-            <Text style={styles.small}>Risk is assessed by the AquaGuard server for this pond. Confirm with a current reading before acting.</Text>
+            <Text style={styles.small}>Risk is assessed by the PondFix server for this pond. Confirm with a current reading before acting.</Text>
           </View>
 
           <View style={styles.card} testID="forecast-table">

@@ -16,7 +16,7 @@ import { ApiError, badRequest, validationError } from '../utils/errors.js';
 import { assessComposition, serializeCompatibility } from './speciesCompatibility.js';
 
 export const CULTURE_LABEL = Object.freeze({ freshwater_fish: 'Fish', shrimp: 'Shrimp', custom: 'Custom', polyculture: 'Polyculture' });
-const BRIEF = 'AquaGuard project brief (provisional reference range; not independently verified against aquaculture guidance)';
+const BRIEF = 'PondFix project brief (provisional reference range; not independently verified against aquaculture guidance)';
 const POND_FISH_PH = { min: 6.5, max: 8.5, kind: 'general_reference', source: BRIEF };
 const DO_TARGET = { min: 5, kind: 'operating_target', source: BRIEF };
 const temp = (min, max) => ({ min, max, kind: 'preferred_growth_range', source: BRIEF });
@@ -34,14 +34,14 @@ export const CATALOGUE = Object.freeze([
   {
     id: 'vannamei', displayName: 'Vannamei shrimp', scientificName: 'Litopenaeus vannamei', cultureType: 'shrimp',
     reference: { temperature: temp(28, 32), ph: { min: 7.5, max: 8.5, kind: 'general_reference', source: BRIEF }, dissolved_oxygen: { above: 4, kind: 'operating_target', source: BRIEF }, salinity: null },
-    notes: ['Salinity must be configured for the actual culture system; not every vannamei pond runs at marine salinity. AquaGuard has no salinity sensor, so salinity is not evaluated.', CARP_NOTE],
+    notes: ['Salinity must be configured for the actual culture system; not every vannamei pond runs at marine salinity. PondFix has no salinity sensor, so salinity is not evaluated.', CARP_NOTE],
   },
   fish('tilapia', 'Tilapia', 'Oreochromis niloticus', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
   fish('walking_catfish', 'Walking catfish', 'Clarias batrachus', {}, { notes: ['No reference ranges have been supplied for this species yet. Predatory towards small fish.'] }),
   fish('pangasius', 'Pangasius', null, {}, { scientificNameStatus: 'to_be_configured', notes: ['The exact Pangasius species still has to be configured, and no reference ranges have been supplied.'] }),
   fish('common_carp', 'Common carp', 'Cyprinus carpio', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
   fish('grass_carp', 'Grass carp', 'Ctenopharyngodon idella', {}, { notes: ['No reference ranges have been supplied for this species yet.'] }),
-  { id: 'other', displayName: 'Other / custom', scientificName: null, cultureType: 'custom', reference: {}, custom: true, notes: ['A user-named species. AquaGuard has no safety profile for it, so only the general rules apply.'] },
+  { id: 'other', displayName: 'Other / custom', scientificName: null, cultureType: 'custom', reference: {}, custom: true, notes: ['A user-named species. PondFix has no safety profile for it, so only the general rules apply.'] },
 ]);
 const BY_ID = new Map(CATALOGUE.map((s) => [s.id, s]));
 export const SPECIES_IDS = Object.freeze(CATALOGUE.map((s) => s.id));

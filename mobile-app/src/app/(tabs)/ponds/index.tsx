@@ -35,7 +35,7 @@ export default function PondsScreen() {
 
   return (
     <ScreenContainer testID="ponds-screen">
-      <AppHeader title="Ponds" subtitle="Live readings from the AquaGuard server" />
+      <AppHeader title="Ponds" subtitle="Live readings from the PondFix server" />
       <ConnectionBanner />
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>

@@ -61,7 +61,7 @@ export default function UnavailableScreen() {
       <Panel testID="unavailable-explain">
         <Text style={styles.heading}>No current {name.toLowerCase()} reading</Text>
         <Text style={styles.body}>
-          AquaGuard has no recent reading for {name.toLowerCase()} in {pondName}. Missing data is shown as unavailable. It is not treated as healthy or normal.
+          PondFix has no recent reading for {name.toLowerCase()} in {pondName}. Missing data is shown as unavailable. It is not treated as healthy or normal.
         </Text>
         {reading?.lastSeenAt ? <Text style={styles.small}>Last seen {formatTime(reading.lastSeenAt)}</Text> : null}
         {reading?.sensor ? <Text style={styles.small}>Sensor state: {reading.sensor}</Text> : null}

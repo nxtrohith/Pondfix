@@ -1,4 +1,4 @@
-// The mobile normalizers against responses captured from the real AquaGuard API (read-only GETs; see tests/fixtures/real).
+// The mobile normalizers against responses captured from the real PondFix API (read-only GETs; see tests/fixtures/real).
 import summaries from '../fixtures/real/summaries.json';
 import openAlerts from '../fixtures/real/alerts_open.json';
 import history from '../fixtures/real/history_pond5.json';

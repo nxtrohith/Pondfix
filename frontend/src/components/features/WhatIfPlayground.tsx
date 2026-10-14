@@ -22,7 +22,7 @@ const CORE: { key: Core; trend: 'temperatureTrend' | 'dissolvedOxygenTrend' | 'p
 const STATUS_KEY: Record<Core, string> = { temperature: 'temperature', dissolvedOxygen: 'dissolved_oxygen', ph: 'ph' };
 
 /**
- * "What if…": type or pick hypothetical conditions and see what AquaGuard would classify and what it would tell the farmer to watch for.
+ * "What if…": type or pick hypothetical conditions and see what PondFix would classify and what it would tell the farmer to watch for.
  * The backend does the work (the same rules the alert advisor uses); nothing is saved and no alert is created.
  */
 export function WhatIfPlayground() {
@@ -92,7 +92,7 @@ export function WhatIfPlayground() {
       </Card>
 
       <Card aria-labelledby="whatif-result-title" className="self-start">
-        <CardHeader id="whatif-result-title" title="What AquaGuard would say" description="Based on the active alert limits and the watch-out rules. These are hypothetical." />
+        <CardHeader id="whatif-result-title" title="What PondFix would say" description="Based on the active alert limits and the watch-out rules. These are hypothetical." />
         <CardBody className="space-y-5" >
           <div aria-live="polite" className="space-y-5">
             {shownError ? <ErrorState error={shownError} title="Could not work this out" onRetry={() => setRetry((n) => n + 1)} />

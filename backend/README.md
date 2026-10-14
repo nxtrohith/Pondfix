@@ -1,4 +1,4 @@
-# AquaGuard backend
+# PondFix backend
 
 Node.js + Express REST API, the single source of truth for measurements, predictions, risk classification and alerts. MongoDB Atlas is the store (via the shared `database/lib/connect.js`); the existing Python model runs in a child process. No auth/roles: one farmer, many ponds (see *Security*).
 

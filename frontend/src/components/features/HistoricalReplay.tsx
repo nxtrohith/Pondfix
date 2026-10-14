@@ -163,7 +163,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
 
   return (
     <div className="space-y-6">
-      <Notice tone="warning"><strong className="font-medium">Historical replay: recorded data, not live sensor readings.</strong> Original readings and timestamps are replayed in order. Nothing is saved: replaying creates no records or alerts and cannot change live alerts. Forecasts come from the real AquaGuard model using only readings up to the replayed moment.</Notice>
+      <Notice tone="warning"><strong className="font-medium">Historical replay: recorded data, not live sensor readings.</strong> Original readings and timestamps are replayed in order. Nothing is saved: replaying creates no records or alerts and cannot change live alerts. Forecasts come from the real PondFix model using only readings up to the replayed moment.</Notice>
 
       <Card aria-labelledby="rp-setup">
         <CardHeader id="rp-setup" title="Choose a pond and period" description="Ponds and periods come from the imported historical dataset." />
@@ -249,7 +249,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
               </Card>
 
               <Card aria-labelledby="rp-fc" aria-live="polite">
-                <CardHeader id="rp-fc" title="Model forecast" description={latestFc ? `Made from readings up to ${formatDateTime(latestFc.key)}` : 'Real AquaGuard model, run at measurement boundaries'} />
+                <CardHeader id="rp-fc" title="Model forecast" description={latestFc ? `Made from readings up to ${formatDateTime(latestFc.key)}` : 'Real PondFix model, run at measurement boundaries'} />
                 <div className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
                   {latestFc ? <ForecastTable data={latestFc.v.data} /> : null}
                   {latestFcEntry && 'data' in latestFcEntry.v && latestFcEntry.v.data.status !== 'ok' ? <p className="text-ink-soft">{FC_TEXT[latestFcEntry.v.data.status] ?? latestFcEntry.v.data.status}{latestFcEntry.v.data.message ? ` (${latestFcEntry.v.data.message})` : ''}</p> : null}

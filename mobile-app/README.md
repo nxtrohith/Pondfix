@@ -1,6 +1,6 @@
-# AquaGuard mobile app (demo)
+# PondFix mobile app (demo)
 
-A React Native + Expo (SDK 57, Expo Router) farmer app. It lives entirely in `mobile-app/`, is isolated from the web app and backend, and uses **local demo data only**. It does not call the AquaGuard API or MongoDB.
+A React Native + Expo (SDK 57, Expo Router) farmer app. It lives entirely in `mobile-app/`, is isolated from the web app and backend, and uses **local demo data only**. It does not call the PondFix API or MongoDB.
 
 ## Prerequisites
 
@@ -81,7 +81,7 @@ A reading older than 60 minutes is "Not recent". A missing or offline sensor is 
 
 ## What is demo or not yet built
 
-- All readings, alerts, forecasts, notifications, species information and profile data are illustrative. Forecasts are **not** from the AquaGuard forecasting model.
+- All readings, alerts, forecasts, notifications, species information and profile data are illustrative. Forecasts are **not** from the PondFix forecasting model.
 - No sign-in: "Log in" continues to the demo farm on this device.
 - No push, SMS, WhatsApp or background alerts. Notification and alert settings only change this app's preferences.
 - Language selection is saved but the app text is English only.
@@ -91,7 +91,7 @@ A reading older than 60 minutes is "Not recent". A missing or offline sensor is 
 
 ## Live data
 
-Ponds, readings, charts, forecasts and alerts come from the AquaGuard backend; nothing is simulated in the app.
+Ponds, readings, charts, forecasts and alerts come from the PondFix backend; nothing is simulated in the app.
 Only the farmer profile and the species reference catalogue are local.
 
 - Backend address: `EXPO_PUBLIC_API_URL` in `.env.local` (see `.env.example`). Use the computer's LAN IP, never `localhost`.
@@ -119,7 +119,7 @@ pond/alert counts.
 
 | Tag | Meaning | Examples |
 | --- | --- | --- |
-| `[APP]` | Lifecycle | `AquaGuard mobile starting`, `app state -> active` |
+| `[APP]` | Lifecycle | `PondFix mobile starting`, `app state -> active` |
 | `[CONFIG]` | Server address | `server address http://172.16.19.138:4000`, `The server address is not valid` |
 | `[REST]` | Each request | `GET /ponds/summaries -> 200 in 412ms`, `GET /alerts failed after 83ms: Network request failed` |
 | `[SOCKET]` | Realtime connection | `connecting to …`, `connected … via websocket`, `connect_error #2 …: xhr poll error` |

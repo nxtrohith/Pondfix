@@ -57,7 +57,7 @@ export default function SensorsScreen() {
               {latest ? `Latest ${PARAMETER_LABEL[p]}: ${formatValue(latest.value, p)} ${PARAMETER_UNIT[p]}` : `No ${PARAMETER_LABEL[p].toLowerCase()} reading`}
             </Text>
             <Text style={styles.small}>
-              {latest ? `Recorded ${formatDateTime(latest.recordedAt)} (${formatAge(ageMinutes(latest.recordedAt, asOf))})` : 'Never received by AquaGuard'}
+              {latest ? `Recorded ${formatDateTime(latest.recordedAt)} (${formatAge(ageMinutes(latest.recordedAt, asOf))})` : 'Never received by PondFix'}
             </Text>
             <Text style={styles.small} accessibilityLabel={`Reading: ${label}`}>Reading: {label}</Text>
             {st === 'UNAVAILABLE' || st === 'STALE' ? (

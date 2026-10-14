@@ -15,7 +15,7 @@ export function WelcomeCard() {
   return (
     <section aria-labelledby="welcome-title" className="relative rounded-xl border border-line bg-sage-pale p-5">
       <button type="button" onClick={dismiss} aria-label="Hide this introduction" className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-lg text-olive-text hover:bg-card/60"><X size={16} aria-hidden="true" /></button>
-      <h2 id="welcome-title" className="text-base font-medium tracking-tight text-ink">New here? This is how AquaGuard works</h2>
+      <h2 id="welcome-title" className="text-base font-medium tracking-tight text-ink">New here? This is how PondFix works</h2>
       <ul className="mt-2 grid gap-2 text-[13px] text-ink md:grid-cols-3">
         <li><span className="font-medium">It watches three things in every pond:</span> oxygen, pH and water temperature.</li>
         <li><span className="font-medium">It tells you in words:</span> green means healthy, amber means attention is needed, red means act now, grey means no recent reading.</li>

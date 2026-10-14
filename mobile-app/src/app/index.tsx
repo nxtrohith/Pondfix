@@ -13,7 +13,7 @@ export default function SplashScreen() {
     <ScreenContainer topographic scroll={false} contentStyle={styles.content} testID="splash-screen">
       <View style={styles.hero}>
         <AquaGuardLogo size={84} />
-        <Text accessibilityRole="header" style={styles.brand}>AquaGuard</Text>
+        <Text accessibilityRole="header" style={styles.brand}>PondFix</Text>
         <Text style={styles.tagline}>Healthy Ponds, Brighter Harvests</Text>
       </View>
       <Image

@@ -23,7 +23,7 @@ export const isActive = (pathname: string, href: string) => (href === '/' ? path
 export function pageTitle(pathname: string): { title: string; parent?: { label: string; href: string } } {
   if (isActive(pathname, SYSTEM_PAGE.href)) return { title: SYSTEM_PAGE.label };
   const hit = NAV.find((n) => isActive(pathname, n.href));
-  if (!hit) return { title: 'AquaGuard' };
+  if (!hit) return { title: 'PondFix' };
   if (pathname.startsWith('/ponds/') && pathname !== '/ponds') return { title: 'Pond details', parent: { label: 'Ponds', href: '/ponds' } };
   return { title: hit.label };
 }

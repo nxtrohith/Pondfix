@@ -30,7 +30,7 @@ describe('guided alert demo', () => {
   });
 
   it('is disabled when the health check itself fails', async () => {
-    api.health.mockRejectedValue(new ApiError('network', 'Could not reach the AquaGuard API.'));
+    api.health.mockRejectedValue(new ApiError('network', 'Could not reach the PondFix API.'));
     render(<AlertDemoRunner ponds={ponds} stepDelayMs={1} />);
     expect(await screen.findByText(/Could not check the API/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start demo' })).toBeDisabled();

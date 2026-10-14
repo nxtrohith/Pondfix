@@ -1,11 +1,11 @@
-# AquaGuard
+# PondFix
 
-**Early-warning monitoring for commercial aquaculture ponds.** AquaGuard ingests water-quality telemetry (dissolved oxygen, pH, temperature), classifies every reading against risk rules, keeps a persistent alert lifecycle, and forecasts conditions up to 3 hours ahead with a hash-pinned machine-learning model. Operators see it all in a web dashboard with a 3D digital twin of the farm, and in a mobile app.
+**Early-warning monitoring for commercial aquaculture ponds.** PondFix ingests water-quality telemetry (dissolved oxygen, pH, temperature), classifies every reading against risk rules, keeps a persistent alert lifecycle, and forecasts conditions up to 3 hours ahead with a hash-pinned machine-learning model. Operators see it all in a web dashboard with a 3D digital twin of the farm, and in a mobile app.
 
 The system manages 17 ponds, **Pond 1** through **Pond 17**, and includes read-only replay of 72,750 historical observations from a Fish Welfare Initiative monitoring campaign.
 
 > [!IMPORTANT]
-> AquaGuard is **not production-ready for public exposure**. It has no authentication, and the risk thresholds for pH and temperature are provisional demo values. Read [Security](#security) and [Known limitations](#known-limitations) before using it with real fish.
+> PondFix is **not production-ready for public exposure**. It has no authentication, and the risk thresholds for pH and temperature are provisional demo values. Read [Security](#security) and [Known limitations](#known-limitations) before using it with real fish.
 
 ---
 
@@ -307,7 +307,7 @@ Then open:
 - **Dashboard:** http://localhost:3000
 - **API health:** `curl http://127.0.0.1:4000/api/health`. Look for `"database":{"status":"up","target":"atlas"}`.
 
-The dashboard needs the API running first. Without it, every page shows "Could not reach the AquaGuard API".
+The dashboard needs the API running first. Without it, every page shows "Could not reach the PondFix API".
 
 To run the mobile app:
 

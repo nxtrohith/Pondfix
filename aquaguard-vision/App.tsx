@@ -233,7 +233,7 @@ function MainVisionScreen() {
         <StatusBar barStyle="light-content" />
         <Text style={styles.permTitle}>Camera Permission Required</Text>
         <Text style={styles.permDesc}>
-          AquaGuard Vision needs camera access to detect fish in real time and evaluate activity levels.
+          PondFix Vision needs camera access to detect fish in real time and evaluate activity levels.
         </Text>
         <Pressable style={styles.btnPrimary} onPress={requestPermission}>
           <Text style={styles.btnText}>Grant Camera Access</Text>
@@ -249,7 +249,7 @@ function MainVisionScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.appTitle}>AquaGuard Vision</Text>
+          <Text style={styles.appTitle}>PondFix Vision</Text>
           <Text style={styles.appSubtitle}>Fish Tracking & Inactivity PoC</Text>
         </View>
         <View style={styles.badgeWrap}>

@@ -66,7 +66,7 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     } catch {
       if (signal?.aborted) throw new ApiError('aborted', 'Request was cancelled');
       if (timedOut) throw new ApiError('timeout', `The API did not respond within ${Math.round(timeoutMs / 1000)} seconds`);
-      throw new ApiError('network', 'Could not reach the AquaGuard API. Check that the backend is running.');
+      throw new ApiError('network', 'Could not reach the PondFix API. Check that the backend is running.');
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);

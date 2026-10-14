@@ -40,7 +40,7 @@ export function DataSourceToggle(props: Props) {
         <p className="text-[13px] font-medium text-ink">Data source{props.scope === 'all' ? ' for all ponds' : ''}</p>
         <p className="text-xs text-ink-soft" aria-live="polite">
           {value === 'mixed' ? 'Ponds use different sources. Pick one to apply it to every pond.'
-            : value === 'simulator' ? `${subject}: synthetic readings from the AquaGuard simulator (not measured). Start it with "npm run simulator".`
+            : value === 'simulator' ? `${subject}: synthetic readings from the PondFix simulator (not measured). Start it with "npm run simulator".`
             : `${subject}: readings from the pond's sensors. Nothing appears until the hardware is connected.`}
         </p>
       </div>

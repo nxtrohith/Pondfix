@@ -64,7 +64,7 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
   return (
     <Card aria-labelledby="species-title">
       <CardHeader id="species-title" title="Species and alert limits"
-        description="The species raised in this pond decides which reference ranges AquaGuard shows with its alerts."
+        description="The species raised in this pond decides which reference ranges PondFix shows with its alerts."
         action={!editing ? <Button size="sm" onClick={startEdit} disabled={catalogue.loading && !catalogue.data}><PencilSimple size={14} aria-hidden="true" />{configured ? 'Change species' : 'Select species'}</Button> : null} />
       <div className="space-y-4 px-5 pb-5 pt-4 text-[13px]">
         <div aria-live="polite">{success ? <p role="status" className="flex items-start gap-2 rounded-lg bg-ok-bg px-3 py-2 text-ok-text"><CheckCircle size={16} weight="fill" className="mt-px shrink-0" aria-hidden="true" />{success}</p> : null}</div>
@@ -103,7 +103,7 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
                     </Select>
                   )}
                 </Field>
-                {selected?.requiresCustomName ? <Field label="Species name" hint="Free text. AquaGuard has no safety profile for it.">{(id, d) => <Input id={id} aria-describedby={d} maxLength={80} value={draft.customName} onChange={(e) => setDraft((s) => ({ ...s, customName: e.target.value }))} />}</Field> : null}
+                {selected?.requiresCustomName ? <Field label="Species name" hint="Free text. PondFix has no safety profile for it.">{(id, d) => <Input id={id} aria-describedby={d} maxLength={80} value={draft.customName} onChange={(e) => setDraft((s) => ({ ...s, customName: e.target.value }))} />}</Field> : null}
               </div>
             ) : (
               <fieldset>
