@@ -31,7 +31,7 @@ export default function DashboardScreen() {
   const firstName = profile.name.split(' ')[0];
 
   return (
-    <ScreenContainer bottomNav="home" testID="dashboard-screen">
+    <ScreenContainer testID="dashboard-screen">
       <View style={styles.top}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text accessibilityRole="header" style={styles.greeting}>Welcome back, {firstName}</Text>

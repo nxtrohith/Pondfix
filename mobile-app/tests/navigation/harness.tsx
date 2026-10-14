@@ -3,21 +3,22 @@ import { Slot } from 'expo-router';
 import { renderRouter } from 'expo-router/testing-library';
 import { AppStoreProvider } from '@/context/AppStore';
 import SplashScreen from '@/app/index';
+import TabsLayout from '@/app/(tabs)/_layout';
 import LoginScreen from '@/app/login';
-import DashboardScreen from '@/app/dashboard';
-import PondsScreen from '@/app/ponds/index';
+import DashboardScreen from '@/app/(tabs)/dashboard';
+import PondsScreen from '@/app/(tabs)/ponds/index';
 import PondDetailScreen from '@/app/ponds/[id]';
 import ChartsScreen from '@/app/ponds/charts';
 import ForecastScreen from '@/app/ponds/forecast';
 import SensorsScreen from '@/app/ponds/sensors';
 import PondEditScreen from '@/app/ponds/edit';
 import ComparisonScreen from '@/app/ponds/comparison';
-import AlertsScreen from '@/app/alerts/index';
+import AlertsScreen from '@/app/(tabs)/alerts/index';
 import AlertDetailScreen from '@/app/alerts/[id]';
-import SpeciesScreen from '@/app/species';
+import SpeciesScreen from '@/app/(tabs)/species';
 import NotificationsScreen from '@/app/notifications';
 import SettingsScreen from '@/app/settings';
-import ProfileScreen from '@/app/profile';
+import ProfileScreen from '@/app/(tabs)/profile';
 import UnavailableScreen from '@/app/unavailable';
 
 const Layout = () => (
@@ -29,21 +30,22 @@ const Layout = () => (
 export const APP_ROUTES = {
   _layout: Layout,
   index: SplashScreen,
+  '(tabs)/_layout': TabsLayout,
   login: LoginScreen,
-  dashboard: DashboardScreen,
-  'ponds/index': PondsScreen,
+  '(tabs)/dashboard': DashboardScreen,
+  '(tabs)/ponds/index': PondsScreen,
   'ponds/[id]': PondDetailScreen,
   'ponds/charts': ChartsScreen,
   'ponds/forecast': ForecastScreen,
   'ponds/sensors': SensorsScreen,
   'ponds/edit': PondEditScreen,
   'ponds/comparison': ComparisonScreen,
-  'alerts/index': AlertsScreen,
+  '(tabs)/alerts/index': AlertsScreen,
   'alerts/[id]': AlertDetailScreen,
-  species: SpeciesScreen,
+  '(tabs)/species': SpeciesScreen,
   notifications: NotificationsScreen,
   settings: SettingsScreen,
-  profile: ProfileScreen,
+  '(tabs)/profile': ProfileScreen,
   unavailable: UnavailableScreen,
 } as const;
 

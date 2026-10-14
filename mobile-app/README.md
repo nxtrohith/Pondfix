@@ -51,13 +51,23 @@ npm run test:watch  # Jest in watch mode while developing
 
 ## Structure
 
-- `src/app/` — routes (Expo Router). `_layout.tsx` wraps everything in the local store.
+- `src/app/` — routes (Expo Router). `_layout.tsx` wraps everything in the local store; `(tabs)/` holds the five top-level destinations.
 - `src/components/` — shared components (status badges, metric and pond cards, alert cards, line chart, buttons, forms).
 - `src/constants/` — `colors.ts` (the only place with colour values) and `theme.ts` (spacing, radius, type).
 - `src/lib/` — water-quality classification, pond summaries and counts, form validation, chart maths, formatting.
 - `src/data/` — typed demo data: four ponds (Pond 1–4), readings, alerts, forecasts, notifications, species, profile.
 - `src/context/AppStore.tsx` — in-memory state for local interactions. Nothing is persisted.
 - `tests/` — unit, component and navigation tests. Navigation tests render the real route files.
+
+## Navigation
+
+- **Top-level destinations:** Home, Ponds, Alerts, Species and Profile live in the `src/app/(tabs)/` route group. They are paged horizontally by a native pager (`TopTabs` from `expo-router/js-top-tabs`, using `react-native-pager-view`).
+- **Swipe:** swipe left to move to the next destination and right to move back, in the bottom-bar order. Swiping does not wrap around at either end. The order is defined once in `src/lib/tabs.ts`.
+- **Bottom bar:** the same bar as before, rendered below the pager. Tapping a tab animates to that page. The highlighted tab follows the URL, so swipes, taps and deep links all agree.
+- **Detail pages** (pond details, charts, forecast, alert details and so on) are stack screens outside the group. They keep their own back navigation and show the bottom bar as before.
+- **Reduced motion:** when the system asks for reduced motion, page transitions are turned off.
+
+**Not checked on a device yet:** the native swipe itself, including how it interacts with the horizontal species chip list. The headless browser runs only the web fallback, where a short drag moves one page and a fast drag can move two.
 
 ## Status rules
 
