@@ -5,6 +5,7 @@ import { PARAM_ICON } from '@/lib/alerts';
 import { DEFAULT_UNIT, PARAM_SHORT, SOURCE_LABEL, formatValue, unitLabel } from '@/lib/format';
 import { POND_STATUS, describeProblem } from '@/lib/terms';
 import { isConfigured, speciesLine } from '@/lib/species';
+import { PondIllustration } from '../illustrations';
 import { StatusBadge } from '../ui/StatusBadge';
 import { LastUpdated } from '../ui/LastUpdated';
 import { cx } from '../ui/cx';
@@ -20,11 +21,16 @@ export function PondCard({ row }: { row: FleetRow }) {
   const edge = row.risk === 'CRITICAL' || row.risk === 'WARNING' ? EDGE[row.risk] : 'border-l-line';
   return (
     <Link href={`/ponds/${pond.id}`} className={cx('block rounded-xl border border-line border-l-4 bg-card p-4 transition-colors hover:bg-surface/60', edge)} aria-label={`${pond.name}: ${POND_STATUS[row.risk].label}`}>
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 truncate text-[15px] font-medium text-ink">{pond.name}</h3>
-        <StatusBadge status={row.risk} scope="pond" />
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="-my-2 -ml-1 shrink-0"><PondIllustration health={row.risk} size={64} alt="" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 truncate text-[15px] font-medium text-ink">{pond.name}</h3>
+            <StatusBadge status={row.risk} scope="pond" />
+          </div>
+          <p className={cx('mt-0.5 truncate text-xs', isConfigured(pond.speciesConfig) ? 'text-ink-soft' : 'text-warn-text')}>{speciesLine(pond.speciesConfig)}</p>
+        </div>
       </div>
-      <p className={cx('mt-0.5 truncate text-xs', isConfigured(pond.speciesConfig) ? 'text-ink-soft' : 'text-warn-text')}>{speciesLine(pond.speciesConfig)}</p>
       {problems.length ? (
         <ul className="mt-2 space-y-0.5 text-[13px] font-medium text-ink">
           {problems.slice(0, 3).map((a) => <li key={a.id}>{describeProblem(a.parameter, a.direction, a.severity)}</li>)}

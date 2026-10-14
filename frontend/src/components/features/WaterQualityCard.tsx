@@ -1,6 +1,7 @@
 import type { ParamSummary, Rule } from '@/lib/api/schemas';
 import { PARAM_ICON, acceptableText } from '@/lib/alerts';
 import { PARAM_LABEL, SOURCE_LABEL, formatValue, unitLabel, DEFAULT_UNIT } from '@/lib/format';
+import { ParameterEquipment } from '../illustrations';
 import { StatusBadge } from '../ui/StatusBadge';
 import { LastUpdated } from '../ui/LastUpdated';
 import { cx } from '../ui/cx';
@@ -17,10 +18,13 @@ export function WaterQualityCard({ parameter, reading, rule }: { parameter: stri
         <p className="flex items-center gap-1.5 text-[13px] font-medium text-ink-soft">{Icon ? <Icon size={16} aria-hidden="true" /> : null}{PARAM_LABEL[parameter]}</p>
         <StatusBadge status={status} />
       </div>
-      <p className={cx('mt-3 text-3xl font-medium leading-none tracking-tight tabular-nums', notRecent || !reading ? 'text-ink-soft' : 'text-ink')}>
-        {reading ? formatValue(reading.value, parameter) : 'No reading'}
-        {reading ? <span className="ml-1.5 text-sm font-normal text-ink-soft">{unitLabel(reading.unit) || DEFAULT_UNIT[parameter]}</span> : null}
-      </p>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className={cx('text-3xl font-medium leading-none tracking-tight tabular-nums', notRecent || !reading ? 'text-ink-soft' : 'text-ink')}>
+          {reading ? formatValue(reading.value, parameter) : 'No reading'}
+          {reading ? <span className="ml-1.5 text-sm font-normal text-ink-soft">{unitLabel(reading.unit) || DEFAULT_UNIT[parameter]}</span> : null}
+        </p>
+        <span aria-hidden="true" className={cx('shrink-0', !reading && 'opacity-50 grayscale')}><ParameterEquipment parameter={parameter} size={64} className="-my-3" /></span>
+      </div>
       <p className="mt-2.5 text-xs text-ink-soft">
         {reading ? <><LastUpdated at={reading.recordedAt} ageMinutes={reading.ageMinutes} className={notRecent ? 'font-medium text-warn-text' : undefined} />{reading.source !== 'live' ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[11px]">{SOURCE_LABEL[reading.source]}</span> : null}</> : 'This pond has no reading for this yet.'}
       </p>

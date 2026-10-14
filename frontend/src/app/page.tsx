@@ -13,6 +13,7 @@ import { WelcomeCard } from '@/components/features/WelcomeCard';
 import { PondCard } from '@/components/features/PondCard';
 import { AlertFeed } from '@/components/features/AlertFeed';
 import { AlertCardList } from '@/components/features/AlertCard';
+import { PondIllustration } from '@/components/illustrations';
 import { FarmTwin } from '@/components/farm/FarmTwin';
 import { demoFarm } from '@/lib/farmDemo';
 
@@ -66,6 +67,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
         <section aria-label="Summary" className={summary.tone === 'critical' ? 'rounded-xl border border-crit-text/40 bg-crit-bg p-5' : summary.tone === 'warning' ? 'rounded-xl border border-warn-text/40 bg-warn-bg p-5' : 'rounded-xl border border-line bg-card p-5'}>
           <div className="flex items-start gap-3">
+            <span aria-hidden="true" className="-my-5 order-last ml-auto hidden shrink-0 sm:block"><PondIllustration health={summary.tone === 'critical' ? 'CRITICAL' : summary.tone === 'warning' ? 'WARNING' : summary.tone === 'healthy' ? 'NORMAL' : 'NO_DATA'} size={112} alt="" /></span>
             <Icon size={28} weight="fill" className={summary.tone === 'critical' ? 'text-crit-text' : summary.tone === 'warning' ? 'text-warn-text' : summary.tone === 'healthy' ? 'text-ok-text' : 'text-ink-soft'} aria-hidden="true" />
             <div>
               <p className="text-xl font-medium tracking-tight text-ink" data-testid="overview-headline">{summary.headline}</p>
