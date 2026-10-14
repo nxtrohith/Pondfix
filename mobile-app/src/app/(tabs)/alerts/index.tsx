@@ -1,7 +1,9 @@
 // Screen 6: alerts list, straight from the backend. "Active" includes alerts the farmer has seen but that are still open.
 // "History" holds alerts whose readings returned to the acceptable range.
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { fontSize, spacing } from '@/constants/theme';
@@ -20,6 +22,7 @@ type Tab = 'active' | 'resolved';
 const SEVERITY_ORDER = { CRITICAL: 0, WARNING: 1 } as const;
 
 export default function AlertsScreen() {
+  const { t } = useTranslation();
   const { activeAlerts, alertHistory, loadState, markAllSeen, refresh } = useAlerts();
   const [tab, setTab] = useState<Tab>('active');
   // Looking at the list counts as seeing the alerts that are in it.
@@ -30,29 +33,27 @@ export default function AlertsScreen() {
 
   return (
     <ScreenContainer testID="alerts-screen">
-      <AppHeader title="Alerts" subtitle="Open problems and resolved history" />
+      <AppHeader title={t('alerts.title.screen')} subtitle={t('alerts.subtitle')} />
       <ConnectionBanner />
       <SegmentedControl
-        label="Alert tabs"
+        label={t('alerts.tabs')}
         value={tab}
-        options={[{ value: 'active', label: `Active (${active.length})`, testID: 'tab-active' }, { value: 'resolved', label: `History (${resolved.length})`, testID: 'tab-resolved' }]}
+        options={[{ value: 'active', label: t('alerts.tabActive', { count: active.length }), testID: 'tab-active' }, { value: 'resolved', label: t('alerts.tabHistory', { count: resolved.length }), testID: 'tab-resolved' }]}
         onChange={setTab}
       />
       <Text style={styles.note}>
-        {tab === 'active'
-          ? 'Acknowledging an alert records that you have seen it. The problem stays active until readings return to the acceptable range.'
-          : 'Resolved alerts had readings return to the acceptable range.'}
+        {tab === 'active' ? t('alerts.noteActive') : t('alerts.noteResolved')}
       </Text>
       {loadState === 'loading' ? (
-        <LoadingState label="Loading alerts" />
+        <LoadingState label={t('alerts.loading')} />
       ) : loadState === 'error' ? (
         <>
-          <ErrorState title="Unable to load alerts">Check your connection. Alerts will appear here as soon as the server can be reached.</ErrorState>
-          <AppButton label="Try again" variant="outline" onPress={() => { void refresh(); }} testID="retry-alerts" />
+          <ErrorState title={t('alerts.loadErrorTitle')}>{t('alerts.loadErrorBody')}</ErrorState>
+          <AppButton label={t('common.tryAgain')} variant="outline" onPress={() => { void refresh(); }} testID="retry-alerts" />
         </>
       ) : list.length === 0 ? (
-        <EmptyState title={tab === 'active' ? 'No active alerts' : 'No resolved alerts'}>
-          {tab === 'active' ? 'All ponds are healthy. There are no active water-quality alerts.' : 'Resolved problems appear here.'}
+        <EmptyState title={tab === 'active' ? t('alerts.emptyActiveTitle') : t('alerts.emptyResolvedTitle')}>
+          {tab === 'active' ? t('alerts.emptyActiveBody') : t('alerts.emptyResolvedBody')}
         </EmptyState>
       ) : (
         <View style={{ gap: spacing.sm }} testID="alert-list">

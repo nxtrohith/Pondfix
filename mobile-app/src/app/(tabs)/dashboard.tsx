@@ -1,6 +1,8 @@
 // Screen 2: home dashboard. Counts and recent alerts come from the same derived summaries as every other screen.
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -18,12 +20,13 @@ import { fleetCounts, summarizePond } from '@/lib/pondSummary';
 import { PARAMETERS } from '@/types';
 import { logger } from '@/lib/logger';
 import { routes } from '@/lib/routes';
-import { formatTime, pluralize } from '@/lib/format';
+import { formatTime } from '@/lib/format';
 import type { AlertItem } from '@/types';
 
 const SEVERITY_ORDER = { CRITICAL: 0, WARNING: 1 } as const;
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
   const { profile } = useAppStore();
   const { ponds, readings, asOf, loadState: pondLoad, lastUpdated: pondsUpdated } = usePonds();
   const { activeAlerts, unreadCount: unread, loadState } = useAlerts();
@@ -40,54 +43,54 @@ export default function DashboardScreen() {
     <ScreenContainer testID="dashboard-screen">
       <View style={styles.top}>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text accessibilityRole="header" style={styles.greeting}>Welcome back, {firstName}</Text>
-          <Text style={styles.sub}>Here is what is happening across your {pluralize(counts.total, 'pond')}.</Text>
+          <Text accessibilityRole="header" style={styles.greeting}>{t('dashboard.greeting', { name: firstName })}</Text>
+          <Text style={styles.sub}>{t('dashboard.subtitle', { count: counts.total })}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Alert notifications, ${unread} unread`} onPress={() => router.push(routes.notifications)} style={styles.bell} testID="bell">
+        <Pressable accessibilityRole="button" accessibilityLabel={t('dashboard.bell', { count: unread })} onPress={() => router.push(routes.notifications)} style={styles.bell} testID="bell">
           <Ionicons name="notifications-outline" size={22} color={colors.textOnBackground} />
           {unread > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unread}</Text></View> : null}
         </Pressable>
       </View>
 
-      <SectionHeader title="Pond overview" hint={pondsUpdated ? `Synchronized ${formatTime(pondsUpdated)}. Missing or old readings are never counted as healthy.` : 'Missing or old readings are never counted as healthy.'} />
-      {pondLoad === 'loading' ? <LoadingState label="Loading ponds" /> : pondLoad === 'error' ? <ErrorState title="Unable to load ponds">Pond data will appear as soon as the server can be reached.</ErrorState> : null}
+      <SectionHeader title={t('dashboard.overview')} hint={pondsUpdated ? t('dashboard.overviewHintSynced', { time: formatTime(pondsUpdated) }) : t('dashboard.overviewHint')} />
+      {pondLoad === 'loading' ? <LoadingState label={t('ponds.loading')} /> : pondLoad === 'error' ? <ErrorState title={t('ponds.loadErrorTitle')}>{t('dashboard.pondsErrorBody')}</ErrorState> : null}
       {pondLoad === 'ready' ? (<>
       <View style={styles.tiles}>
-        <Tile label="Total ponds" value={counts.total} icon="water-outline" testID="tile-total" />
-        <Tile label="Healthy" value={counts.healthy} icon="checkmark-circle" accent={colors.healthyDark} iconColor={colors.healthy} testID="tile-healthy" />
-        <Tile label="Warning" value={counts.warning} icon="warning" accent={colors.warningDark} iconColor={colors.warning} testID="tile-warning" />
-        <Tile label="Critical" value={counts.critical} icon="alert-circle" accent={colors.criticalDark} iconColor={colors.critical} testID="tile-critical" />
+        <Tile label={t('dashboard.tile.total')} value={counts.total} icon="water-outline" testID="tile-total" />
+        <Tile label={t('dashboard.tile.healthy')} value={counts.healthy} icon="checkmark-circle" accent={colors.healthyDark} iconColor={colors.healthy} testID="tile-healthy" />
+        <Tile label={t('dashboard.tile.warning')} value={counts.warning} icon="warning" accent={colors.warningDark} iconColor={colors.warning} testID="tile-warning" />
+        <Tile label={t('dashboard.tile.critical')} value={counts.critical} icon="alert-circle" accent={colors.criticalDark} iconColor={colors.critical} testID="tile-critical" />
       </View>
       {counts.incomplete + counts.noData > 0 ? (
         <Text style={styles.gap} testID="data-gap-note">
-          {counts.incomplete + counts.noData} {counts.incomplete + counts.noData === 1 ? 'pond has' : 'ponds have'} incomplete data. {counts.incomplete + counts.noData === 1 ? 'It is' : 'They are'} not counted as healthy.
+          {t('dashboard.incomplete', { count: counts.incomplete + counts.noData })}
         </Text>
       ) : null}
-      <Text style={styles.gap} testID="readings-available">{withCurrent} of {counts.total} ponds have a current reading.</Text>
+      <Text style={styles.gap} testID="readings-available">{t('dashboard.currentReadings', { current: withCurrent, total: counts.total })}</Text>
       </>) : null}
-      <AppButton label="Open ponds" variant="outline" icon="grid-outline" onPress={() => router.push(routes.ponds)} testID="open-ponds" />
+      <AppButton label={t('dashboard.openPonds')} variant="outline" icon="grid-outline" onPress={() => router.push(routes.ponds)} testID="open-ponds" />
 
       <SectionHeader
-        title="Recent alerts"
-        action={<AppButton label="See all" variant="ghost" onPress={() => router.push(routes.alerts)} testID="see-all-alerts" />}
+        title={t('dashboard.recentAlerts')}
+        action={<AppButton label={t('dashboard.seeAll')} variant="ghost" onPress={() => router.push(routes.alerts)} testID="see-all-alerts" />}
       />
       <ConnectionBanner />
       {loadState === 'loading' ? (
-        <LoadingState label="Loading alerts" />
+        <LoadingState label={t('alerts.loading')} />
       ) : loadState === 'error' ? (
-        <ErrorState title="Unable to load alerts">Alerts will appear here as soon as the server can be reached.</ErrorState>
+        <ErrorState title={t('alerts.loadErrorTitle')}>{t('dashboard.alertsErrorBody')}</ErrorState>
       ) : recent.length === 0 ? (
         counts.total > 0 && counts.healthy === counts.total
-          ? <EmptyState title="All ponds are healthy">No active water-quality alerts.</EmptyState>
-          : <EmptyState title="No active alerts">No water-quality alerts are open. Ponds with old or missing readings are not counted as healthy.</EmptyState>
+          ? <EmptyState title={t('dashboard.allHealthyTitle')}>{t('dashboard.allHealthyBody')}</EmptyState>
+          : <EmptyState title={t('alerts.emptyActiveTitle')}>{t('dashboard.noAlertsBody')}</EmptyState>
       ) : (
         <View style={{ gap: spacing.sm }} testID="recent-alerts">
           {recent.map((a) => <AlertCard key={a.id} alert={a} onPress={() => router.push(routes.alert(a.id))} />)}
         </View>
       )}
       <Panel>
-        <Text style={styles.noteTitle}>About these numbers</Text>
-        <Text style={styles.noteBody}>Ponds, readings and alerts come from the PondFix server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.</Text>
+        <Text style={styles.noteTitle}>{t('dashboard.aboutTitle')}</Text>
+        <Text style={styles.noteBody}>{t('dashboard.aboutBody')}</Text>
       </Panel>
     </ScreenContainer>
   );

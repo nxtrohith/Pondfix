@@ -1,0 +1,7 @@
+{
+  "notFoundTitle": "Pond not found",
+  "title": "Pond species",
+  "hint": "“Not set” is allowed. Until approved limits exist for a species, the general safety rules decide alerts.",
+  "saveFailed": "The server could not save this change. Check your connection and try again.",
+  "save": "Save species"
+}

@@ -1,0 +1,29 @@
+{
+  "greeting": "Welcome back, {{name}}",
+  "subtitle_one": "Here is what is happening across your {{count}} pond.",
+  "subtitle_other": "Here is what is happening across your {{count}} ponds.",
+  "bell_one": "Alert notifications, {{count}} unread",
+  "bell_other": "Alert notifications, {{count}} unread",
+  "overview": "Pond overview",
+  "overviewHintSynced": "Synchronized {{time}}. Missing or old readings are never counted as healthy.",
+  "overviewHint": "Missing or old readings are never counted as healthy.",
+  "pondsErrorBody": "Pond data will appear as soon as the server can be reached.",
+  "tile": {
+    "total": "Total ponds",
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical"
+  },
+  "incomplete_one": "{{count}} pond has incomplete data. It is not counted as healthy.",
+  "incomplete_other": "{{count}} ponds have incomplete data. They are not counted as healthy.",
+  "currentReadings": "{{current}} of {{total}} ponds have a current reading.",
+  "openPonds": "Open ponds",
+  "recentAlerts": "Recent alerts",
+  "seeAll": "See all",
+  "alertsErrorBody": "Alerts will appear here as soon as the server can be reached.",
+  "allHealthyTitle": "All ponds are healthy",
+  "allHealthyBody": "No active water-quality alerts.",
+  "noAlertsBody": "No water-quality alerts are open. Ponds with old or missing readings are not counted as healthy.",
+  "aboutTitle": "About these numbers",
+  "aboutBody": "Ponds, readings and alerts come from the PondFix server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it."
+}

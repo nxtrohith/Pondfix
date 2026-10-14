@@ -1,0 +1,9 @@
+{
+  "openAlerts_one": "{{count}} open alert",
+  "openAlerts_other": "{{count}} open alerts",
+  "criticalCount_one": "{{count}} critical",
+  "criticalCount_other": "{{count}} critical",
+  "openHint": "Opens pond details",
+  "lastReading": "Last reading {{time}}",
+  "noReadings": "No readings received"
+}

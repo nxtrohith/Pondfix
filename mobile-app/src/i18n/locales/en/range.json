@@ -1,0 +1,7 @@
+{
+  "between": "{{min}} to {{max}}{{unit}}",
+  "atLeast": "at least {{value}}{{unit}}",
+  "above": "above {{value}}{{unit}}",
+  "upTo": "up to {{value}}{{unit}}",
+  "notSpecified": "not specified"
+}

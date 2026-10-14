@@ -1,0 +1,7 @@
+{
+  "dissolved_oxygen_low": "Low dissolved oxygen stresses fish and shrimp and can cause losses if it keeps falling. It often drops overnight and in warm weather.",
+  "ph_low": "Low pH (acidic water) can stress stock and change how harmful substances in the water behave.",
+  "ph_high": "High pH can stress stock, and it makes ammonia more harmful.",
+  "temperature_high": "Warm water holds less oxygen and raises the oxygen the stock needs.",
+  "temperature_low": "Cold water slows feeding and growth and can stress stock."
+}

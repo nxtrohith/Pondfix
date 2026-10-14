@@ -1,0 +1,24 @@
+{
+  "title": "Notifications",
+  "unread": "{{count}} unread",
+  "tabs": "Notification tabs",
+  "all": "All",
+  "unreadTab": "Unread ({{count}})",
+  "markAllRead": "Mark all read",
+  "loading": "Loading notifications",
+  "emptyUnread": "No unread notifications",
+  "empty": "No notifications",
+  "emptyBody": "New alerts from your ponds will appear here.",
+  "itemLabel": "{{title}}, {{pond}}, {{severity}}, {{read}}",
+  "sev": {
+    "resolved": "resolved",
+    "critical": "critical",
+    "warning": "warning"
+  },
+  "unreadWord": "unread",
+  "readWord": "read",
+  "openHint": "Opens the alert",
+  "criticalAlert": "Critical alert",
+  "warningAlert": "Warning alert",
+  "unreadTag": "Unread"
+}

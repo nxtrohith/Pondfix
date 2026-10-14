@@ -1,6 +1,8 @@
 // One information-only water-chemistry value (ammonia, nitrite, nitrate, turbidity, alkalinity, salinity, or the calculated un-ionized ammonia). It has no status badge on purpose: the backend defines no
 // alert limits for these, so the card must never look "healthy" or "unhealthy". Simulated values are labelled as such.
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 import { ageMinutes, CHEMISTRY_HINT, CHEMISTRY_LABEL, CHEMISTRY_UNIT } from '@/lib/status';
@@ -11,6 +13,7 @@ import { DERIVED_CHEMISTRY, type ChemistryReading } from '@/types';
 const DAY_MS = 24 * 3600_000;
 
 export function ChemistryCard({ reading, asOf, staleAfterMinutes, testID }: { reading: ChemistryReading; asOf: string; staleAfterMinutes: number; testID?: string }) {
+  const { t } = useTranslation();
   const { parameter, latest } = reading;
   const name = CHEMISTRY_LABEL[parameter]; const unit = CHEMISTRY_UNIT[parameter];
   const age = latest ? ageMinutes(latest.recordedAt, asOf) : null;
@@ -19,19 +22,19 @@ export function ChemistryCard({ reading, asOf, staleAfterMinutes, testID }: { re
   const range = extent(reading.series.filter((p) => Date.parse(p.at) >= since));
   const simulated = reading.source === 'simulated';
   const derived = DERIVED_CHEMISTRY.includes(parameter);
-  const tag = stale ? 'Not recent' : derived ? 'Calculated' : simulated ? 'Simulated' : 'No alert limit';
+  const tag = stale ? t('chemistry.tag.stale') : derived ? t('chemistry.tag.calculated') : simulated ? t('chemistry.tag.simulated') : t('chemistry.tag.noLimit');
   return (
     <View
       style={styles.card}
       accessible
-      accessibilityLabel={`${name}: ${latest ? `${formatValue(latest.value, parameter)} ${unit}${stale ? ', not recent' : ''}` : 'no value'}${derived ? ', calculated from other readings' : simulated ? ', simulated' : ''}, no alert limit`}
+      accessibilityLabel={t('chemistry.label', { name, value: latest ? `${formatValue(latest.value, parameter)} ${unit}${stale ? t('chemistry.notRecentSuffix') : ''}` : t('chemistry.noValue'), note: derived ? t('chemistry.noteCalculated') : simulated ? t('chemistry.noteSimulated') : '' })}
       testID={testID}
     >
       <View style={styles.left}>
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.meta}>{CHEMISTRY_HINT[parameter]}</Text>
-        <Text style={styles.meta}>{latest ? `${formatTime(latest.recordedAt)}${age !== null ? ` · ${formatAge(age)}` : ''}` : 'No reading'}</Text>
-        {range && !stale ? <Text style={styles.meta}>Last 24 h: {formatValue(range.min, parameter)} to {formatValue(range.max, parameter)} {unit}</Text> : null}
+        <Text style={styles.meta}>{latest ? `${formatTime(latest.recordedAt)}${age !== null ? ` · ${formatAge(age)}` : ''}` : t('chemistry.noReading')}</Text>
+        {range && !stale ? <Text style={styles.meta}>{t('chemistry.last24', { min: formatValue(range.min, parameter), max: formatValue(range.max, parameter), unit })}</Text> : null}
       </View>
       <View style={styles.right}>
         <Text style={[styles.value, (!latest || stale) && styles.muted]} numberOfLines={1}>

@@ -15,6 +15,7 @@ import { acknowledgeAlert as acknowledgeOnServer, getActiveAlerts, getAlertHisto
 import { getPondForecast, getPondHistory, getPondSummaries, getRiskRules, setPondSpecies, type PondForecast } from '@/services/ponds';
 import { pauseRealtime, resumeRealtime, subscribeToRealtime } from '@/services/realtime';
 import { API_CONFIGURED, API_CONFIG_ERROR, API_IS_LOOPBACK, API_LABEL } from '@/services/config';
+import { t } from '@/i18n';
 import type { ChemistryReading, ParameterReading, Pond } from '@/types';
 
 export interface AlertsStore extends AlertsState {
@@ -97,7 +98,7 @@ export function LiveDataProvider({ children, live = true, initial, initialPonds,
     } else { logger.error('SYNC', `alerts sync failed: ${alertsResult.reason instanceof Error ? alertsResult.reason.message : 'unknown'}`); dispatchAlerts({ type: 'loadFailed' }); }
     // REST health is reported on its own, whatever the socket is doing. Messages come from ApiError and are safe to show.
     const failure = [alertsResult, fleetResult].find((r): r is PromiseRejectedResult => r.status === 'rejected');
-    dispatchAlerts({ type: 'rest', error: failure ? (failure.reason instanceof Error ? failure.reason.message : 'Unable to reach the server.') : null });
+    dispatchAlerts({ type: 'rest', error: failure ? (failure.reason instanceof Error ? failure.reason.message : t('errors.network')) : null });
     if (fleetResult.status === 'fulfilled') {
       const f = fleetResult.value;
       dispatchPonds({ type: 'bootstrap', items: f.items, serverTime: f.serverTime, deviceNowMs: Date.now(), staleAfterMinutes: f.staleAfterMinutes });

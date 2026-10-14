@@ -1,5 +1,7 @@
 // Local stand-in for sign-in. It does not check a password and does not contact any server.
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { fontSize } from '@/constants/theme';
@@ -10,14 +12,15 @@ import { Panel } from '@/components/SectionHeader';
 import { routes } from '@/lib/routes';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   return (
     <ScreenContainer topographic testID="login-screen">
-      <AppHeader title="Log in" />
+      <AppHeader title={t('login.title')} />
       <Panel>
-        <Text style={styles.heading}>Local demo sign-in</Text>
-        <Text style={styles.body}>This build does not have a sign-in service. Continuing opens the demo farm on this device. No password is checked and no data leaves the device.</Text>
+        <Text style={styles.heading}>{t('login.heading')}</Text>
+        <Text style={styles.body}>{t('login.body')}</Text>
       </Panel>
-      <AppButton label="Continue to demo" fullWidth onPress={() => router.replace(routes.dashboard)} testID="continue-demo" />
+      <AppButton label={t('login.continue')} fullWidth onPress={() => router.replace(routes.dashboard)} testID="continue-demo" />
     </ScreenContainer>
   );
 }

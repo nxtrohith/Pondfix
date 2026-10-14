@@ -15,3 +15,25 @@ jest.mock('@expo/vector-icons', () => {
 // Reduce-motion is read asynchronously by the app. Tests use a fixed value so state does not change after a test finishes.
 jest.spyOn(require('react-native').AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
 jest.spyOn(require('react-native').AccessibilityInfo, 'addEventListener').mockReturnValue({ remove: () => {} } as never);
+
+// Storage and audio are native modules. Storage gets the library's own in-memory mock; audio and the file system get minimal stand-ins, so
+// no test depends on a device. The language, translation and speech tests inject what they need on top of these.
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: () => ({ play: jest.fn(), pause: jest.fn(), seekTo: jest.fn().mockResolvedValue(undefined), replace: jest.fn(), remove: jest.fn() }),
+  useAudioPlayerStatus: () => ({ playing: false, didJustFinish: false }),
+  setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('expo-file-system', () => {
+  const files = new Set<string>(); // which "files" exist, so cache checks behave like a real file system
+  class File {
+    uri: string;
+    constructor(...parts: unknown[]) { this.uri = parts.map(String).join('/'); }
+    get exists() { return files.has(this.uri); }
+    create() { files.add(this.uri); }
+    write() {}
+  }
+  return { File, Paths: { cache: 'file:///cache' } };
+});

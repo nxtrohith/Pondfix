@@ -1,11 +1,13 @@
 // Dependency-free SVG line chart (react-native-svg). Shows axes and units, optional warning and critical limits, critical readings in red,
 // and an optional DASHED forecast that is visually distinct from measured data.
 import { useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { colors } from '@/constants/colors';
 import { fontSize } from '@/constants/theme';
-import { GENERAL_RULES, classifyValue } from '@/lib/status';
+import { GENERAL_RULES, PARAMETER_LABEL, classifyValue } from '@/lib/status';
 import { formatTime } from '@/lib/format';
 import type { Parameter, SeriesPoint } from '@/types';
 
@@ -23,6 +25,7 @@ interface Props {
 const PAD = { left: 40, right: 12, top: 10, bottom: 24 };
 
 export function LineChart({ parameter, points, forecast = [], height = 180, dateLabels = false, showLimits = true }: Props) {
+  const { t } = useTranslation();
   const [width, setWidth] = useState(0);
   const rule = GENERAL_RULES[parameter];
   const all = [...points, ...forecast];
@@ -51,7 +54,7 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
   const fmtY = (v: number) => v.toFixed(1);
 
   return (
-    <View onLayout={onLayout} accessible accessibilityLabel={`${rule.label} chart, ${points.length} readings`}>
+    <View onLayout={onLayout} accessible accessibilityLabel={t('chart.label', { name: PARAMETER_LABEL[parameter], count: points.length })}>
       <Svg width={width} height={height}>
         {ticks.map((t, i) => (
           <Line key={`g${i}`} x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke={colors.chartGrid} strokeWidth={1} />
@@ -74,9 +77,7 @@ export function LineChart({ parameter, points, forecast = [], height = 180, date
         ))}
       </Svg>
       <Text style={styles.note}>
-        {critical.length ? 'Red dots: critical readings. ' : ''}
-        {limits.length ? 'Dashed lines: warning and critical limits.' : ''}
-        {forecast.length ? ' Dashed blue: illustrative forecast.' : ''}
+        {[critical.length ? t('chart.noteCritical') : '', limits.length ? t('chart.noteLimits') : '', forecast.length ? t('chart.noteForecast') : ''].filter(Boolean).join(' ')}
       </Text>
     </View>
   );

@@ -1,0 +1,15 @@
+{
+  "title": "Compare ponds",
+  "subtitle": "Current readings from the server",
+  "pondsToCompare": "Ponds to compare",
+  "view": "Comparison view",
+  "tabQuality": "Water quality",
+  "tabOverall": "Overall status",
+  "noneTitle": "No ponds selected",
+  "noneBody": "Choose at least one pond above.",
+  "tableLabel": "Water quality comparison table",
+  "colPond": "Pond",
+  "openDetails": "{{name}}, open details",
+  "legend": "Legend",
+  "legendNote": "Unavailable and not-recent readings are never shown as normal."
+}

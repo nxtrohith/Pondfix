@@ -1,5 +1,6 @@
 // Search and status filtering for the pond list. Pure, so it is unit-tested.
 import type { PondSummary } from './pondSummary';
+import { speciesName } from '@/data/mockSpecies';
 
 export type PondFilter = 'ALL' | 'NORMAL' | 'WARNING' | 'CRITICAL';
 
@@ -8,7 +9,7 @@ export function filterSummaries(summaries: PondSummary[], query: string, filter:
   const q = query.trim().toLowerCase();
   return summaries.filter((s) => {
     const matchesStatus = filter === 'ALL' || s.status === filter;
-    const species = s.pond.speciesLabel ?? '';
+    const species = `${s.pond.speciesLabel ?? ''} ${speciesName(s.pond) ?? ''}`;
     const matchesQuery = q === '' || s.pond.displayName.toLowerCase().includes(q) || species.toLowerCase().includes(q);
     return matchesStatus && matchesQuery;
   });

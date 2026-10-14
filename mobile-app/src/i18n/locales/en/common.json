@@ -1,0 +1,14 @@
+{
+  "tryAgain": "Try again",
+  "cancel": "Cancel",
+  "allPonds": "All ponds",
+  "edit": "Edit",
+  "troubleshoot": "Troubleshoot",
+  "saving": "Saving…",
+  "back": "Back",
+  "goBack": "Go back",
+  "close": "Close",
+  "loading": "Loading",
+  "pondCount_one": "{{count}} pond",
+  "pondCount_other": "{{count}} ponds"
+}

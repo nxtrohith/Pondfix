@@ -1,6 +1,8 @@
 // Screen 8: species information. Reference ranges are illustrative context, never alert limits.
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, layout } from '@/constants/theme';
@@ -15,13 +17,14 @@ import type { SpeciesProfile } from '@/types';
 import { PARAMETERS } from '@/types';
 
 export default function SpeciesScreen() {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState(SPECIES[0]!.id);
   const species = SPECIES.find((s) => s.id === selectedId) ?? SPECIES[0]!;
   return (
     <ScreenContainer testID="species-screen">
-      <AppHeader title="Species" subtitle="Reference information for common culture species" />
-      <DemoLabel text="Illustrative information · not validated alert limits" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabel="Species selector">
+      <AppHeader title={t('species.title')} subtitle={t('species.subtitle')} />
+      <DemoLabel text={t('species.demoLabel')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabel={t('species.selector')}>
         {SPECIES.map((s) => {
           const on = s.id === selectedId;
           return (
@@ -37,6 +40,7 @@ export default function SpeciesScreen() {
 }
 
 function SpeciesDetail({ species }: { species: SpeciesProfile }) {
+  const { t } = useTranslation();
   const notValidated = species.validation === 'not_validated';
   return (
     <View style={{ gap: spacing.md }} testID="species-detail">
@@ -44,38 +48,36 @@ function SpeciesDetail({ species }: { species: SpeciesProfile }) {
         <View style={styles.fishBadge}><Ionicons name={species.cultureLabel === 'Shrimp' ? 'bug-outline' : 'fish-outline'} size={36} color={colors.textOnBackground} /></View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text accessibilityRole="header" style={styles.name}>{species.displayName}</Text>
-          <Text style={styles.sci}>{species.scientificName ?? 'Scientific name not yet configured'}</Text>
-          <Text style={styles.small}>{species.cultureLabel} culture</Text>
+          <Text style={styles.sci}>{species.scientificName ?? t('species.scientificMissing')}</Text>
+          <Text style={styles.small}>{t('species.cultureLine', { culture: t(`species.culture.${species.cultureLabel}`) })}</Text>
         </View>
       </View>
 
       <Panel testID="validation-status">
-        <Text style={styles.heading}>Reference profile status</Text>
+        <Text style={styles.heading}>{t('species.statusHeading')}</Text>
         <Text style={styles.body}>
-          {notValidated
-            ? 'No validated safety profile. The general safety rules apply to this species, and no species limits are used for alerts.'
-            : 'Reference ranges only. They are not validated alert limits, so the general safety rules decide alerts.'}
+          {notValidated ? t('species.statusNotValidated') : t('species.statusReferenceOnly')}
         </Text>
       </Panel>
 
       <Panel testID="preferred-ranges">
-        <Text style={styles.heading}>Preferred ranges</Text>
-        <Text style={styles.small}>Context for growth. Not warning or critical limits.</Text>
+        <Text style={styles.heading}>{t('species.rangesHeading')}</Text>
+        <Text style={styles.small}>{t('species.rangesNote')}</Text>
         {PARAMETERS.map((p) => {
           const r = species.preferred[p];
           return (
             <View key={p} style={styles.rangeRow}>
               <Text style={styles.rangeName}>{PARAMETER_LABEL[p]}</Text>
-              <Text style={styles.rangeValue}>{r ? rangeText(r, PARAMETER_UNIT[p]) : 'Not supplied'}</Text>
+              <Text style={styles.rangeValue}>{r ? rangeText(r, PARAMETER_UNIT[p]) : t('species.notSupplied')}</Text>
             </View>
           );
         })}
       </Panel>
 
       <Panel>
-        <Text style={styles.heading}>Care notes</Text>
+        <Text style={styles.heading}>{t('species.careHeading')}</Text>
         <Text style={styles.body}>{species.care}</Text>
-        <Text style={styles.small}>General guidance. Follow your farm’s procedure.</Text>
+        <Text style={styles.small}>{t('species.careNote')}</Text>
       </Panel>
     </View>
   );

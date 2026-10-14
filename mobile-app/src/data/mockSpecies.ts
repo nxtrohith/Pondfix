@@ -1,48 +1,44 @@
 // Illustrative species information. The reference ranges match the web app's species catalogue (backend/src/services/speciesProfiles.js)
 // and come from the project brief. They are PROVISIONAL preferred-growth context, not validated alert limits.
+// Names, care notes and range labels come from the dictionaries (species.*), so they follow the active language; scientific names and the
+// numbers stay as they are.
 import type { SpeciesProfile } from '@/types';
+import { t } from '@/i18n';
+import en from '@/i18n/locales/en';
+
+type SpeciesId = 'rohu' | 'catla' | 'mrigal' | 'vannamei' | 'pangasius' | 'common_carp' | 'grass_carp' | 'other';
+type RangeLabel = 'preferredGrowth' | 'poolFishReference' | 'operatingTarget' | 'reference' | 'referenceLevel';
+type Preferred = SpeciesProfile['preferred'];
+
+const range = (label: RangeLabel, r: { min?: number; max?: number; above?: number }) => ({ ...r, get label() { return t(`species.rangeLabel.${label}`); } });
+
+function species(id: SpeciesId, scientificName: string | null, cultureLabel: SpeciesProfile['cultureLabel'], validation: SpeciesProfile['validation'], preferred: Preferred, requiresCustomName = false): SpeciesProfile {
+  return { id, scientificName, cultureLabel, validation, preferred, requiresCustomName, get displayName() { return t(`species.items.${id}.name`); }, get care() { return t(`species.items.${id}.care`); } };
+}
+
+const carp = (temp: [number, number]): Preferred => ({ temperature: range('preferredGrowth', { min: temp[0], max: temp[1] }), ph: range('poolFishReference', { min: 6.5, max: 8.5 }), dissolved_oxygen: range('operatingTarget', { min: 5 }) });
 
 export const SPECIES: SpeciesProfile[] = [
-  {
-    id: 'rohu', displayName: 'Rohu', scientificName: 'Labeo rohita', cultureLabel: 'Fish', validation: 'reference_only', requiresCustomName: false,
-    preferred: { temperature: { min: 24, max: 31, label: 'Preferred growth range' }, ph: { min: 6.5, max: 8.5, label: 'General pond-fish reference' }, dissolved_oxygen: { min: 5, label: 'Operating target' } },
-    care: 'Keep aeration ready for low-oxygen periods, and avoid sudden temperature changes when topping up water.',
-  },
-  {
-    id: 'catla', displayName: 'Catla', scientificName: 'Catla catla', cultureLabel: 'Fish', validation: 'reference_only', requiresCustomName: false,
-    preferred: { temperature: { min: 26, max: 29, label: 'Preferred growth range' }, ph: { min: 6.5, max: 8.5, label: 'General pond-fish reference' }, dissolved_oxygen: { min: 5, label: 'Operating target' } },
-    care: 'Feed in measured amounts and check oxygen before heavy feeding days.',
-  },
-  {
-    id: 'mrigal', displayName: 'Mrigal', scientificName: 'Cirrhinus mrigala', cultureLabel: 'Fish', validation: 'reference_only', requiresCustomName: false,
-    preferred: { temperature: { min: 22, max: 32, label: 'Preferred growth range' }, ph: { min: 6.5, max: 8.5, label: 'General pond-fish reference' }, dissolved_oxygen: { min: 5, label: 'Operating target' } },
-    care: 'Watch water temperature in warm spells, when oxygen demand rises.',
-  },
-  {
-    id: 'vannamei', displayName: 'Vannamei shrimp', scientificName: 'Litopenaeus vannamei', cultureLabel: 'Shrimp', validation: 'reference_only', requiresCustomName: false,
-    preferred: { temperature: { min: 28, max: 32, label: 'Reference range' }, ph: { min: 7.5, max: 8.5, label: 'Reference range' }, dissolved_oxygen: { above: 4, label: 'Reference level' } },
-    care: 'Salinity depends on the culture system and is not tracked by this app. Confirm it with your farm records.',
-  },
-  {
-    id: 'pangasius', displayName: 'Pangasius', scientificName: null, cultureLabel: 'Fish', validation: 'not_validated', requiresCustomName: false,
-    preferred: {},
-    care: 'The exact species has not been configured, so no reference ranges are shown. Use the general safety rules.',
-  },
-  {
-    id: 'common_carp', displayName: 'Common carp', scientificName: 'Cyprinus carpio', cultureLabel: 'Fish', validation: 'not_validated', requiresCustomName: false,
-    preferred: {},
-    care: 'No reference ranges have been supplied for this species yet. Use the general safety rules.',
-  },
-  {
-    id: 'grass_carp', displayName: 'Grass carp', scientificName: 'Ctenopharyngodon idella', cultureLabel: 'Fish', validation: 'not_validated', requiresCustomName: false,
-    preferred: {},
-    care: 'No reference ranges have been supplied for this species yet. Use the general safety rules.',
-  },
-  {
-    id: 'other', displayName: 'Other / custom', scientificName: null, cultureLabel: 'Custom', validation: 'not_validated', requiresCustomName: true,
-    preferred: {},
-    care: 'A custom species has no safety profile in PondFix, so only the general safety rules apply.',
-  },
+  species('rohu', 'Labeo rohita', 'Fish', 'reference_only', carp([24, 31])),
+  species('catla', 'Catla catla', 'Fish', 'reference_only', carp([26, 29])),
+  species('mrigal', 'Cirrhinus mrigala', 'Fish', 'reference_only', carp([22, 32])),
+  species('vannamei', 'Litopenaeus vannamei', 'Shrimp', 'reference_only', { temperature: range('reference', { min: 28, max: 32 }), ph: range('reference', { min: 7.5, max: 8.5 }), dissolved_oxygen: range('referenceLevel', { above: 4 }) }),
+  species('pangasius', null, 'Fish', 'not_validated', {}),
+  species('common_carp', 'Cyprinus carpio', 'Fish', 'not_validated', {}),
+  species('grass_carp', 'Ctenopharyngodon idella', 'Fish', 'not_validated', {}),
+  species('other', null, 'Custom', 'not_validated', {}, true),
 ];
 
 export const speciesById = (id: string | null | undefined): SpeciesProfile | undefined => SPECIES.find((s) => s.id === id);
+
+/** The backend sends species as English text ("Rohu"). A catalogue species is shown in the active language; anything else (a custom name, a polyculture description) stays as sent. */
+export function localizeSpeciesLabel(label: string): string {
+  const id = (Object.keys(en.species.items) as SpeciesId[]).find((k) => en.species.items[k].name.toLowerCase() === label.trim().toLowerCase() && k !== 'other');
+  return id ? t(`species.items.${id}.name`) : label;
+}
+
+/** A pond's species name in the active language: the dictionary name when the pond uses a catalogue species, else the backend's own label. */
+export function speciesName(pond: { speciesId: string | null; speciesLabel?: string | null }): string | null {
+  const known = SPECIES.find((s) => s.id === pond.speciesId && s.id !== 'other');
+  return known ? known.displayName : pond.speciesLabel ?? null;
+}

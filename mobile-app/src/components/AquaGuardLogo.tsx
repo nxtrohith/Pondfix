@@ -1,11 +1,13 @@
 // The PondFix mark: a fish over two water waves, drawn as vector shapes.
 import { View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { colors } from '@/constants/colors';
 
 export function AquaGuardLogo({ size = 72, color = colors.primaryDark }: { size?: number; color?: string }) {
+  const { t } = useTranslation();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel="PondFix logo">
+    <View accessible accessibilityRole="image" accessibilityLabel={t('brand.logo')}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <Path d="M18 60 Q 30 46 46 52 Q 58 40 74 50 L 86 42 L 84 58 L 86 74 L 74 66 Q 58 76 46 64 Q 30 70 18 60 Z" fill={color} />
         <Circle cx="34" cy="55" r="3.2" fill={colors.background} />

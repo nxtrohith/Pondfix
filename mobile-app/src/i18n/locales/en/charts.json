@@ -1,0 +1,7 @@
+{
+  "title": "Charts",
+  "notFoundBody": "Go back to the pond list and choose a pond.",
+  "heading": "Historical charts",
+  "noReadings": "No {{name}} readings are available, so no chart is drawn. Missing data is not shown as a normal line.",
+  "hint": "Trend words describe the selected range only. Each chart’s dashed lines are the general warning and critical limits."
+}

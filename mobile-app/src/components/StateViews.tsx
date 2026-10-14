@@ -1,6 +1,8 @@
 // Empty, loading and error states. Each says what happened and what to do; none of them shows a healthy or normal reading.
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, shadow } from '@/constants/theme';
 
@@ -21,11 +23,13 @@ export function EmptyState({ title, children, tone }: { title: string; children?
 export function ErrorState({ title, children, tone }: { title: string; children?: React.ReactNode; tone?: 'light' | 'dark' }) {
   return <Frame icon="alert-circle-outline" title={title} tone={tone}>{children}</Frame>;
 }
-export function LoadingState({ label = 'Loading' }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const { t } = useTranslation();
+  const shown = label ?? t('common.loading');
   return (
-    <View style={[styles.frame, styles.lightFrame]} accessibilityRole="progressbar" accessibilityLabel={label}>
+    <View style={[styles.frame, styles.lightFrame]} accessibilityRole="progressbar" accessibilityLabel={shown}>
       <ActivityIndicator color={colors.textSecondary} />
-      <Text style={styles.body}>{label}</Text>
+      <Text style={styles.body}>{shown}</Text>
     </View>
   );
 }

@@ -1,6 +1,8 @@
 // Screen 16: pond comparison, from the server's current readings. Status is shown as words and icons, not colour alone.
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -14,13 +16,14 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/StateViews';
 import { summarizePond, type PondSummary } from '@/lib/pondSummary';
 import { formatValue } from '@/lib/format';
-import { PARAMETER_PRESENTATION, PARAMETER_UNIT, POND_PRESENTATION } from '@/lib/status';
+import { PARAMETER_PRESENTATION, PARAMETER_SHORT, PARAMETER_UNIT, POND_PRESENTATION } from '@/lib/status';
 import { routes } from '@/lib/routes';
 import { PARAMETERS, type ParameterStatus } from '@/types';
 
 type Tab = 'quality' | 'overall';
 
 export default function ComparisonScreen() {
+  const { t } = useTranslation();
   const { ponds, readings, asOf } = usePonds();
   const { activeAlerts: alerts } = useAlerts();
   const summaries = useMemo(() => ponds.map((p) => summarizePond(p, readings[p.id] ?? [], alerts, asOf)), [ponds, readings, alerts, asOf]);
@@ -31,10 +34,10 @@ export default function ComparisonScreen() {
 
   return (
     <ScreenContainer bottomNav="ponds" testID="comparison-screen">
-      <AppHeader title="Compare ponds" subtitle="Current readings from the server" />
+      <AppHeader title={t('comparison.title')} subtitle={t('comparison.subtitle')} />
       <ConnectionBanner />
 
-      <Text style={styles.label}>Ponds to compare</Text>
+      <Text style={styles.label}>{t('comparison.pondsToCompare')}</Text>
       <View style={styles.chips}>
         {summaries.map((s) => {
           const on = selected.includes(s.pond.id);
@@ -47,10 +50,10 @@ export default function ComparisonScreen() {
         })}
       </View>
 
-      <SegmentedControl label="Comparison view" value={tab} options={[{ value: 'quality', label: 'Water quality' }, { value: 'overall', label: 'Overall status' }]} onChange={setTab} />
+      <SegmentedControl label={t('comparison.view')} value={tab} options={[{ value: 'quality', label: t('comparison.tabQuality') }, { value: 'overall', label: t('comparison.tabOverall') }]} onChange={setTab} />
 
       {shown.length === 0 ? (
-        <EmptyState title="No ponds selected">Choose at least one pond above.</EmptyState>
+        <EmptyState title={t('comparison.noneTitle')}>{t('comparison.noneBody')}</EmptyState>
       ) : tab === 'quality' ? (
         <QualityTable rows={shown} />
       ) : (
@@ -63,19 +66,20 @@ export default function ComparisonScreen() {
 }
 
 function QualityTable({ rows }: { rows: PondSummary[] }) {
+  const { t } = useTranslation();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroll} contentContainerStyle={{ minWidth: '100%' }}>
-      <View style={styles.table} accessibilityLabel="Water quality comparison table">
+      <View style={styles.table} accessibilityLabel={t('comparison.tableLabel')}>
         <View style={[styles.row, styles.headRow]}>
-          <Text style={[styles.cellName, styles.head]}>Pond</Text>
-          {PARAMETERS.map((p) => <Text key={p} style={[styles.cellVal, styles.head]}>{p === 'dissolved_oxygen' ? 'DO' : p === 'ph' ? 'pH' : 'Temp'}{'\n'}<Text style={styles.unitSmall}>{PARAMETER_UNIT[p]}</Text></Text>)}
+          <Text style={[styles.cellName, styles.head]}>{t('comparison.colPond')}</Text>
+          {PARAMETERS.map((p) => <Text key={p} style={[styles.cellVal, styles.head]}>{PARAMETER_SHORT[p]}{'\n'}<Text style={styles.unitSmall}>{PARAMETER_UNIT[p]}</Text></Text>)}
         </View>
         {rows.map((s) => (
-          <Pressable key={s.pond.id} accessibilityRole="button" accessibilityLabel={`${s.pond.displayName}, open details`} onPress={() => router.push(routes.pond(s.pond.id))} style={styles.row} testID={`row-${s.pond.id}`}>
+          <Pressable key={s.pond.id} accessibilityRole="button" accessibilityLabel={t('comparison.openDetails', { name: s.pond.displayName })} onPress={() => router.push(routes.pond(s.pond.id))} style={styles.row} testID={`row-${s.pond.id}`}>
             <Text style={[styles.cellName, styles.bold]}>{s.pond.displayName}</Text>
             {PARAMETERS.map((p) => {
               const r = s.parameters[p];
-              const v = r.reading.latest ? formatValue(r.reading.latest.value, p) : 'No value';
+              const v = r.reading.latest ? formatValue(r.reading.latest.value, p) : t('format.noValue');
               return (
                 <View key={p} style={styles.cellVal}>
                   <Text style={styles.value}>{v}</Text>
@@ -114,11 +118,12 @@ function OverallList({ rows }: { rows: PondSummary[] }) {
 }
 
 function Legend() {
+  const { t } = useTranslation();
   return (
-    <View style={styles.legend} accessibilityLabel="Legend">
-      <Text style={styles.legendTitle}>Legend</Text>
+    <View style={styles.legend} accessibilityLabel={t('comparison.legend')}>
+      <Text style={styles.legendTitle}>{t('comparison.legend')}</Text>
       {(['NORMAL', 'WARNING', 'CRITICAL'] as const).map((s) => <CellStatus key={s} status={s} />)}
-      <Text style={styles.legendNote}>Unavailable and not-recent readings are never shown as normal.</Text>
+      <Text style={styles.legendNote}>{t('comparison.legendNote')}</Text>
     </View>
   );
 }

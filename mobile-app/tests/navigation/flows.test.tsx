@@ -1,15 +1,23 @@
 // User flows through the real screens, driven with the same taps and typing a farmer would use.
-import { screen, fireEvent, within } from 'expo-router/testing-library';
+import { screen, fireEvent, within, waitFor, act } from 'expo-router/testing-library';
 import { renderApp } from './harness';
 import { acknowledgeAlert } from '@/services/alerts';
 import { setPondSpecies } from '@/services/ponds';
 import { TEST_ALERTS } from '../fixtures/alerts';
+import { translateTexts, resetTranslationCache } from '@/services/translation';
+import { changeLanguage, t as translate } from '@/i18n';
 
 // Only the network call is replaced: the backend answers an acknowledge with the updated alert.
 jest.mock('@/services/alerts', () => ({ ...jest.requireActual('@/services/alerts'), acknowledgeAlert: jest.fn() }));
 const acknowledgeMock = acknowledgeAlert as jest.MockedFunction<typeof acknowledgeAlert>;
 jest.mock('@/services/ponds', () => ({ ...jest.requireActual('@/services/ponds'), setPondSpecies: jest.fn() }));
 const setSpeciesMock = setPondSpecies as jest.MockedFunction<typeof setPondSpecies>;
+// Only the translation network call is replaced, so tests decide whether a translation arrives, fails, or never comes back.
+jest.mock('@/services/translation', () => ({ ...jest.requireActual('@/services/translation'), translateTexts: jest.fn() }));
+const translateMock = translateTexts as jest.MockedFunction<typeof translateTexts>;
+
+// The language is global state, so every test starts in English.
+afterEach(async () => { await act(async () => { await changeLanguage('en'); }); });
 
 const press = (role: 'button' | 'radio' | 'tab' | 'checkbox' | 'switch', name: string | RegExp) => fireEvent.press(screen.getByRole(role, { name }));
 
@@ -326,10 +334,21 @@ describe('settings', () => {
     expect(screen.getByText(/does not deliver push notifications, SMS, WhatsApp or background alerts/)).toBeOnTheScreen();
   });
 
-  it('language choice is stored but the app does not claim to be translated', () => {
+  it('lists every supported language in its own script', () => {
     renderApp('/settings');
-    press('radio', 'हिन्दी');
-    expect(screen.getByText(/Other languages are not translated yet/)).toBeOnTheScreen();
+    for (const name of ['English', 'తెలుగు', 'हिन्दी', 'தமிழ்', 'ಕನ್ನಡ', 'മലയാളം', 'বাংলা', 'मराठी', 'ગુજરાતી', 'ଓଡ଼ିଆ', 'ਪੰਜਾਬੀ', 'অসমীয়া', 'اردو']) expect(screen.getByRole('radio', { name: new RegExp(name) })).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: /English/, selected: true })).toBeOnTheScreen();
+  });
+
+  it('choosing a language rewrites the screen at once, without leaving it, and the choice sticks', async () => {
+    renderApp('/settings');
+    expect(screen.getByText('Settings')).toBeOnTheScreen();
+    await act(async () => { press('radio', /తెలుగు/); });
+    await waitFor(() => expect(screen.getByText(translate('settings.title', { lng: 'te' }))).toBeOnTheScreen());
+    expect(screen.queryByText('Settings')).toBeNull();
+    expect(screen.getByTestId('settings-screen')).toBeOnTheScreen(); // still on the same screen, nothing reset
+    expect(screen.getByRole('radio', { name: /తెలుగు/, selected: true })).toBeOnTheScreen();
+    expect(screen.getByText(translate('settings.logout', { lng: 'te' }))).toBeOnTheScreen();
   });
 
   it('help opens a local information sheet', () => {
@@ -384,5 +403,76 @@ describe('comparison', () => {
     press('radio', 'Overall status');
     expect(screen.getByLabelText('Pond 1, Critical')).toBeOnTheScreen();
     expect(screen.getByLabelText('Pond 4, Healthy')).toBeOnTheScreen();
+  });
+});
+
+describe('alerts in another language (safety)', () => {
+  const asTelugu = async () => { await act(async () => { await changeLanguage('te'); }); };
+  const original = (texts: string[]) => texts.map((o) => ({ original: o, text: o, translated: false }));
+  beforeEach(() => { translateMock.mockReset(); resetTranslationCache(); });
+  afterEach(async () => { await act(async () => { await changeLanguage('en'); }); });
+
+  it('shows a critical alert at once, in the language, even while the translation is still pending', async () => {
+    translateMock.mockImplementation(() => new Promise(() => {})); // never answers
+    await asTelugu();
+    renderApp('/alerts/alert-1');
+    expect(screen.getAllByText(translate('alerts.severity.critical', { lng: 'te' })).length).toBeGreaterThan(0);
+    expect(screen.getByText(translate('alerts.title.dissolved_oxygen_low', { lng: 'te' }))).toBeOnTheScreen();
+    expect(screen.getByTestId('alert-value')).toHaveTextContent(/^1\.8 mg\/L$/);
+    expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/Increase aeration and monitor closely/); // the original wording until a translation arrives
+    expect(screen.getByTestId('translation-pending')).toBeOnTheScreen();
+  });
+
+  it('still shows everything when translation fails, with the original wording and the same severity', async () => {
+    translateMock.mockImplementation(async (_l, texts) => original(texts));
+    await asTelugu();
+    renderApp('/alerts/alert-1');
+    await waitFor(() => expect(screen.queryByTestId('translation-pending')).toBeNull());
+    expect(screen.getByTestId('alert-message')).toHaveTextContent(/critically low/);
+    expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/Increase aeration/);
+    expect(screen.getAllByText(translate('alerts.severity.critical', { lng: 'te' })).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('acknowledge')).toBeOnTheScreen(); // the alert stays fully actionable
+    expect(screen.queryByTestId('translation-note')).toBeNull();
+  });
+
+  it('shows the translated explanation and action, leaves values and severity alone, and offers the original', async () => {
+    translateMock.mockImplementation(async (_l, texts) => texts.map((o) => ({ original: o, text: o ? `[te] ${o}` : o, translated: !!o })));
+    await asTelugu();
+    renderApp('/alerts/alert-1');
+    await waitFor(() => expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/^.*\[te\] Increase aeration and monitor closely/));
+    expect(screen.getByTestId('alert-value')).toHaveTextContent(/^1\.8 mg\/L$/); // the number is not translated
+    expect(screen.getByTestId('alert-limit')).toHaveTextContent(/2\.0/);
+    expect(screen.getAllByText(translate('alerts.severity.critical', { lng: 'te' })).length).toBeGreaterThan(0); // severity comes from data, not from the sentence
+    expect(screen.getByTestId('translation-note')).toBeOnTheScreen();
+    press('button', translate('alertDetail.showOriginal', { lng: 'te' }));
+    expect(screen.getByTestId('recommended-actions')).toHaveTextContent(/Increase aeration and monitor closely/);
+    expect(screen.getByTestId('recommended-actions')).not.toHaveTextContent(/\[te\]/);
+  });
+
+  it('does not translate anything in English', () => {
+    renderApp('/alerts/alert-1');
+    expect(translateMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('translation-pending')).toBeNull();
+  });
+
+  it('offers a spoken version, which the farmer starts themselves', async () => {
+    translateMock.mockImplementation(async (_l, texts) => original(texts));
+    renderApp('/alerts/alert-1');
+    expect(screen.getByTestId('alert-voice-button')).toBeOnTheScreen();
+  });
+
+  it('says plainly that Urdu has no voice yet, and still shows the alert', async () => {
+    translateMock.mockImplementation(async (_l, texts) => original(texts));
+    await act(async () => { await changeLanguage('ur'); });
+    renderApp('/alerts/alert-1');
+    expect(screen.getByTestId('alert-voice-unsupported')).toBeOnTheScreen();
+    expect(screen.getByTestId('alert-value')).toBeOnTheScreen();
+  });
+
+  it('lists alerts and the dashboard in the language too, with counts unchanged', async () => {
+    await asTelugu();
+    renderApp('/dashboard');
+    expect(screen.getByLabelText(`${translate('dashboard.tile.total', { lng: 'te' })}: 4`)).toBeOnTheScreen();
+    expect(screen.getByLabelText(`${translate('dashboard.tile.critical', { lng: 'te' })}: 1`)).toBeOnTheScreen();
   });
 });

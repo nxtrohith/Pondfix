@@ -1,0 +1,6 @@
+{
+  "badgeLabel": "Sensor: {{label}}",
+  "online": "Online",
+  "offline": "Offline",
+  "unavailable": "Unavailable"
+}

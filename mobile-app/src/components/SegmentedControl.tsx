@@ -1,5 +1,6 @@
 // Pill-style segmented control used for tabs and time ranges. Each option is a real radio-like button with state for screen readers.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, layout, radius, spacing } from '@/constants/theme';
 

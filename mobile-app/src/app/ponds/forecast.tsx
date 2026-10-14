@@ -1,6 +1,8 @@
 // Screen 14: forecasting. ALL values here are ILLUSTRATIVE demo forecasts. They are not produced by the PondFix forecasting model.
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { spacing, fontSize, radius } from '@/constants/theme';
@@ -20,13 +22,14 @@ import { param, routes } from '@/lib/routes';
 import { PARAMETERS, type Parameter, type SeriesPoint } from '@/types';
 
 const HORIZONS = [
-  { value: '15', label: '15 min', minutes: 15 },
-  { value: '60', label: '1 hour', minutes: 60 },
-  { value: '180', label: '3 hours', minutes: 180 },
+  { value: '15', minutes: 15 },
+  { value: '60', minutes: 60 },
+  { value: '180', minutes: 180 },
 ] as const;
 type HorizonKey = (typeof HORIZONS)[number]['value'];
 
 export default function ForecastScreen() {
+  const { t } = useTranslation();
   const { id: rawId, parameter: rawParam } = useLocalSearchParams<{ id: string; parameter?: string }>();
   const id = param(rawId) ?? '';
   const { ponds, readings, asOf, ensureHistory, ensureForecast, forecast: forecastOf } = usePonds();
@@ -51,8 +54,8 @@ export default function ForecastScreen() {
   if (!pond) {
     return (
       <ScreenContainer bottomNav="ponds" testID="forecast-missing">
-        <AppHeader title="Forecast" />
-        <EmptyState title="Pond not found">Go back to the pond list and choose a pond.</EmptyState>
+        <AppHeader title={t('forecast.title')} />
+        <EmptyState title={t('edit.notFoundTitle')}>{t('charts.notFoundBody')}</EmptyState>
       </ScreenContainer>
     );
   }
@@ -61,62 +64,62 @@ export default function ForecastScreen() {
 
   return (
     <ScreenContainer testID="forecast-screen">
-      <AppHeader title="Forecast" subtitle={pond.displayName} />
+      <AppHeader title={t('forecast.title')} subtitle={pond.displayName} />
       <ConnectionBanner />
       <Text style={styles.body}>
-        Forecasts are model predictions, not measurements.{fc.data?.generatedAt ? ` Generated ${formatDateTime(fc.data.generatedAt)}.` : ''} Confirm with a current reading before acting.
+        {fc.data?.generatedAt ? t('forecast.introGenerated', { time: formatDateTime(fc.data.generatedAt) }) : t('forecast.intro')}
       </Text>
 
-      <Text style={styles.label}>Parameter</Text>
-      <SegmentedControl label="Forecast parameter" value={parameter} options={PARAMETERS.map((p) => ({ value: p, label: PARAMETER_LABEL[p].replace('Water ', '') }))} onChange={setParameter} />
+      <Text style={styles.label}>{t('forecast.parameter')}</Text>
+      <SegmentedControl label={t('forecast.parameterControl')} value={parameter} options={PARAMETERS.map((p) => ({ value: p, label: t(`forecast.paramOption.${p}`) }))} onChange={setParameter} />
 
-      <Text style={styles.label}>Forecast horizon</Text>
-      <SegmentedControl label="Forecast horizon" value={horizon} options={HORIZONS.map((h) => ({ value: h.value, label: h.label, testID: `horizon-${h.value}` }))} onChange={setHorizon} />
+      <Text style={styles.label}>{t('forecast.horizonLabel')}</Text>
+      <SegmentedControl label={t('forecast.horizonLabel')} value={horizon} options={HORIZONS.map((h) => ({ value: h.value, label: t(`forecast.horizon.${h.value}`), testID: `horizon-${h.value}` }))} onChange={setHorizon} />
 
       {fc.status === 'loading' || fc.status === 'idle' ? (
-        <LoadingState label="Loading forecast" />
+        <LoadingState label={t('forecast.loading')} />
       ) : fc.status === 'error' && !fc.data ? (
-        <EmptyState title="Unable to load the forecast">Check your connection and try again.</EmptyState>
+        <EmptyState title={t('forecast.loadErrorTitle')}>{t('forecast.loadErrorBody')}</EmptyState>
       ) : values.length === 0 ? (
-        <EmptyState title="No forecast for this parameter">The forecasting model has not produced a forecast for this parameter. Forecasts need enough recent readings.</EmptyState>
+        <EmptyState title={t('forecast.noneTitle')}>{t('forecast.noneBody')}</EmptyState>
       ) : (
         <>
           <View style={styles.card}>
             <Text style={styles.title}>{PARAMETER_LABEL[parameter]} ({PARAMETER_UNIT[parameter]})</Text>
-            <Text style={styles.legend}>Solid line: recent readings. Dashed blue line: model forecast.</Text>
+            <Text style={styles.legend}>{t('forecast.legend')}</Text>
             <LineChart parameter={parameter} points={history} forecast={forecastPoints} height={190} />
           </View>
 
           <View style={styles.card} testID="risk-outlook">
-            <Text style={styles.title}>Risk outlook</Text>
+            <Text style={styles.title}>{t('forecast.riskOutlook')}</Text>
             {outlook && outlook.status !== 'UNKNOWN' ? <StatusBadge status={outlook.status} /> : null}
             <Text style={styles.body}>{outlook?.text}</Text>
-            <Text style={styles.small}>Risk is assessed by the PondFix server for this pond. Confirm with a current reading before acting.</Text>
+            <Text style={styles.small}>{t('forecast.riskNote')}</Text>
           </View>
 
           <View style={styles.card} testID="forecast-table">
-            <Text style={styles.title}>Values</Text>
+            <Text style={styles.title}>{t('forecast.values')}</Text>
             <View style={styles.tableRow}>
-              <Text style={[styles.cell, styles.head]}>Time</Text>
-              <Text style={[styles.cell, styles.head]}>Value</Text>
-              <Text style={[styles.cell, styles.head]}>Status</Text>
+              <Text style={[styles.cell, styles.head]}>{t('forecast.colTime')}</Text>
+              <Text style={[styles.cell, styles.head]}>{t('forecast.colValue')}</Text>
+              <Text style={[styles.cell, styles.head]}>{t('forecast.colStatus')}</Text>
             </View>
             {values.map((v) => {
-              const label = v.minutesAhead === 60 ? '1 hour' : v.minutesAhead === 180 ? '3 hours' : `${v.minutesAhead} min`;
+              const label = v.minutesAhead === 60 ? t('forecast.horizon.60') : v.minutesAhead === 180 ? t('forecast.horizon.180') : t('forecast.minutes', { count: v.minutesAhead });
               const selected = v.minutesAhead <= selectedMinutes;
               return (
                 <View key={v.minutesAhead} style={[styles.tableRow, selected && styles.selectedRow]} testID={`forecast-row-${v.minutesAhead}`}>
                   <Text style={styles.cell}>{label}</Text>
                   <Text style={styles.cell}>{formatValue(v.value, parameter)} {PARAMETER_UNIT[parameter]}</Text>
-                  <Text style={styles.cell}>{v.risk === 'NORMAL' ? 'Normal' : v.risk === 'WARNING' ? 'Warning' : v.risk === 'CRITICAL' ? 'Critical' : 'Not assessed'}</Text>
+                  <Text style={styles.cell}>{v.risk === 'NORMAL' ? t('forecast.risk.normal') : v.risk === 'WARNING' ? t('forecast.risk.warning') : v.risk === 'CRITICAL' ? t('forecast.risk.critical') : t('forecast.risk.unknown')}</Text>
                 </View>
               );
             })}
-            <Text style={styles.small}>Latest reading: {readingOf?.latest ? `${formatValue(readingOf.latest.value, parameter)} ${PARAMETER_UNIT[parameter]} at ${formatDateTime(readingOf.latest.recordedAt)}` : 'none'}.</Text>
+            <Text style={styles.small}>{readingOf?.latest ? t('forecast.latestReading', { value: `${formatValue(readingOf.latest.value, parameter)} ${PARAMETER_UNIT[parameter]}`, time: formatDateTime(readingOf.latest.recordedAt) }) : t('forecast.latestNone')}</Text>
           </View>
         </>
       )}
-      <AppButton label="Back to pond" variant="outline" onPress={() => router.push(routes.pond(pond.id))} testID="back-to-pond" />
+      <AppButton label={t('forecast.backToPond')} variant="outline" onPress={() => router.push(routes.pond(pond.id))} testID="back-to-pond" />
     </ScreenContainer>
   );
 }

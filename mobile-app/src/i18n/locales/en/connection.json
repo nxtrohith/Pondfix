@@ -1,0 +1,16 @@
+{
+  "since": "Showing last known data from {{time}}.",
+  "noDataYet": "No data has been loaded yet.",
+  "fixAddress": "Server address needs fixing",
+  "lost": "Connection lost",
+  "unableToConnect": "Unable to connect",
+  "connectedLoading": "Connected, loading data…",
+  "connectedError": "Connected, but data could not be loaded",
+  "tapForDetails": "Tap for details.",
+  "live": "Live monitoring",
+  "connecting": "Connecting…",
+  "reconnecting": "Reconnecting…",
+  "liveUnavailable": "Live updates unavailable",
+  "liveUnavailableDetail": "Alerts refresh every 30 seconds instead{{where}}. {{since}}",
+  "openHint": "Opens connection diagnostics"
+}

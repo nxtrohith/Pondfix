@@ -1,0 +1,65 @@
+{
+  "title": "Species",
+  "subtitle": "Reference information for common culture species",
+  "demoLabel": "Illustrative information · not validated alert limits",
+  "selector": "Species selector",
+  "scientificMissing": "Scientific name not yet configured",
+  "cultureLine": "{{culture}} culture",
+  "culture": {
+    "Fish": "Fish",
+    "Shrimp": "Shrimp",
+    "Custom": "Custom"
+  },
+  "statusHeading": "Reference profile status",
+  "statusNotValidated": "No validated safety profile. The general safety rules apply to this species, and no species limits are used for alerts.",
+  "statusReferenceOnly": "Reference ranges only. They are not validated alert limits, so the general safety rules decide alerts.",
+  "rangesHeading": "Preferred ranges",
+  "rangesNote": "Context for growth. Not warning or critical limits.",
+  "notSupplied": "Not supplied",
+  "careHeading": "Care notes",
+  "careNote": "General guidance. Follow your farm’s procedure.",
+  "notSet": "Species not set",
+  "notSetShort": "Not set",
+  "label": "Species",
+  "rangeLabel": {
+    "preferredGrowth": "Preferred growth range",
+    "poolFishReference": "General pond-fish reference",
+    "operatingTarget": "Operating target",
+    "reference": "Reference range",
+    "referenceLevel": "Reference level"
+  },
+  "items": {
+    "rohu": {
+      "name": "Rohu",
+      "care": "Keep aeration ready for low-oxygen periods, and avoid sudden temperature changes when topping up water."
+    },
+    "catla": {
+      "name": "Catla",
+      "care": "Feed in measured amounts and check oxygen before heavy feeding days."
+    },
+    "mrigal": {
+      "name": "Mrigal",
+      "care": "Watch water temperature in warm spells, when oxygen demand rises."
+    },
+    "vannamei": {
+      "name": "Vannamei shrimp",
+      "care": "Salinity depends on the culture system and is not tracked by this app. Confirm it with your farm records."
+    },
+    "pangasius": {
+      "name": "Pangasius",
+      "care": "The exact species has not been configured, so no reference ranges are shown. Use the general safety rules."
+    },
+    "common_carp": {
+      "name": "Common carp",
+      "care": "No reference ranges have been supplied for this species yet. Use the general safety rules."
+    },
+    "grass_carp": {
+      "name": "Grass carp",
+      "care": "No reference ranges have been supplied for this species yet. Use the general safety rules."
+    },
+    "other": {
+      "name": "Other / custom",
+      "care": "A custom species has no safety profile in PondFix, so only the general safety rules apply."
+    }
+  }
+}

@@ -1,5 +1,6 @@
 // Time-range selection and trend maths for the charts and forecast screens. Pure, so it is unit-tested.
 import type { Parameter, SeriesPoint } from '@/types';
+import { t } from '@/i18n';
 
 export const CHART_RANGES = [
   { key: '1H', label: '1H', minutes: 60 },
@@ -54,13 +55,13 @@ export function forecastOutlook(parameter: Parameter, values: { minutesAhead: nu
     if (!(v.risk in rank)) continue;
     if (!worst || rank[v.risk]! > rank[worst.status]!) worst = { minutesAhead: v.minutesAhead, status: v.risk as 'NORMAL' | 'WARNING' | 'CRITICAL', direction: v.direction };
   }
-  const name = parameter === 'dissolved_oxygen' ? 'Oxygen' : parameter === 'ph' ? 'pH' : 'Water temperature';
-  if (!worst) return { status: 'UNKNOWN', text: `No risk assessment is available for the ${name.toLowerCase()} forecast.` };
-  if (worst.status === 'NORMAL') return { status: 'NORMAL', text: `${name} is expected to stay within the acceptable range.` };
-  const when = worst.minutesAhead < 60 ? `${worst.minutesAhead} min` : `${worst.minutesAhead / 60} h`;
-  const side = worst.direction === 'low' ? 'low' : 'high';
+  const name = t(`forecast.outlookName.${parameter}`);
+  if (!worst) return { status: 'UNKNOWN', text: t('forecast.outlook.unknown', { name: t(`forecast.outlookNameLower.${parameter}`) }) };
+  if (worst.status === 'NORMAL') return { status: 'NORMAL', text: t('forecast.outlook.normal', { name }) };
+  const when = worst.minutesAhead < 60 ? t('forecast.outlook.minutes', { count: worst.minutesAhead }) : t('forecast.outlook.hours', { count: worst.minutesAhead / 60 });
+  const side = worst.direction === 'low' ? t('forecast.outlook.low') : t('forecast.outlook.high');
   const text = worst.status === 'CRITICAL'
-    ? `${name} may reach a critical ${side} level within ${when}.`
-    : `${name} may move outside the acceptable range (${side}) within ${when}.`;
+    ? t('forecast.outlook.critical', { name, side, when })
+    : t('forecast.outlook.warning', { name, side, when });
   return { status: worst.status, text };
 }

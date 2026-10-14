@@ -1,0 +1,29 @@
+{
+  "dissolved_oxygen": "Dissolved oxygen",
+  "ph": "pH",
+  "temperature": "Water temperature",
+  "unknown": "Parameter",
+  "short": {
+    "dissolved_oxygen": "DO",
+    "ph": "pH",
+    "temperature": "Temp"
+  },
+  "chemistry": {
+    "ammonia": "Ammonia",
+    "un_ionized_ammonia": "Un-ionized ammonia (NH₃)",
+    "nitrite": "Nitrite",
+    "nitrate": "Nitrate",
+    "alkalinity": "Alkalinity",
+    "salinity": "Salinity",
+    "turbidity": "Turbidity"
+  },
+  "chemistryHint": {
+    "ammonia": "Waste from feed and stock. Harmful when high.",
+    "un_ionized_ammonia": "The toxic part of ammonia. Rises with pH and warmth.",
+    "nitrite": "Builds up when oxygen is low. Harmful to stock.",
+    "nitrate": "End product of the cycle. Builds up slowly.",
+    "alkalinity": "Holds pH steady. Low alkalinity means bigger pH swings.",
+    "salinity": "Falls with rain, rises as water evaporates.",
+    "turbidity": "Cloudiness from algae, silt or rain."
+  }
+}

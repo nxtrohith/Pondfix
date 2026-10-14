@@ -10,7 +10,7 @@ import history from '../fixtures/real/history_pond5.json';
 import type { RealtimeSubscription } from '@/services/realtime';
 import { logger } from '@/lib/logger';
 
-jest.mock('@/services/config', () => ({ API_CONFIGURED: true, API_CONFIG_ERROR: null, API_IS_LOOPBACK: false, API_ORIGIN: 'http://test:4000', API_BASE_URL: 'http://test:4000/api', API_LABEL: 'test:4000' }));
+jest.mock('@/services/config', () => ({ API_CONFIGURED: true, API_CONFIG_ERROR: null, API_IS_LOOPBACK: false, API_ORIGIN: 'http://test:4000', API_BASE_URL: 'http://test:4000/api', API_LABEL: 'test:4000', API_CONFIG_ERROR_CODE: null, configErrorText: () => null, localizeConfigError: (m: string | null) => m }));
 jest.mock('@/services/api', () => ({ ...jest.requireActual('@/services/api'), apiGet: jest.fn(), apiPatch: jest.fn() }));
 jest.mock('@/services/realtime', () => ({ subscribeToRealtime: jest.fn(), pauseRealtime: jest.fn(), resumeRealtime: jest.fn() }));
 import { apiGet } from '@/services/api';

@@ -1,7 +1,9 @@
 // Screen 12: notification centre. Lists the alert activity the PondFix server has reported (open and resolved), newest first.
 // These are in-app items from the live alert feed; this app does not send push notifications.
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -22,6 +24,7 @@ import type { AlertItem } from '@/types';
 type Tab = 'all' | 'unread';
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const { activeAlerts, alertHistory, unreadIds, unreadCount, markSeen, markAllSeen, loadState } = useAlerts();
   const [tab, setTab] = useState<Tab>('all');
   const list = useMemo(() => {
@@ -36,40 +39,40 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenContainer testID="notifications-screen">
-      <AppHeader title="Notifications" subtitle={`${unreadCount} unread`} />
+      <AppHeader title={t('notifications.title')} subtitle={t('notifications.unread', { count: unreadCount })} />
       <ConnectionBanner />
       <View style={styles.bar}>
-        <SegmentedControl label="Notification tabs" value={tab} options={[{ value: 'all', label: 'All', testID: 'notif-all' }, { value: 'unread', label: `Unread (${unreadCount})`, testID: 'notif-unread' }]} onChange={setTab} />
-        <AppButton label="Mark all read" variant="ghost" onPress={markAllSeen} disabled={unreadCount === 0} testID="mark-all-read" />
+        <SegmentedControl label={t('notifications.tabs')} value={tab} options={[{ value: 'all', label: t('notifications.all'), testID: 'notif-all' }, { value: 'unread', label: t('notifications.unreadTab', { count: unreadCount }), testID: 'notif-unread' }]} onChange={setTab} />
+        <AppButton label={t('notifications.markAllRead')} variant="ghost" onPress={markAllSeen} disabled={unreadCount === 0} testID="mark-all-read" />
       </View>
       {loadState === 'loading' ? (
-        <LoadingState label="Loading notifications" />
+        <LoadingState label={t('notifications.loading')} />
       ) : list.length === 0 ? (
-        <EmptyState title={tab === 'unread' ? 'No unread notifications' : 'No notifications'}>New alerts from your ponds will appear here.</EmptyState>
+        <EmptyState title={tab === 'unread' ? t('notifications.emptyUnread') : t('notifications.empty')}>{t('notifications.emptyBody')}</EmptyState>
       ) : (
         <View style={{ gap: spacing.sm }} testID="notification-list">
           {list.map((a) => {
             const unread = unreadIds.includes(a.id);
             const resolved = a.status === 'RESOLVED';
-            const pondName = a.pondName ?? 'Unknown pond';
+            const pondName = a.pondName ?? t('alerts.unknownPond');
             return (
               <Pressable
                 key={a.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${alertTitle(a)}, ${pondName}, ${resolved ? 'resolved' : a.severity === 'CRITICAL' ? 'critical' : 'warning'}, ${unread ? 'unread' : 'read'}`}
-                accessibilityHint="Opens the alert"
+                accessibilityLabel={t('notifications.itemLabel', { title: alertTitle(a), pond: pondName, severity: resolved ? t('notifications.sev.resolved') : a.severity === 'CRITICAL' ? t('notifications.sev.critical') : t('notifications.sev.warning'), read: unread ? t('notifications.unreadWord') : t('notifications.readWord') })}
+                accessibilityHint={t('notifications.openHint')}
                 onPress={() => open(a)}
                 style={styles.item}
                 testID={`notification-${a.id}`}
               >
                 <View style={styles.itemHead}>
-                  <Text style={styles.category}>{resolved ? 'Resolved' : a.severity === 'CRITICAL' ? 'Critical alert' : 'Warning alert'}</Text>
-                  {unread ? <View style={styles.unreadTag}><Text style={styles.unreadText}>Unread</Text></View> : null}
+                  <Text style={styles.category}>{resolved ? t('alerts.severity.resolved') : a.severity === 'CRITICAL' ? t('notifications.criticalAlert') : t('notifications.warningAlert')}</Text>
+                  {unread ? <View style={styles.unreadTag}><Text style={styles.unreadText}>{t('notifications.unreadTag')}</Text></View> : null}
                 </View>
                 <Text style={styles.title}>{alertTitle(a)}</Text>
                 <Text style={styles.message}>{pondName} · {formatValue(a.value, a.parameter)} {parameterUnit(a.parameter)}</Text>
                 <View style={styles.meta}>
-                  <Text style={styles.metaText}>{resolved && a.resolvedAt ? `Resolved ${formatDateTime(a.resolvedAt)}` : formatDateTime(a.raisedAt)}</Text>
+                  <Text style={styles.metaText}>{resolved && a.resolvedAt ? t('alerts.resolvedAt', { time: formatDateTime(a.resolvedAt) }) : formatDateTime(a.raisedAt)}</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                 </View>
               </Pressable>

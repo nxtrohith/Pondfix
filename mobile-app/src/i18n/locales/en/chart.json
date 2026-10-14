@@ -1,0 +1,17 @@
+{
+  "timeRange": "{{name}} time range",
+  "latestLabel": "Latest {{name}} {{value}} {{unit}}",
+  "latestAt": "latest {{time}}",
+  "loading": "Loading readings…",
+  "emptyRange": "No readings in this range. The latest reading on record is from {{time}}.",
+  "emptyPond": "No readings have been recorded for this pond.",
+  "label": "{{name}} chart, {{count}} readings",
+  "noteCritical": "Red dots: critical readings.",
+  "noteLimits": "Dashed lines: warning and critical limits.",
+  "noteForecast": "Dashed blue: illustrative forecast.",
+  "trend": {
+    "rising": "Rising over this range",
+    "falling": "Falling over this range",
+    "steady": "Steady over this range"
+  }
+}

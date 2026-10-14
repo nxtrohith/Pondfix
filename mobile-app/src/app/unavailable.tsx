@@ -1,6 +1,8 @@
 // Screen 13: data unavailable. Missing data is shown as missing. Retry only re-checks this device; it never shows a made-up reading.
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -16,15 +18,10 @@ import { PARAMETER_LABEL } from '@/lib/status';
 import { param } from '@/lib/routes';
 import { PARAMETERS, type Parameter } from '@/types';
 
-const STEPS = [
-  'Check that the sensor has power and is switched on.',
-  'Check that the sensor cable and the gateway are connected.',
-  'Check the sensor’s own display, if it has one, for an error.',
-  'Make sure the gateway or network has signal, then try again.',
-  'If the problem continues, contact your system administrator.',
-];
+const STEP_KEYS = ['power', 'cable', 'display', 'signal', 'admin'] as const;
 
 export default function UnavailableScreen() {
+  const { t } = useTranslation();
   const { pondId: rawPond, parameter: rawParam } = useLocalSearchParams<{ pondId?: string; parameter?: string }>();
   const { ponds, readings, refresh } = usePonds();
   const pondId = param(rawPond);
@@ -45,13 +42,13 @@ export default function UnavailableScreen() {
     });
   }
 
-  const name = parameter ? PARAMETER_LABEL[parameter] : 'Sensor';
-  const pondName = pond?.displayName ?? 'this pond';
+  const name = parameter ? PARAMETER_LABEL[parameter] : t('unavailable.sensor');
+  const pondName = pond?.displayName ?? t('unavailable.thisPond');
 
   return (
     <ScreenContainer testID="unavailable-screen">
-      <AppHeader title="Data unavailable" subtitle={pond ? `${pondName} · ${name}` : undefined} />
-      <View style={styles.illustration} accessibilityRole="image" accessibilityLabel="Sensor not connected">
+      <AppHeader title={t('unavailable.title')} subtitle={pond ? `${pondName} · ${name}` : undefined} />
+      <View style={styles.illustration} accessibilityRole="image" accessibilityLabel={t('unavailable.illustration')}>
         <View style={styles.ring}>
           <Ionicons name="cloud-offline-outline" size={44} color={colors.textOnBackground} />
         </View>
@@ -59,34 +56,32 @@ export default function UnavailableScreen() {
       </View>
 
       <Panel testID="unavailable-explain">
-        <Text style={styles.heading}>No current {name.toLowerCase()} reading</Text>
-        <Text style={styles.body}>
-          PondFix has no recent reading for {name.toLowerCase()} in {pondName}. Missing data is shown as unavailable. It is not treated as healthy or normal.
-        </Text>
-        {reading?.lastSeenAt ? <Text style={styles.small}>Last seen {formatTime(reading.lastSeenAt)}</Text> : null}
-        {reading?.sensor ? <Text style={styles.small}>Sensor state: {reading.sensor}</Text> : null}
+        <Text style={styles.heading}>{t('unavailable.heading', { name: name.toLowerCase() })}</Text>
+        <Text style={styles.body}>{t('unavailable.body', { name: name.toLowerCase(), pond: pondName })}</Text>
+        {reading?.lastSeenAt ? <Text style={styles.small}>{t('unavailable.lastSeen', { time: formatTime(reading.lastSeenAt) })}</Text> : null}
+        {reading?.sensor ? <Text style={styles.small}>{t('unavailable.sensorState', { state: t(`sensor.${reading.sensor}`) })}</Text> : null}
       </Panel>
 
       <Panel>
-        <Text style={styles.heading}>Troubleshooting</Text>
-        {STEPS.map((s, i) => (
+        <Text style={styles.heading}>{t('unavailable.troubleshooting')}</Text>
+        {STEP_KEYS.map((s, i) => (
           <View key={s} style={styles.step}>
             <Text style={styles.stepNum}>{i + 1}</Text>
-            <Text style={[styles.body, { flex: 1 }]}>{s}</Text>
+            <Text style={[styles.body, { flex: 1 }]}>{t(`unavailable.step.${s}`)}</Text>
           </View>
         ))}
       </Panel>
 
-      {checking ? <LoadingState label="Checking this device" /> : null}
+      {checking ? <LoadingState label={t('unavailable.checking')} /> : null}
       {!checking && attempts > 0 ? (
         <Text style={styles.small} accessibilityLiveRegion="polite" testID="retry-result">
-          Still no reading after {attempts} {attempts === 1 ? 'check' : 'checks'}. The server has not received a newer reading for this parameter.
+          {t('unavailable.stillNone', { count: attempts })}
         </Text>
       ) : null}
 
       <View style={styles.actions}>
-        <AppButton label={checking ? 'Checking' : 'Retry'} icon="refresh" onPress={retry} disabled={checking} testID="retry" accessibilityHint="Checks this device again. It does not create a reading." />
-        <AppButton label="Back" variant="outline" onPress={() => (router.canGoBack() ? router.back() : router.replace('/ponds'))} testID="unavailable-back" />
+        <AppButton label={checking ? t('unavailable.checkingShort') : t('unavailable.retry')} icon="refresh" onPress={retry} disabled={checking} testID="retry" accessibilityHint={t('unavailable.retryHint')} />
+        <AppButton label={t('common.back')} variant="outline" onPress={() => (router.canGoBack() ? router.back() : router.replace('/ponds'))} testID="unavailable-back" />
       </View>
     </ScreenContainer>
   );

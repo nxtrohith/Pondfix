@@ -1,5 +1,6 @@
 // Labelled input on a warm-white field. The error is shown as text (not colour alone) and linked to the input for screen readers.
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, layout, radius, spacing } from '@/constants/theme';
 

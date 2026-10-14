@@ -1,0 +1,35 @@
+{
+  "heading": "Suggested priorities and next steps",
+  "analysedByJev": "Analysed by Jev",
+  "rulesOnly": "Rules only",
+  "sensorFaultTitle": "This reading may be a sensor fault",
+  "sensorFaultBody": "({{percent}}% likely). Check the sensor against a second meter or test kit before acting. The alert stays open until readings recover.",
+  "orderHeading": "Deal with these in this order",
+  "level": {
+    "critical": "critical",
+    "warning": "warning"
+  },
+  "urgency": {
+    "monitor": "keep monitoring",
+    "soon": "needs attention soon",
+    "now": "needs action now"
+  },
+  "sourceAi": "Written by AI, passed a safety check",
+  "sourceStandard": "Standard guidance",
+  "checkFirst": "Check first:",
+  "heldBack": "An AI-written answer was held back by the safety check, so standard guidance is shown instead.",
+  "leadsToHeading": "What this may lead to",
+  "leadsToNote": "Rules of thumb from the current readings, not forecasts or alerts.",
+  "actionableYes": "Worth acting on now.",
+  "actionableNo": "Probably not urgent yet.",
+  "actionableYesBody": "The forecast looks serious enough to prepare for.",
+  "actionableNoBody": "Keep an eye on it as new readings arrive.",
+  "channel": "Suggested alert channel: {{channel}}",
+  "channelName": {
+    "in_app": "In-app only",
+    "push": "Push notification",
+    "sms": "SMS or phone call"
+  },
+  "related": "Likely the same problem as: {{list}}",
+  "footer": "These are suggestions. Whether an alert exists is decided only by the configured limits."
+}

@@ -6,7 +6,7 @@
 // Tags: CONFIG (server address), APP (lifecycle), REST (requests), SOCKET (realtime connection), SYNC (data synchronisation),
 // POND (reading/pond events), ALERT (alert events), UI (what a screen renders). Messages never contain secrets or response bodies.
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogTag = 'CONFIG' | 'APP' | 'REST' | 'SOCKET' | 'SYNC' | 'POND' | 'ALERT' | 'UI';
+export type LogTag = 'CONFIG' | 'APP' | 'REST' | 'SOCKET' | 'SYNC' | 'POND' | 'ALERT' | 'UI' | 'TRANSLATE' | 'SPEECH';
 export interface LogEntry { id: number; at: number; level: LogLevel; tag: LogTag; message: string }
 
 export const MAX_ENTRIES = 200;

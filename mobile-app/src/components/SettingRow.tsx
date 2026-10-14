@@ -1,5 +1,6 @@
 // A switch row for settings. The label and description are read together by screen readers.
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, layout, spacing } from '@/constants/theme';
 

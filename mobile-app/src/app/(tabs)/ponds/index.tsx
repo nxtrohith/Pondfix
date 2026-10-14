@@ -1,6 +1,8 @@
 // Screen 3: pond list with real search, status filters and a collapsible filter panel.
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
@@ -18,11 +20,12 @@ import { filterSummaries, type PondFilter } from '@/lib/pondFilter';
 import { routes } from '@/lib/routes';
 import { logger } from '@/lib/logger';
 
-const FILTERS: { value: PondFilter; label: string }[] = [
-  { value: 'ALL', label: 'All' }, { value: 'NORMAL', label: 'Healthy' }, { value: 'WARNING', label: 'Warning' }, { value: 'CRITICAL', label: 'Critical' },
+const FILTERS: { value: PondFilter; key: 'all' | 'healthy' | 'warning' | 'critical' }[] = [
+  { value: 'ALL', key: 'all' }, { value: 'NORMAL', key: 'healthy' }, { value: 'WARNING', key: 'warning' }, { value: 'CRITICAL', key: 'critical' },
 ];
 
 export default function PondsScreen() {
+  const { t } = useTranslation();
   const { ponds, readings, asOf, loadState, refresh } = usePonds();
   const { activeAlerts: alerts } = useAlerts();
   const [query, setQuery] = useState('');
@@ -35,15 +38,15 @@ export default function PondsScreen() {
 
   return (
     <ScreenContainer testID="ponds-screen">
-      <AppHeader title="Ponds" subtitle="Live readings from the PondFix server" />
+      <AppHeader title={t('ponds.title')} subtitle={t('ponds.subtitle')} />
       <ConnectionBanner />
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={16} color={colors.textSecondary} />
           <TextInput
-            accessibilityLabel="Search ponds"
-            accessibilityHint="Searches pond names and species"
-            placeholder="Search ponds or species"
+            accessibilityLabel={t('ponds.search.label')}
+            accessibilityHint={t('ponds.search.hint')}
+            placeholder={t('ponds.search.placeholder')}
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -55,39 +58,39 @@ export default function PondsScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Filters${active ? `, ${active} active` : ''}`}
+          accessibilityLabel={active ? t('ponds.filtersActive', { count: active }) : t('ponds.filters')}
           accessibilityState={{ expanded: panelOpen }}
           onPress={() => setPanelOpen((o) => !o)}
           style={styles.filterButton}
           testID="filter-toggle"
         >
           <Ionicons name="options-outline" size={18} color={colors.textOnBackground} />
-          <Text style={styles.filterText}>Filter{active ? ` (${active})` : ''}</Text>
+          <Text style={styles.filterText}>{active ? t('ponds.filterCount', { count: active }) : t('ponds.filter')}</Text>
         </Pressable>
       </View>
 
       {panelOpen ? (
         <View style={styles.panel}>
-          <SegmentedControl label="Filter by status" value={filter} options={FILTERS.map((f) => ({ value: f.value, label: f.label, testID: `filter-${f.value}` }))} onChange={setFilter} />
-          {active ? <AppButton label="Clear filters" variant="ghost" onPress={() => { setQuery(''); setFilter('ALL'); }} testID="clear-filters" /> : null}
+          <SegmentedControl label={t('ponds.filterBy')} value={filter} options={FILTERS.map((f) => ({ value: f.value, label: t(`ponds.filterOption.${f.key}`), testID: `filter-${f.value}` }))} onChange={setFilter} />
+          {active ? <AppButton label={t('ponds.clearFilters')} variant="ghost" onPress={() => { setQuery(''); setFilter('ALL'); }} testID="clear-filters" /> : null}
         </View>
       ) : null}
 
       <Text style={styles.count} accessibilityLiveRegion="polite" testID="pond-count">
-        {active ? `Showing ${shown.length} of ${summaries.length} ponds` : `${summaries.length} ponds`}
+        {active ? t('ponds.showing', { shown: shown.length, total: summaries.length }) : t('common.pondCount', { count: summaries.length })}
       </Text>
 
       {loadState === 'loading' ? (
-        <LoadingState label="Loading ponds" />
+        <LoadingState label={t('ponds.loading')} />
       ) : loadState === 'error' ? (
         <>
-          <ErrorState title="Unable to load ponds">Check your connection. Ponds will appear as soon as the server can be reached.</ErrorState>
-          <AppButton label="Try again" variant="outline" onPress={() => { void refresh(); }} testID="retry-ponds" />
+          <ErrorState title={t('ponds.loadErrorTitle')}>{t('ponds.loadErrorBody')}</ErrorState>
+          <AppButton label={t('common.tryAgain')} variant="outline" onPress={() => { void refresh(); }} testID="retry-ponds" />
         </>
       ) : summaries.length === 0 ? (
-        <EmptyState title="No ponds available">The server returned no ponds for this account.</EmptyState>
+        <EmptyState title={t('ponds.emptyTitle')}>{t('ponds.emptyBody')}</EmptyState>
       ) : shown.length === 0 ? (
-        <EmptyState title="No ponds match">Check the spelling or clear the filters.</EmptyState>
+        <EmptyState title={t('ponds.noMatchTitle')}>{t('ponds.noMatchBody')}</EmptyState>
       ) : (
         <View style={{ gap: spacing.sm }}>
           {shown.map((s) => <PondCard key={s.pond.id} summary={s} onPress={() => router.push(routes.pond(s.pond.id))} />)}
@@ -95,7 +98,7 @@ export default function PondsScreen() {
       )}
 
       <View style={styles.actions}>
-        <AppButton label="Compare ponds" variant="outline" icon="bar-chart-outline" onPress={() => router.push(routes.comparison)} testID="open-comparison" />
+        <AppButton label={t('ponds.compare')} variant="outline" icon="bar-chart-outline" onPress={() => router.push(routes.comparison)} testID="open-comparison" />
       </View>
     </ScreenContainer>
   );

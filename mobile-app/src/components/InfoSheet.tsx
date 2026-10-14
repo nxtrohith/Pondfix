@@ -1,20 +1,23 @@
 // Local information dialog for Help, Support and Privacy. It shows only text that ships with the app.
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing } from '@/constants/theme';
 import { AppButton } from './AppButton';
 
 export function InfoSheet({ visible, title, paragraphs, onClose, testID }: { visible: boolean; title: string; paragraphs: string[]; onClose: () => void; testID?: string }) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal>
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} accessibilityRole="button" />
         <View style={styles.sheet} testID={testID} accessibilityRole="none">
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
           <ScrollView style={{ maxHeight: 320 }}>
             {paragraphs.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
           </ScrollView>
-          <AppButton label="Close" variant="secondary" onPress={onClose} fullWidth />
+          <AppButton label={t('common.close')} variant="secondary" onPress={onClose} fullWidth />
         </View>
       </View>
     </Modal>

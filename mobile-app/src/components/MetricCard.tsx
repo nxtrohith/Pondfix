@@ -1,6 +1,8 @@
 // One water-quality parameter as a full-width row: name and time on the left, value and status on the right. The row layout leaves room
 // for long names and status words on small phones. A missing reading shows "No value" and "Unavailable", never a healthy look.
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, shadow } from '@/constants/theme';
@@ -22,16 +24,17 @@ interface Props {
 }
 
 export function MetricCard({ parameter, value, status, recordedAt, ageMinutes, testID }: Props) {
+  const { t } = useTranslation();
   const hasValue = value !== null && Number.isFinite(value);
   const unit = PARAMETER_UNIT[parameter];
   const name = PARAMETER_LABEL[parameter];
-  const time = recordedAt ? formatTime(recordedAt) : 'No reading';
+  const time = recordedAt ? formatTime(recordedAt) : t('metric.noReading');
   const age = recordedAt && ageMinutes !== undefined && ageMinutes !== null ? formatAge(ageMinutes) : null;
   return (
     <View
       style={styles.card}
       accessible
-      accessibilityLabel={`${name}: ${hasValue ? `${formatValue(value, parameter)} ${unit}` : 'no value'}, ${PARAMETER_PRESENTATION[status].label.toLowerCase()}`}
+      accessibilityLabel={t('metric.label', { name, value: hasValue ? `${formatValue(value, parameter)} ${unit}` : t('metric.noValue'), status: PARAMETER_PRESENTATION[status].label.toLowerCase() })}
       testID={testID}
     >
       <View style={styles.left}>

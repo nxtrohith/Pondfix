@@ -1,0 +1,14 @@
+{
+  "listen": "Listen",
+  "stop": "Stop",
+  "loading": "Loading audio",
+  "hint": "Reads this message aloud. It does not change the alert.",
+  "unsupported": "Voice is not available in {{language}} yet. The message above is still shown.",
+  "error": {
+    "unsupported": "Voice is not available in this language yet.",
+    "offline": "Could not load the audio. Check your connection. The message above is still shown.",
+    "not_configured": "Voice is not available from this server.",
+    "rate_limited": "Too many audio requests. Try again in a moment.",
+    "unavailable": "The audio could not be loaded right now. The message above is still shown."
+  }
+}

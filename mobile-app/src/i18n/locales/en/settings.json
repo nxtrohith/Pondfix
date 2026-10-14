@@ -1,0 +1,38 @@
+{
+  "title": "Settings",
+  "demoLabel": "Preferences are kept on this device only",
+  "alerts": "Alerts",
+  "inApp": "In-app alerts",
+  "inAppDesc": "Show alerts inside this app.",
+  "sound": "Alert sound",
+  "soundDesc": "Play a sound for new alerts. Not yet connected to a sound player.",
+  "criticalOnly": "Critical alerts only",
+  "criticalOnlyDesc": "Hide warnings and show only critical alerts in the alert lists.",
+  "deliveryNote": "This app does not deliver push notifications, SMS, WhatsApp or background alerts. These switches only change this screen’s preferences.",
+  "support": "Support",
+  "diagnostics": "Connection diagnostics",
+  "help": "Help Center",
+  "contact": "Contact Support",
+  "privacy": "Privacy Policy",
+  "version": "App version {{version}}",
+  "account": "Account",
+  "logoutConfirm": "Log out of this demo? Changes made in this session are cleared.",
+  "logout": "Log out",
+  "info": {
+    "help": {
+      "title": "Help Center",
+      "p1": "Dashboard: counts of your ponds by status. Missing readings are never counted as healthy.",
+      "p2": "Ponds: search, filter and open a pond. Details show each reading and its status.",
+      "p3": "Alerts: active problems and resolved history. Mark as seen records that you have read an alert. It does not resolve the problem.",
+      "p4": "This build shows demo data only. No sensors are connected."
+    },
+    "support": {
+      "title": "Contact Support",
+      "p1": "No support channel is configured in this build. Support contact details will be added before release."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "p1": "No privacy policy link is configured in this build. Settings and profile changes are stored only in this app session and are not sent anywhere."
+    }
+  }
+}

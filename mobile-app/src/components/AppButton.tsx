@@ -1,6 +1,7 @@
 // Buttons on the sage page. Ivory is the primary action, deep olive the secondary fill. Pill-shaped, minimum 44 pt touch target;
 // `large` (52 pt) is for the one main call to action on a screen.
-import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, opacity } from '@/constants/colors';
 import { fontSize, layout, radius, shadow, spacing } from '@/constants/theme';

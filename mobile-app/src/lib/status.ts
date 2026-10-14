@@ -3,18 +3,20 @@
 // Boundaries: a value exactly ON a limit is normal; strictly beyond a warning limit is WARNING; strictly beyond a critical limit is CRITICAL.
 import type { ChemistryParameter, Parameter, ParameterReading, ParameterStatus, PondStatus } from '@/types';
 import { colors } from '@/constants/colors';
+import { t } from '@/i18n';
+import { lazyRecord } from './lazy';
 
 export const STALE_AFTER_MINUTES = 60;
 
-export const GENERAL_RULES: Record<Parameter, { unit: string; label: string; lowWarn?: number; lowCrit?: number; highWarn?: number; highCrit?: number }> = {
-  dissolved_oxygen: { unit: 'mg/L', label: 'Dissolved oxygen', lowWarn: 3.0, lowCrit: 2.0 },
-  ph: { unit: 'pH', label: 'pH', lowWarn: 6.5, lowCrit: 6.0, highWarn: 8.5, highCrit: 9.0 },
-  temperature: { unit: '°C', label: 'Water temperature', lowWarn: 20, lowCrit: 15, highWarn: 32, highCrit: 35 },
+export const GENERAL_RULES: Record<Parameter, { unit: string; lowWarn?: number; lowCrit?: number; highWarn?: number; highCrit?: number }> = {
+  dissolved_oxygen: { unit: 'mg/L', lowWarn: 3.0, lowCrit: 2.0 },
+  ph: { unit: 'pH', lowWarn: 6.5, lowCrit: 6.0, highWarn: 8.5, highCrit: 9.0 },
+  temperature: { unit: '°C', lowWarn: 20, lowCrit: 15, highWarn: 32, highCrit: 35 },
 };
 
 /**
  * Replaces the local copies of the general limits with the backend's (GET /api/risk-rules), so chart reference lines and the fallback
- * classification can never drift from the alert engine. Units and labels stay local (presentation). Species-specific limits are
+ * classification can never drift from the alert engine. Units stay local (presentation); labels come from the dictionaries. Species-specific limits are
  * not exposed by the backend as rules; a pond's status always comes from the backend verdict, not from these numbers.
  */
 export function applyBackendRules(parameters: Record<string, { lowWarning?: number; lowCritical?: number; highWarning?: number; highCritical?: number }>): void {
@@ -76,48 +78,36 @@ export interface StatusPresentation {
 }
 
 export const PARAMETER_PRESENTATION: Record<ParameterStatus, StatusPresentation> = {
-  NORMAL: { label: 'Normal', icon: 'checkmark-circle', foreground: colors.healthyDark, surface: colors.healthySurface },
-  WARNING: { label: 'Warning', icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface },
-  CRITICAL: { label: 'Critical', icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface },
-  STALE: { label: 'Not recent', icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface },
-  UNAVAILABLE: { label: 'Unavailable', icon: 'help-circle', foreground: colors.textPrimary, surface: colors.cardMuted },
+  NORMAL: { get label() { return t('status.parameter.normal'); }, icon: 'checkmark-circle', foreground: colors.healthyDark, surface: colors.healthySurface },
+  WARNING: { get label() { return t('status.parameter.warning'); }, icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface },
+  CRITICAL: { get label() { return t('status.parameter.critical'); }, icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface },
+  STALE: { get label() { return t('status.parameter.stale'); }, icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface },
+  UNAVAILABLE: { get label() { return t('status.parameter.unavailable'); }, icon: 'help-circle', foreground: colors.textPrimary, surface: colors.cardMuted },
 };
 
 export const POND_PRESENTATION: Record<PondStatus, StatusPresentation & { summary: string }> = {
-  NORMAL: { label: 'Healthy', icon: 'checkmark-circle', foreground: colors.healthyDark, surface: colors.healthySurface, summary: 'Every monitored reading is within the acceptable range.' },
-  WARNING: { label: 'Warning', icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface, summary: 'One or more readings are outside the acceptable range.' },
-  CRITICAL: { label: 'Critical', icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface, summary: 'A serious reading needs immediate attention.' },
-  INCOMPLETE: { label: 'Incomplete data', icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface, summary: 'Some readings are missing or old. Missing data is not treated as healthy.' },
-  NO_DATA: { label: 'No data', icon: 'ellipse-outline', foreground: colors.textPrimary, surface: colors.cardMuted, summary: 'No readings have been received for this pond yet.' },
+  NORMAL: { get label() { return t('status.pond.normal'); }, icon: 'checkmark-circle', foreground: colors.healthyDark, surface: colors.healthySurface, get summary() { return t('status.pondSummary.normal'); } },
+  WARNING: { get label() { return t('status.pond.warning'); }, icon: 'warning', foreground: colors.warningDark, surface: colors.warningSurface, get summary() { return t('status.pondSummary.warning'); } },
+  CRITICAL: { get label() { return t('status.pond.critical'); }, icon: 'alert-circle', foreground: colors.criticalDark, surface: colors.criticalSurface, get summary() { return t('status.pondSummary.critical'); } },
+  INCOMPLETE: { get label() { return t('status.pond.incomplete'); }, icon: 'time', foreground: colors.infoDark, surface: colors.infoSurface, get summary() { return t('status.pondSummary.incomplete'); } },
+  NO_DATA: { get label() { return t('status.pond.noData'); }, icon: 'ellipse-outline', foreground: colors.textPrimary, surface: colors.cardMuted, get summary() { return t('status.pondSummary.noData'); } },
 };
 
-export const PARAMETER_LABEL: Record<Parameter, string> = {
-  dissolved_oxygen: 'Dissolved oxygen',
-  ph: 'pH',
-  temperature: 'Water temperature',
-};
-export const PARAMETER_SHORT: Record<Parameter, string> = { dissolved_oxygen: 'DO', ph: 'pH', temperature: 'Temp' };
+export const PARAMETER_LABEL: Record<Parameter, string> = lazyRecord(['dissolved_oxygen', 'ph', 'temperature'] as const, (p) => t(`parameters.${p}`));
+export const PARAMETER_SHORT: Record<Parameter, string> = lazyRecord(['dissolved_oxygen', 'ph', 'temperature'] as const, (p) => t(`parameters.short.${p}`));
 export const PARAMETER_UNIT: Record<Parameter, string> = { dissolved_oxygen: 'mg/L', ph: 'pH', temperature: '°C' };
 
 /** Label/unit for any parameter name the backend may send. Unknown names are shown readable instead of failing. */
-export const CHEMISTRY_LABEL: Record<ChemistryParameter, string> = { ammonia: 'Ammonia', un_ionized_ammonia: 'Un-ionized ammonia (NH₃)', nitrite: 'Nitrite', nitrate: 'Nitrate', alkalinity: 'Alkalinity', salinity: 'Salinity', turbidity: 'Turbidity' };
+export const CHEMISTRY_LABEL: Record<ChemistryParameter, string> = lazyRecord(['ammonia', 'un_ionized_ammonia', 'nitrite', 'nitrate', 'alkalinity', 'salinity', 'turbidity'] as const, (p) => t(`parameters.chemistry.${p}`));
 export const CHEMISTRY_UNIT: Record<ChemistryParameter, string> = { ammonia: 'mg/L', un_ionized_ammonia: 'mg/L', nitrite: 'mg/L', nitrate: 'mg/L', alkalinity: 'mg/L', salinity: 'ppt', turbidity: 'NTU' };
 /** One line on why each chemistry value matters. */
-export const CHEMISTRY_HINT: Record<ChemistryParameter, string> = {
-  ammonia: 'Waste from feed and stock. Harmful when high.',
-  un_ionized_ammonia: 'The toxic part of ammonia. Rises with pH and warmth.',
-  nitrite: 'Builds up when oxygen is low. Harmful to stock.',
-  nitrate: 'End product of the cycle. Builds up slowly.',
-  alkalinity: 'Holds pH steady. Low alkalinity means bigger pH swings.',
-  salinity: 'Falls with rain, rises as water evaporates.',
-  turbidity: 'Cloudiness from algae, silt or rain.',
-};
+export const CHEMISTRY_HINT: Record<ChemistryParameter, string> = lazyRecord(['ammonia', 'un_ionized_ammonia', 'nitrite', 'nitrate', 'alkalinity', 'salinity', 'turbidity'] as const, (p) => t(`parameters.chemistryHint.${p}`));
 
 export function parameterLabel(parameter: string): string {
   if (parameter in PARAMETER_LABEL) return PARAMETER_LABEL[parameter as Parameter];
   if (parameter in CHEMISTRY_LABEL) return CHEMISTRY_LABEL[parameter as ChemistryParameter];
   const words = parameter.replace(/_/g, ' ').trim();
-  return words ? words.charAt(0).toUpperCase() + words.slice(1) : 'Parameter';
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : t('parameters.unknown');
 }
 export function parameterUnit(parameter: string): string {
   if (parameter in CHEMISTRY_UNIT) return CHEMISTRY_UNIT[parameter as ChemistryParameter];

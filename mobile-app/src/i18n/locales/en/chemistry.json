@@ -1,0 +1,15 @@
+{
+  "tag": {
+    "stale": "Not recent",
+    "calculated": "Calculated",
+    "simulated": "Simulated",
+    "noLimit": "No alert limit"
+  },
+  "label": "{{name}}: {{value}}{{note}}, no alert limit",
+  "notRecentSuffix": ", not recent",
+  "noValue": "no value",
+  "noteCalculated": ", calculated from other readings",
+  "noteSimulated": ", simulated",
+  "noReading": "No reading",
+  "last24": "Last 24 h: {{min}} to {{max}} {{unit}}"
+}

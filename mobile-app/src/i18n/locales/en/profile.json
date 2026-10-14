@@ -1,0 +1,21 @@
+{
+  "title": "Profile",
+  "demoLabel": "Demo profile · not from a server",
+  "avatar": "Avatar, initials {{initials}}",
+  "memberSinceDemo": "Demo account, stored on this device only",
+  "email": "Email",
+  "phone": "Phone",
+  "farm": "Farm",
+  "location": "Location",
+  "ponds": "Ponds",
+  "speciesConfigured": "Species configured",
+  "edit": "Edit profile",
+  "errName": "Enter your name.",
+  "errLength": "Use 60 characters or fewer.",
+  "errFarm": "Enter the farm name.",
+  "errLocation": "Enter a location.",
+  "name": "Name",
+  "farmName": "Farm name",
+  "save": "Save profile",
+  "demoLocation": "Demo location (not a real farm)"
+}

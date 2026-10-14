@@ -1,7 +1,9 @@
 // Connection diagnostics: what the app is talking to, what it has received, and the recent log. This is the same information that is
 // written to the Metro terminal in development, shown here so it is visible on the phone itself.
 import { useSyncExternalStore } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts, usePonds } from '@/context/LiveData';
@@ -11,42 +13,41 @@ import { AppButton } from '@/components/AppButton';
 import { Panel } from '@/components/SectionHeader';
 import { formatEntry, logger } from '@/lib/logger';
 import { formatDateTime } from '@/lib/format';
-import { API_CONFIG_ERROR, API_ORIGIN } from '@/services/config';
+import { API_ORIGIN, configErrorText, localizeConfigError } from '@/services/config';
 import { PARAMETERS } from '@/types';
 
-const STATUS_TEXT = { connected: 'Connected', connecting: 'Connecting', reconnecting: 'Reconnecting', disconnected: 'Not connected' } as const;
-
 export default function DiagnosticsScreen() {
+  const { t } = useTranslation();
   const { connectionStatus, activeAlerts, alertHistory, lastUpdated, restError, configError, loadState } = useAlerts();
   const { ponds, readings, loadState: pondLoad, lastUpdated: pondsUpdated } = usePonds();
   const log = useSyncExternalStore(logger.subscribe, logger.entries, logger.entries);
   const withReadings = ponds.filter((p) => PARAMETERS.some((x) => (readings[p.id] ?? []).find((r) => r.parameter === x)?.latest)).length;
-  const rows: [string, string][] = [
-    ['Server address', API_ORIGIN || '(not set)'],
-    ['Address check', API_CONFIG_ERROR ?? configError ?? 'Valid'],
-    ['Live connection (Socket.IO)', STATUS_TEXT[connectionStatus]],
-    ['Data requests (REST)', restError ?? 'Working'],
-    ['Last synchronized', lastUpdated ?? pondsUpdated ? formatDateTime(lastUpdated ?? pondsUpdated) : 'Never'],
-    ['Pond data', pondLoad === 'ready' ? `${ponds.length} ponds, ${withReadings} with readings` : pondLoad],
-    ['Alert data', loadState === 'ready' ? `${activeAlerts.length} active, ${alertHistory.length} resolved` : loadState],
+  const rows: [string, string, string][] = [
+    ['server', t('diagnostics.address'), API_ORIGIN || t('diagnostics.notSet')],
+    ['address', t('diagnostics.addressCheck'), configErrorText() ?? localizeConfigError(configError) ?? t('diagnostics.valid')],
+    ['live', t('diagnostics.live'), t(`diagnostics.status.${connectionStatus}`)],
+    ['data', t('diagnostics.rest'), restError ?? t('diagnostics.working')],
+    ['last', t('diagnostics.lastSync'), lastUpdated ?? pondsUpdated ? formatDateTime(lastUpdated ?? pondsUpdated) : t('diagnostics.never')],
+    ['pond', t('diagnostics.pondData'), pondLoad === 'ready' ? t('diagnostics.pondSummary', { count: ponds.length, withReadings }) : pondLoad],
+    ['alert', t('diagnostics.alertData'), loadState === 'ready' ? t('diagnostics.alertSummary', { active: activeAlerts.length, resolved: alertHistory.length }) : loadState],
   ];
   return (
     <ScreenContainer testID="diagnostics-screen">
-      <AppHeader title="Connection diagnostics" subtitle="Server, data and recent activity" />
+      <AppHeader title={t('diagnostics.title')} subtitle={t('diagnostics.subtitle')} />
       <Panel>
-        {rows.map(([k, v]) => (
-          <View key={k} style={styles.row}>
+        {rows.map(([id, k, v]) => (
+          <View key={id} style={styles.row}>
             <Text style={styles.key}>{k}</Text>
-            <Text style={styles.value} testID={`diag-${k.split(' ')[0]!.toLowerCase()}`}>{v}</Text>
+            <Text style={styles.value} testID={`diag-${id}`}>{v}</Text>
           </View>
         ))}
       </Panel>
       <View style={styles.logHead}>
-        <Text style={styles.heading}>Recent activity</Text>
-        <AppButton label="Clear" variant="ghost" onPress={logger.clear} testID="clear-log" />
+        <Text style={styles.heading}>{t('diagnostics.recent')}</Text>
+        <AppButton label={t('diagnostics.clear')} variant="ghost" onPress={logger.clear} testID="clear-log" />
       </View>
       <View style={styles.log} testID="log-list">
-        {log.length === 0 ? <Text style={styles.empty}>Nothing logged yet.</Text> : [...log].reverse().slice(0, 100).map((e) => (
+        {log.length === 0 ? <Text style={styles.empty}>{t('diagnostics.empty')}</Text> : [...log].reverse().slice(0, 100).map((e) => (
           <Text key={e.id} style={[styles.line, e.level === 'error' && styles.err, e.level === 'warn' && styles.warn]}>{e.level === 'error' ? 'ERROR ' : e.level === 'warn' ? 'WARN ' : ''}{formatEntry(e)}</Text>
         ))}
       </View>

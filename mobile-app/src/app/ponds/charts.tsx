@@ -1,6 +1,8 @@
 // Screen 5: historical charts. One chart per parameter, each with its own time range, from the pond's recorded readings.
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { radius, spacing } from '@/constants/theme';
@@ -18,6 +20,7 @@ import { param, routes } from '@/lib/routes';
 import { PARAMETERS, type Parameter } from '@/types';
 
 export default function ChartsScreen() {
+  const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
   const { ponds, readings, asOf, ensureHistory, historyStatus } = usePonds();
@@ -31,15 +34,15 @@ export default function ChartsScreen() {
   if (!pond) {
     return (
       <ScreenContainer bottomNav="ponds" testID="charts-missing">
-        <AppHeader title="Charts" />
-        <EmptyState title="Pond not found">Go back to the pond list and choose a pond.</EmptyState>
+        <AppHeader title={t('charts.title')} />
+        <EmptyState title={t('edit.notFoundTitle')}>{t('charts.notFoundBody')}</EmptyState>
       </ScreenContainer>
     );
   }
 
   return (
     <ScreenContainer testID="charts-screen">
-      <AppHeader title="Historical charts" subtitle={pond.displayName} />
+      <AppHeader title={t('charts.heading')} subtitle={pond.displayName} />
       <ConnectionBanner />
       {PARAMETERS.map((p: Parameter) => {
         const reading = byParam[p];
@@ -48,8 +51,8 @@ export default function ChartsScreen() {
             <View key={p} style={styles.unavailable} testID={`chart-unavailable-${p}`}>
               <Text style={styles.title}>{PARAMETER_LABEL[p]}</Text>
               {reading ? <SensorBadge state={reading.sensor} /> : null}
-              <Text style={styles.body}>No {PARAMETER_LABEL[p].toLowerCase()} readings are available, so no chart is drawn. Missing data is not shown as a normal line.</Text>
-              <AppButton label="Troubleshoot" variant="outline" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`chart-troubleshoot-${p}`} />
+              <Text style={styles.body}>{t('charts.noReadings', { name: PARAMETER_LABEL[p].toLowerCase() })}</Text>
+              <AppButton label={t('common.troubleshoot')} variant="outline" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`chart-troubleshoot-${p}`} />
             </View>
           );
         }
@@ -68,7 +71,7 @@ export default function ChartsScreen() {
           />
         );
       })}
-      <Text style={styles.hint}>Trend words describe the selected range only. Each chart’s dashed lines are the general warning and critical limits.</Text>
+      <Text style={styles.hint}>{t('charts.hint')}</Text>
     </ScreenContainer>
   );
 }

@@ -1,0 +1,6 @@
+{
+  "title": "Language",
+  "hint": "Choose the language for the whole app. It changes straight away.",
+  "reviewNote": "Translations other than English are machine-generated and still being reviewed. If a message matters for your fish, check it against the English text.",
+  "change": "Change language, now {{language}}"
+}

@@ -1,7 +1,10 @@
 // Screen 10: settings. Switches are saved on this device only. No push, SMS or background alert delivery is enabled by this app.
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router } from 'expo-router';
+import type { TFunction } from 'i18next';
 import Constants from 'expo-constants';
 import { colors } from '@/constants/colors';
 import { fontSize, spacing } from '@/constants/theme';
@@ -9,7 +12,7 @@ import { useAppStore } from '@/context/AppStore';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { SettingSwitch } from '@/components/SettingRow';
-import { SegmentedControl } from '@/components/SegmentedControl';
+import { LanguagePicker } from '@/components/LanguagePicker';
 import { AppButton } from '@/components/AppButton';
 import { InfoSheet } from '@/components/InfoSheet';
 import { DemoLabel } from '@/components/DemoLabel';
@@ -18,28 +21,22 @@ import { routes } from '@/lib/routes';
 import type { AlertSettings } from '@/types';
 
 type InfoKey = 'help' | 'support' | 'privacy';
-const INFO: Record<InfoKey, { title: string; paragraphs: string[] }> = {
-  help: {
-    title: 'Help Center',
-    paragraphs: [
-      'Dashboard: counts of your ponds by status. Missing readings are never counted as healthy.',
-      'Ponds: search, filter and open a pond. Details show each reading and its status.',
-      'Alerts: active problems and resolved history. Mark as seen records that you have read an alert. It does not resolve the problem.',
-      'This build shows demo data only. No sensors are connected.',
-    ],
-  },
-  support: {
-    title: 'Contact Support',
-    paragraphs: ['No support channel is configured in this build. Support contact details will be added before release.'],
-  },
-  privacy: {
-    title: 'Privacy Policy',
-    paragraphs: ['No privacy policy link is configured in this build. Settings and profile changes are stored only in this app session and are not sent anywhere.'],
-  },
-};
-const LANGUAGES = [{ value: 'English', label: 'English' }, { value: 'Hindi', label: 'हिन्दी' }, { value: 'Telugu', label: 'తెలుగు' }] as const;
+const INFO_KEYS: InfoKey[] = ['help', 'support', 'privacy'];
+
+/** The paragraphs of each help sheet, from the dictionary (p1, p2, ... until a paragraph is missing). */
+function infoParagraphs(k: InfoKey, t: TFunction): string[] {
+  const out: string[] = [];
+  for (let i = 1; i <= 6; i++) {
+    const key = `settings.info.${k}.p${i}` as never;
+    const text = t(key) as string;
+    if (text === (key as string)) break;
+    out.push(text);
+  }
+  return out;
+}
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const { settings, updateSettings } = useAppStore();
   const [info, setInfo] = useState<InfoKey | null>(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -48,47 +45,47 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer testID="settings-screen">
-      <AppHeader title="Settings" />
-      <DemoLabel text="Preferences are kept on this device only" />
+      <AppHeader title={t('settings.title')} />
+      <DemoLabel text={t('settings.demoLabel')} />
 
-      <SectionHeader title="Alerts" />
+      <SectionHeader title={t('settings.alerts')} />
       <Panel>
-        <SettingSwitch testID="switch-in-app" label="In-app alerts" description="Show alerts inside this app." value={settings.inApp} onValueChange={(v) => set({ inApp: v })} />
-        <SettingSwitch testID="switch-sound" label="Alert sound" description="Play a sound for new alerts. Not yet connected to a sound player." value={settings.sound} onValueChange={(v) => set({ sound: v })} />
-        <SettingSwitch testID="switch-critical" label="Critical alerts only" description="Hide warnings and show only critical alerts in the alert lists." value={settings.criticalOnly} onValueChange={(v) => set({ criticalOnly: v })} />
-        <Text style={styles.note}>This app does not deliver push notifications, SMS, WhatsApp or background alerts. These switches only change this screen’s preferences.</Text>
+        <SettingSwitch testID="switch-in-app" label={t('settings.inApp')} description={t('settings.inAppDesc')} value={settings.inApp} onValueChange={(v) => set({ inApp: v })} />
+        <SettingSwitch testID="switch-sound" label={t('settings.sound')} description={t('settings.soundDesc')} value={settings.sound} onValueChange={(v) => set({ sound: v })} />
+        <SettingSwitch testID="switch-critical" label={t('settings.criticalOnly')} description={t('settings.criticalOnlyDesc')} value={settings.criticalOnly} onValueChange={(v) => set({ criticalOnly: v })} />
+        <Text style={styles.note}>{t('settings.deliveryNote')}</Text>
       </Panel>
 
-      <SectionHeader title="Language" />
+      <SectionHeader title={t('language.title')} hint={t('language.hint')} />
       <Panel>
-        <SegmentedControl label="Language" value={settings.language} options={LANGUAGES.map((l) => ({ value: l.value, label: l.label, testID: `lang-${l.value}` }))} onChange={(v) => set({ language: v })} />
-        <Text style={styles.note}>The app text is in English. Other languages are not translated yet, so the choice is saved for later.</Text>
+        <LanguagePicker />
+        <Text style={styles.note}>{t('language.reviewNote')}</Text>
       </Panel>
 
-      <SectionHeader title="Support" />
+      <SectionHeader title={t('settings.support')} />
       <Panel>
-        <AppButton label="Connection diagnostics" variant="onCard" fullWidth icon="pulse-outline" onPress={() => router.push(routes.diagnostics)} testID="open-diagnostics" />
-        <AppButton label="Help Center" variant="onCard" fullWidth icon="help-circle-outline" onPress={() => setInfo('help')} testID="open-help" />
-        <AppButton label="Contact Support" variant="onCard" fullWidth icon="mail-outline" onPress={() => setInfo('support')} testID="open-support" />
-        <AppButton label="Privacy Policy" variant="onCard" fullWidth icon="shield-checkmark-outline" onPress={() => setInfo('privacy')} testID="open-privacy" />
-        <Text style={styles.note} testID="app-version">App version {version}</Text>
+        <AppButton label={t('settings.diagnostics')} variant="onCard" fullWidth icon="pulse-outline" onPress={() => router.push(routes.diagnostics)} testID="open-diagnostics" />
+        <AppButton label={t('settings.help')} variant="onCard" fullWidth icon="help-circle-outline" onPress={() => setInfo('help')} testID="open-help" />
+        <AppButton label={t('settings.contact')} variant="onCard" fullWidth icon="mail-outline" onPress={() => setInfo('support')} testID="open-support" />
+        <AppButton label={t('settings.privacy')} variant="onCard" fullWidth icon="shield-checkmark-outline" onPress={() => setInfo('privacy')} testID="open-privacy" />
+        <Text style={styles.note} testID="app-version">{t('settings.version', { version })}</Text>
       </Panel>
 
-      <SectionHeader title="Account" />
+      <SectionHeader title={t('settings.account')} />
       <Panel>
         {confirmLogout ? (
           <View style={{ gap: spacing.sm }} testID="logout-confirm">
-            <Text style={styles.note}>Log out of this demo? Changes made in this session are cleared.</Text>
-            <AppButton label="Log out" variant="critical" onPress={() => { setConfirmLogout(false); router.replace(routes.splash); }} testID="confirm-logout" />
-            <AppButton label="Cancel" variant="outline" onPress={() => setConfirmLogout(false)} testID="cancel-logout" />
+            <Text style={styles.note}>{t('settings.logoutConfirm')}</Text>
+            <AppButton label={t('settings.logout')} variant="critical" onPress={() => { setConfirmLogout(false); router.replace(routes.splash); }} testID="confirm-logout" />
+            <AppButton label={t('common.cancel')} variant="outline" onPress={() => setConfirmLogout(false)} testID="cancel-logout" />
           </View>
         ) : (
-          <AppButton label="Log out" variant="outline" icon="log-out-outline" onPress={() => setConfirmLogout(true)} testID="logout" />
+          <AppButton label={t('settings.logout')} variant="outline" icon="log-out-outline" onPress={() => setConfirmLogout(true)} testID="logout" />
         )}
       </Panel>
 
-      {(Object.keys(INFO) as InfoKey[]).map((k) => (
-        <InfoSheet key={k} visible={info === k} title={INFO[k].title} paragraphs={INFO[k].paragraphs} onClose={() => setInfo(null)} testID={`sheet-${k}`} />
+      {INFO_KEYS.map((k) => (
+        <InfoSheet key={k} visible={info === k} title={t(`settings.info.${k}.title`)} paragraphs={infoParagraphs(k, t)} onClose={() => setInfo(null)} testID={`sheet-${k}`} />
       ))}
     </ScreenContainer>
   );

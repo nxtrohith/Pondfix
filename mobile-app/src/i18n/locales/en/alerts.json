@@ -1,0 +1,44 @@
+{
+  "title": {
+    "screen": "Alerts",
+    "forecast": "Forecast: {{title}}",
+    "dissolved_oxygen_low": "Low dissolved oxygen",
+    "dissolved_oxygen_high": "High dissolved oxygen",
+    "ph_low": "pH below range",
+    "ph_high": "pH above range",
+    "temperature_low": "Low water temperature",
+    "temperature_high": "High water temperature",
+    "other_low": "Low {{name}}",
+    "other_high": "High {{name}}"
+  },
+  "subtitle": "Open problems and resolved history",
+  "tabs": "Alert tabs",
+  "tabActive": "Active ({{count}})",
+  "tabHistory": "History ({{count}})",
+  "noteActive": "Acknowledging an alert records that you have seen it. The problem stays active until readings return to the acceptable range.",
+  "noteResolved": "Resolved alerts had readings return to the acceptable range.",
+  "loading": "Loading alerts",
+  "loadErrorTitle": "Unable to load alerts",
+  "loadErrorBody": "Check your connection. Alerts will appear here as soon as the server can be reached.",
+  "emptyActiveTitle": "No active alerts",
+  "emptyResolvedTitle": "No resolved alerts",
+  "emptyActiveBody": "All ponds are healthy. There are no active water-quality alerts.",
+  "emptyResolvedBody": "Resolved problems appear here.",
+  "unknownPond": "Unknown pond",
+  "severity": {
+    "resolved": "Resolved",
+    "critical": "Critical",
+    "warning": "Warning"
+  },
+  "raisedAt": "Raised {{time}}",
+  "resolvedAt": "Resolved {{time}}",
+  "status": {
+    "closed": "Closed",
+    "seen": "Seen, still open",
+    "active": "Active"
+  },
+  "forecastValue": "Forecast",
+  "readingValue": "Reading",
+  "limit": "limit {{value}}",
+  "openHint": "Opens alert details"
+}

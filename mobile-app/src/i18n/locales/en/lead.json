@@ -1,0 +1,6 @@
+{
+  "withinHour": "within an hour",
+  "within": "within {{max}} h",
+  "about": "in about {{min}} h",
+  "aboutRange": "in about {{min}}–{{max}} h"
+}

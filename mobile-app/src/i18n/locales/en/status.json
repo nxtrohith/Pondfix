@@ -1,0 +1,24 @@
+{
+  "badgeLabel": "Status: {{label}}",
+  "parameter": {
+    "normal": "Normal",
+    "warning": "Warning",
+    "critical": "Critical",
+    "stale": "Not recent",
+    "unavailable": "Unavailable"
+  },
+  "pond": {
+    "normal": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical",
+    "incomplete": "Incomplete data",
+    "noData": "No data"
+  },
+  "pondSummary": {
+    "normal": "Every monitored reading is within the acceptable range.",
+    "warning": "One or more readings are outside the acceptable range.",
+    "critical": "A serious reading needs immediate attention.",
+    "incomplete": "Some readings are missing or old. Missing data is not treated as healthy.",
+    "noData": "No readings have been received for this pond yet."
+  }
+}

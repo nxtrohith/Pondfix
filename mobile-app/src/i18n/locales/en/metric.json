@@ -1,0 +1,5 @@
+{
+  "noReading": "No reading",
+  "label": "{{name}}: {{value}}, {{status}}",
+  "noValue": "no value"
+}

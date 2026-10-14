@@ -1,0 +1,26 @@
+{
+  "title": "Connection diagnostics",
+  "subtitle": "Server, data and recent activity",
+  "address": "Server address",
+  "notSet": "(not set)",
+  "addressCheck": "Address check",
+  "valid": "Valid",
+  "live": "Live connection (Socket.IO)",
+  "rest": "Data requests (REST)",
+  "working": "Working",
+  "lastSync": "Last synchronized",
+  "never": "Never",
+  "pondData": "Pond data",
+  "pondSummary": "{{count}} ponds, {{withReadings}} with readings",
+  "alertData": "Alert data",
+  "alertSummary": "{{active}} active, {{resolved}} resolved",
+  "recent": "Recent activity",
+  "clear": "Clear",
+  "empty": "Nothing logged yet.",
+  "status": {
+    "connected": "Connected",
+    "connecting": "Connecting",
+    "reconnecting": "Reconnecting",
+    "disconnected": "Not connected"
+  }
+}

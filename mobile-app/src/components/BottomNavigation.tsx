@@ -1,5 +1,7 @@
 // Five destinations. The fourth is Species (an existing PondFix feature), not a placeholder community feature.
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,25 +9,26 @@ import { colors } from '@/constants/colors';
 import { layout, shadow } from '@/constants/theme';
 
 export type NavKey = 'home' | 'ponds' | 'alerts' | 'species' | 'profile';
-const ITEMS: { key: NavKey; label: string; icon: keyof typeof Ionicons.glyphMap; href: Href }[] = [
-  { key: 'home', label: 'Home', icon: 'home-outline', href: '/dashboard' },
-  { key: 'ponds', label: 'Ponds', icon: 'water-outline', href: '/ponds' },
-  { key: 'alerts', label: 'Alerts', icon: 'notifications-outline', href: '/alerts' },
-  { key: 'species', label: 'Species', icon: 'leaf-outline', href: '/species' },
-  { key: 'profile', label: 'Profile', icon: 'person-outline', href: '/profile' },
+const ITEMS: { key: NavKey; icon: keyof typeof Ionicons.glyphMap; href: Href }[] = [
+  { key: 'home', icon: 'home-outline', href: '/dashboard' },
+  { key: 'ponds', icon: 'water-outline', href: '/ponds' },
+  { key: 'alerts', icon: 'notifications-outline', href: '/alerts' },
+  { key: 'species', icon: 'leaf-outline', href: '/species' },
+  { key: 'profile', icon: 'person-outline', href: '/profile' },
 ];
 
 export function BottomNavigation({ active }: { active: NavKey }) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]} accessibilityRole="tablist" accessibilityLabel="Main navigation">
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]} accessibilityRole="tablist" accessibilityLabel={t('nav.main')}>
       {ITEMS.map((item) => {
         const selected = item.key === active;
         return (
           <Pressable
             key={item.key}
             accessibilityRole="tab"
-            accessibilityLabel={item.label}
+            accessibilityLabel={t(`nav.${item.key}`)}
             accessibilityState={{ selected }}
             onPress={() => { if (!selected) router.navigate(item.href); }}
             style={({ pressed }) => [styles.item, pressed && { opacity: 0.7 }]}
@@ -34,7 +37,7 @@ export function BottomNavigation({ active }: { active: NavKey }) {
             <View style={[styles.pill, selected && styles.pillSelected]}>
               <Ionicons name={selected ? (item.icon.replace('-outline', '') as keyof typeof Ionicons.glyphMap) : item.icon} size={22} color={selected ? colors.textOnDark : colors.textSecondary} />
             </View>
-            <Text style={[styles.label, selected && styles.labelSelected]}>{item.label}</Text>
+            <Text style={[styles.label, selected && styles.labelSelected]}>{t(`nav.${item.key}`)}</Text>
           </Pressable>
         );
       })}

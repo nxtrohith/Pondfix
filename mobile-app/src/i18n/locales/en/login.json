@@ -1,0 +1,6 @@
+{
+  "title": "Log in",
+  "heading": "Local demo sign-in",
+  "body": "This build does not have a sign-in service. Continuing opens the demo farm on this device. No password is checked and no data leaves the device.",
+  "continue": "Continue to demo"
+}

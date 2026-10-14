@@ -1,8 +1,10 @@
 // Consistent screen header: optional back action, title, optional subtitle and a right-hand action.
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { fontSize, layout, spacing } from '@/constants/theme';
@@ -10,12 +12,13 @@ import { fontSize, layout, spacing } from '@/constants/theme';
 interface Props { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode; testID?: string }
 
 export function AppHeader({ title, subtitle, onBack, right, testID }: Props) {
+  const { t } = useTranslation();
   const back = onBack ?? (router.canGoBack() ? () => router.back() : undefined);
   return (
     <View style={styles.row} testID={testID}>
       <View style={styles.left}>
         {back ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={back} hitSlop={8} style={styles.back}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.goBack')} onPress={back} hitSlop={8} style={styles.back}>
             <Ionicons name="chevron-back" size={22} color={colors.textOnBackground} />
           </Pressable>
         ) : null}

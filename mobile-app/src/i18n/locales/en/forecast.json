@@ -1,0 +1,60 @@
+{
+  "title": "Forecast",
+  "introGenerated": "Forecasts are model predictions, not measurements. Generated {{time}}. Confirm with a current reading before acting.",
+  "intro": "Forecasts are model predictions, not measurements. Confirm with a current reading before acting.",
+  "parameter": "Parameter",
+  "parameterControl": "Forecast parameter",
+  "paramOption": {
+    "dissolved_oxygen": "Dissolved oxygen",
+    "ph": "pH",
+    "temperature": "temperature"
+  },
+  "horizonLabel": "Forecast horizon",
+  "horizon": {
+    "15": "15 min",
+    "60": "1 hour",
+    "180": "3 hours"
+  },
+  "minutes": "{{count}} min",
+  "loading": "Loading forecast",
+  "loadErrorTitle": "Unable to load the forecast",
+  "loadErrorBody": "Check your connection and try again.",
+  "noneTitle": "No forecast for this parameter",
+  "noneBody": "The forecasting model has not produced a forecast for this parameter. Forecasts need enough recent readings.",
+  "legend": "Solid line: recent readings. Dashed blue line: model forecast.",
+  "riskOutlook": "Risk outlook",
+  "riskNote": "Risk is assessed by the PondFix server for this pond. Confirm with a current reading before acting.",
+  "values": "Values",
+  "colTime": "Time",
+  "colValue": "Value",
+  "colStatus": "Status",
+  "risk": {
+    "normal": "Normal",
+    "warning": "Warning",
+    "critical": "Critical",
+    "unknown": "Not assessed"
+  },
+  "latestReading": "Latest reading: {{value}} at {{time}}.",
+  "latestNone": "Latest reading: none.",
+  "backToPond": "Back to pond",
+  "outlookName": {
+    "dissolved_oxygen": "Oxygen",
+    "ph": "pH",
+    "temperature": "Water temperature"
+  },
+  "outlookNameLower": {
+    "dissolved_oxygen": "oxygen",
+    "ph": "pH",
+    "temperature": "water temperature"
+  },
+  "outlook": {
+    "unknown": "No risk assessment is available for the {{name}} forecast.",
+    "normal": "{{name}} is expected to stay within the acceptable range.",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "low": "low",
+    "high": "high",
+    "critical": "{{name}} may reach a critical {{side}} level within {{when}}.",
+    "warning": "{{name}} may move outside the acceptable range ({{side}}) within {{when}}."
+  }
+}

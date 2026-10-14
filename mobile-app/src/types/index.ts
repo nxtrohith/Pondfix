@@ -158,5 +158,4 @@ export interface AlertSettings {
   inApp: boolean;
   sound: boolean;
   criticalOnly: boolean;
-  language: 'English' | 'Hindi' | 'Telugu';
 }

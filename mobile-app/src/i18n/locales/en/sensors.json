@@ -1,0 +1,19 @@
+{
+  "title": "Sensors",
+  "allCurrent": "All readings are current",
+  "someNotCurrent": "{{count}} of {{total}} readings not current",
+  "note": "The server reports when each reading arrived, not whether a sensor is physically connected. A reading that stops arriving is shown as not recent and is never treated as healthy.",
+  "stateNone": "No reading received",
+  "stateStale": "Not recent",
+  "stateCurrent": "Current",
+  "name": {
+    "dissolved_oxygen": "Dissolved oxygen sensor",
+    "ph": "pH sensor",
+    "temperature": "Temperature sensor"
+  },
+  "latest": "Latest {{name}}: {{value}}",
+  "noReading": "No {{name}} reading",
+  "recorded": "Recorded {{time}} ({{age}})",
+  "never": "Never received by PondFix",
+  "readingState": "Reading: {{label}}"
+}

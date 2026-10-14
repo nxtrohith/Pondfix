@@ -1,0 +1,11 @@
+{
+  "network": "Unable to reach the server.",
+  "server": "The server could not complete the request ({{status}}).",
+  "unreadable": "The server sent an unreadable answer.",
+  "timeout": "The server took too long to answer.",
+  "config": {
+    "missing": "The server address is not set.",
+    "invalid": "The server address is not valid. It must look like http://192.168.1.20:4000.",
+    "port": "The server address has an invalid port."
+  }
+}

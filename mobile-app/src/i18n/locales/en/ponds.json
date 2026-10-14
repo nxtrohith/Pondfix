@@ -1,0 +1,30 @@
+{
+  "title": "Ponds",
+  "subtitle": "Live readings from the PondFix server",
+  "loading": "Loading ponds",
+  "loadErrorTitle": "Unable to load ponds",
+  "loadErrorBody": "Check your connection. Ponds will appear as soon as the server can be reached.",
+  "search": {
+    "label": "Search ponds",
+    "hint": "Searches pond names and species",
+    "placeholder": "Search ponds or species"
+  },
+  "filters": "Filters",
+  "filtersActive": "Filters, {{count}} active",
+  "filter": "Filter",
+  "filterCount": "Filter ({{count}})",
+  "filterBy": "Filter by status",
+  "clearFilters": "Clear filters",
+  "filterOption": {
+    "all": "All",
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical"
+  },
+  "showing": "Showing {{shown}} of {{total}} ponds",
+  "emptyTitle": "No ponds available",
+  "emptyBody": "The server returned no ponds for this account.",
+  "noMatchTitle": "No ponds match",
+  "noMatchBody": "Check the spelling or clear the filters.",
+  "compare": "Compare ponds"
+}

@@ -1,0 +1,15 @@
+{
+  "_comment": "Controlled terminology for the words that carry safety meaning. These override the machine translation for the keys listed under 'keys'. They are DRAFTS written without native-speaker review: a native speaker who works in aquaculture must confirm them before production. Edit a word here, run `npm run i18n:translate`, and every key that uses the term follows.",
+  "keys": {
+    "critical": ["status.parameter.critical", "status.pond.critical", "alerts.severity.critical", "forecast.risk.critical", "dashboard.tile.critical", "ponds.filterOption.critical", "advisory.level.critical", "notifications.sev.critical"],
+    "warning": ["status.parameter.warning", "status.pond.warning", "alerts.severity.warning", "forecast.risk.warning", "dashboard.tile.warning", "ponds.filterOption.warning", "advisory.level.warning", "notifications.sev.warning"],
+    "healthy": ["status.pond.normal", "dashboard.tile.healthy", "ponds.filterOption.healthy"],
+    "normal": ["status.parameter.normal", "forecast.risk.normal"]
+  },
+  "terms": {
+    "critical": { "hi": "गंभीर", "te": "తీవ్రమైనది", "ta": "தீவிரமானது", "kn": "ತೀವ್ರ", "ml": "ഗുരുതരം", "bn": "গুরুতর", "mr": "गंभीर", "gu": "ગંભીર", "od": "ଗୁରୁତର", "pa": "ਗੰਭੀਰ", "as": "গুৰুতৰ", "ur": "سنگین" },
+    "warning": { "hi": "चेतावनी", "te": "హెచ్చరిక", "ta": "எச்சரிக்கை", "kn": "ಎಚ್ಚರಿಕೆ", "ml": "മുന്നറിയിപ്പ്", "bn": "সতর্কতা", "mr": "इशारा", "gu": "ચેતવણી", "od": "ସତର୍କତା", "pa": "ਚੇਤਾਵਨੀ", "as": "সতৰ্কবাণী", "ur": "انتباہ" },
+    "healthy": { "hi": "स्वस्थ", "te": "ఆరోగ్యకరం", "ta": "ஆரோக்கியமானது", "kn": "ಆರೋಗ್ಯಕರ", "ml": "ആരോഗ്യകരം", "bn": "সুস্থ", "mr": "निरोगी", "gu": "સ્વસ્થ", "od": "ସୁସ୍ଥ", "pa": "ਤੰਦਰੁਸਤ", "as": "সুস্থ", "ur": "صحت مند" },
+    "normal": { "hi": "सामान्य", "te": "సాధారణం", "ta": "இயல்பானது", "kn": "ಸಾಮಾನ್ಯ", "ml": "സാധാരണ", "bn": "স্বাভাবিক", "mr": "सामान्य", "gu": "સામાન્ય", "od": "ସ୍ୱାଭାବିକ", "pa": "ਆਮ", "as": "স্বাভাৱিক", "ur": "عام" }
+  }
+}

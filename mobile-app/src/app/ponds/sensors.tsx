@@ -1,5 +1,7 @@
 // Screen 15: reading freshness per parameter. The server knows when a reading arrived, not whether the hardware is connected.
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Text } from '@/components/Text';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
@@ -14,9 +16,8 @@ import { ageMinutes, parameterStatus, PARAMETER_LABEL, PARAMETER_UNIT } from '@/
 import { param, routes } from '@/lib/routes';
 import { PARAMETERS, type Parameter } from '@/types';
 
-const SENSOR_NAME: Record<Parameter, string> = { dissolved_oxygen: 'Dissolved oxygen sensor', ph: 'pH sensor', temperature: 'Temperature sensor' };
-
 export default function SensorsScreen() {
+  const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
   const { ponds, readings, asOf } = usePonds();
@@ -24,44 +25,44 @@ export default function SensorsScreen() {
   if (!pond) {
     return (
       <ScreenContainer bottomNav="ponds" testID="sensors-missing">
-        <AppHeader title="Sensors" />
-        <EmptyState title="Pond not found">Go back to the pond list and choose a pond.</EmptyState>
+        <AppHeader title={t('sensors.title')} />
+        <EmptyState title={t('edit.notFoundTitle')}>{t('charts.notFoundBody')}</EmptyState>
       </ScreenContainer>
     );
   }
   const byParam = Object.fromEntries((readings[id] ?? []).map((r) => [r.parameter, r]));
   const freshness = (p: Parameter) => { const r = byParam[p]; return r ? parameterStatus(r, asOf) : 'UNAVAILABLE'; };
   const current = PARAMETERS.filter((p) => { const st = freshness(p); return st !== 'UNAVAILABLE' && st !== 'STALE'; }).length;
-  const overall = current === PARAMETERS.length ? 'All readings are current' : `${PARAMETERS.length - current} of ${PARAMETERS.length} readings not current`;
+  const overall = current === PARAMETERS.length ? t('sensors.allCurrent') : t('sensors.someNotCurrent', { count: PARAMETERS.length - current, total: PARAMETERS.length });
 
   return (
     <ScreenContainer testID="sensors-screen">
-      <AppHeader title="Sensors" subtitle={pond.displayName} />
+      <AppHeader title={t('sensors.title')} subtitle={pond.displayName} />
       <ConnectionBanner />
       <View style={styles.summary} testID="sensor-overall">
         <Text style={styles.title}>{overall}</Text>
-        <Text style={styles.body}>The server reports when each reading arrived, not whether a sensor is physically connected. A reading that stops arriving is shown as not recent and is never treated as healthy.</Text>
+        <Text style={styles.body}>{t('sensors.note')}</Text>
       </View>
 
       {PARAMETERS.map((p) => {
         const r = byParam[p];
         const latest = r?.latest ?? null;
         const st = freshness(p);
-        const label = st === 'UNAVAILABLE' ? 'No reading received' : st === 'STALE' ? 'Not recent' : 'Current';
+        const label = st === 'UNAVAILABLE' ? t('sensors.stateNone') : st === 'STALE' ? t('sensors.stateStale') : t('sensors.stateCurrent');
         return (
           <View key={p} style={styles.card} testID={`sensor-${p}`}>
             <View style={styles.cardHead}>
-              <Text style={styles.name}>{SENSOR_NAME[p]}</Text>
+              <Text style={styles.name}>{t(`sensors.name.${p}`)}</Text>
             </View>
             <Text style={styles.line}>
-              {latest ? `Latest ${PARAMETER_LABEL[p]}: ${formatValue(latest.value, p)} ${PARAMETER_UNIT[p]}` : `No ${PARAMETER_LABEL[p].toLowerCase()} reading`}
+              {latest ? t('sensors.latest', { name: PARAMETER_LABEL[p], value: `${formatValue(latest.value, p)} ${PARAMETER_UNIT[p]}` }) : t('sensors.noReading', { name: PARAMETER_LABEL[p].toLowerCase() })}
             </Text>
             <Text style={styles.small}>
-              {latest ? `Recorded ${formatDateTime(latest.recordedAt)} (${formatAge(ageMinutes(latest.recordedAt, asOf))})` : 'Never received by PondFix'}
+              {latest ? t('sensors.recorded', { time: formatDateTime(latest.recordedAt), age: formatAge(ageMinutes(latest.recordedAt, asOf)) }) : t('sensors.never')}
             </Text>
-            <Text style={styles.small} accessibilityLabel={`Reading: ${label}`}>Reading: {label}</Text>
+            <Text style={styles.small} accessibilityLabel={t('sensors.readingState', { label })}>{t('sensors.readingState', { label })}</Text>
             {st === 'UNAVAILABLE' || st === 'STALE' ? (
-              <AppButton label="Troubleshoot" variant="outline" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`sensor-troubleshoot-${p}`} />
+              <AppButton label={t('common.troubleshoot')} variant="outline" onPress={() => router.push(routes.unavailable(pond.id, p))} testID={`sensor-troubleshoot-${p}`} />
             ) : null}
           </View>
         );

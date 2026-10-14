@@ -1,0 +1,39 @@
+{
+  "loadingTitle": "Loading alert",
+  "notFoundTitle": "Alert not found",
+  "notFoundHeading": "This alert is no longer listed",
+  "pleaseWait": "Please wait.",
+  "notFoundBody": "It may have been resolved. Go back to the alerts list.",
+  "allAlerts": "All alerts",
+  "title": "Alert details",
+  "showingOriginal": "Showing the original English text.",
+  "translatedNote": "Translated automatically. The severity, values and limits above are not translated.",
+  "showTranslation": "Show translation",
+  "showOriginal": "Show original",
+  "translating": "Translating the details…",
+  "reading": "Reading",
+  "whyItMatters": "Why it matters",
+  "recommendedAction": "Recommended action",
+  "status": "Status",
+  "markedSeen": "Marked as seen {{time}}.",
+  "markSeen": "Mark as seen",
+  "markSeenHint": "Records that you have seen this alert. It does not resolve the problem.",
+  "ackFailed": "Could not reach the server. Try again when you are connected.",
+  "markSeenNote": "Marking as seen does not resolve the problem. The alert closes only when readings return to the acceptable range.",
+  "openPond": "Open {{name}}",
+  "limit": {
+    "observed_low_critical": "This reading is below the critical limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "observed_low_warning": "This reading is below the warning limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "observed_high_critical": "This reading is above the critical limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "observed_high_warning": "This reading is above the warning limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "predicted_low_critical": "This forecast is below the critical limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "predicted_low_warning": "This forecast is below the warning limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "predicted_high_critical": "This forecast is above the critical limit of {{value}} {{unit}}. Values inside the acceptable range are normal.",
+    "predicted_high_warning": "This forecast is above the warning limit of {{value}} {{unit}}. Values inside the acceptable range are normal."
+  },
+  "state": {
+    "ACTIVE": "Active: needs attention. The reading is still outside the acceptable range.",
+    "ACKNOWLEDGED": "Seen, still open. You have marked this alert as seen, but the reading is still outside the acceptable range.",
+    "RESOLVED": "Resolved: readings returned to the acceptable range."
+  }
+}

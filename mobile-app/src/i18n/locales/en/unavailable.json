@@ -1,0 +1,24 @@
+{
+  "sensor": "Sensor",
+  "thisPond": "this pond",
+  "title": "Data unavailable",
+  "illustration": "Sensor not connected",
+  "heading": "No current {{name}} reading",
+  "body": "PondFix has no recent reading for {{name}} in {{pond}}. Missing data is shown as unavailable. It is not treated as healthy or normal.",
+  "lastSeen": "Last seen {{time}}",
+  "sensorState": "Sensor state: {{state}}",
+  "troubleshooting": "Troubleshooting",
+  "step": {
+    "power": "Check that the sensor has power and is switched on.",
+    "cable": "Check that the sensor cable and the gateway are connected.",
+    "display": "Check the sensor’s own display, if it has one, for an error.",
+    "signal": "Make sure the gateway or network has signal, then try again.",
+    "admin": "If the problem continues, contact your system administrator."
+  },
+  "checking": "Checking this device",
+  "stillNone_one": "Still no reading after {{count}} check. The server has not received a newer reading for this parameter.",
+  "stillNone_other": "Still no reading after {{count}} checks. The server has not received a newer reading for this parameter.",
+  "checkingShort": "Checking",
+  "retry": "Retry",
+  "retryHint": "Checks this device again. It does not create a reading."
+}

@@ -1,0 +1,21 @@
+{
+  "saveFailed": "Could not save the note.",
+  "title": "Field notes",
+  "hint": "What you saw at the pond. The alert assistant reads recent notes. Notes never raise or close an alert.",
+  "newNote": "New note",
+  "placeholder": "For example: Fish gulping at the surface near the inlet",
+  "save": "Save note",
+  "loadFailed": "Could not load notes. Check your connection.",
+  "empty": "No notes for this pond yet.",
+  "distress": "Possible distress",
+  "category": {
+    "low_oxygen_signs": "Signs of low oxygen",
+    "disease_signs": "Signs of disease",
+    "feeding_change": "Feeding change",
+    "water_appearance": "Water appearance",
+    "equipment_issue": "Equipment issue",
+    "routine_normal": "Routine, nothing unusual",
+    "other": "Other",
+    "unclassified": "Not sorted"
+  }
+}
