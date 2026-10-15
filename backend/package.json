@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "scripts": {
     "start": "node src/server.js",
+    "chroma:migrate": "node scripts/migrate-chroma.js",
+    "test:chroma:live": "node scripts/test-chroma.js",
+    "chroma:eval": "node scripts/eval-knowledge.js",
+    "test:rag:live": "node scripts/test-rag-prompts.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "test:unit": "node --test \"tests/unit/*.test.js\"",
     "test:integration": "node --test --test-concurrency=1 \"tests/integration/*.test.js\""
@@ -13,6 +17,9 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@chroma-core/chroma-cloud-qwen": "^0.1.12",
+    "@chroma-core/chroma-cloud-splade": "^0.1.12",
+    "chromadb": "^3.5.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "mongodb": "^6.10.0",

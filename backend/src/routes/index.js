@@ -27,7 +27,7 @@ export function buildRouter(deps) {
     let ml = 'disabled';
     if (config.ml.enabled && deps.ml) { try { await deps.ml.ping(); ml = 'ready'; } catch { ml = 'unavailable'; } }
     const ok = database === 'up';
-    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), llm: Boolean(deps.advisor && config.ai?.llm?.url), call: Boolean(deps.advisor && config.ai?.call?.enabled), callMissing: config.ai?.call?.missing ?? [] }, ml: { status: ml } });
+    res.status(ok ? 200 : 503).json({ status: !ok ? 'down' : ml === 'unavailable' ? 'degraded' : 'ok', time: now(), uptimeSeconds: Math.round(process.uptime()), database: { status: database, target: dbTarget }, demo: { enabled: config.demoEnabled }, ai: { advisor: Boolean(deps.advisor), chatbot: Boolean(deps.chatbot), llm: Boolean((deps.advisor || deps.chatbot) && config.ai?.llm?.url), call: Boolean(deps.advisor && config.ai?.call?.enabled), callMissing: config.ai?.call?.missing ?? [] }, ml: { status: ml } });
   }));
 
   // The backend owns the rules; clients read them here instead of duplicating numbers.
@@ -140,7 +140,17 @@ export function buildRouter(deps) {
   r.get('/analytics/compare', asyncHandler(async (req, res) => res.json(await comparePonds(db, config, req.query))));
 
   r.get('/ponds/:id/notes', asyncHandler(async (req, res) => res.json(await listNotes(db, await requirePond(db, req.params.id), Number.parseInt(req.query.limit, 10) || 20))));
-  r.post('/ponds/:id/notes', asyncHandler(async (req, res) => res.status(201).json(await addNote({ db, jev: deps.jev, now }, await requirePond(db, req.params.id), req.body))));
+  r.post('/ponds/:id/notes', asyncHandler(async (req, res) => {
+    const pond = await requirePond(db, req.params.id);
+    const note = await addNote({ db, jev: deps.jev, now }, pond, req.body);
+    if (deps.chatbot) await deps.chatbot.indexNote(pond, note);
+    res.status(201).json(note);
+  }));
+
+  if (deps.chatbot) {
+    r.post('/ponds/:id/chat', asyncHandler(async (req, res) => res.json(await deps.chatbot.chat(await requirePond(db, req.params.id), req.body))));
+    r.get('/ponds/:id/chat/:conversationId', asyncHandler(async (req, res) => res.json(await deps.chatbot.history(await requirePond(db, req.params.id), req.params.conversationId))));
+  }
 
   r.get('/alerts', asyncHandler(async (req, res) => res.json(await listAlerts(db, config, req.query))));
   r.patch('/alerts/:id/acknowledge', asyncHandler(async (req, res) => {
