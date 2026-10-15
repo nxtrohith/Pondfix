@@ -15,18 +15,19 @@ export const fontSize = {
   heading: 30,
   sectionHeading: 22,
   cardHeading: 18,
-  measurement: 24,
-  body: 15,
-  secondary: 13,
-  metadata: 12,
+  measurement: 28,
+  // Body 16 and nothing below 13: readable outdoors on a small, inexpensive phone.
+  body: 16,
+  secondary: 14,
+  metadata: 13,
 } as const;
 
 export const layout = {
   screenPaddingX: spacing.md,
   cardPadding: spacing.md,
-  minTouchTarget: 44,
-  bottomNavHeight: 64,
-  borderWidth: 0.5,
+  minTouchTarget: 48,
+  bottomNavHeight: 68,
+  borderWidth: 1,
   /** Content stops growing at this width, so a tablet shows a centred phone-width column instead of stretched cards. */
   maxContentWidth: 560,
 } as const;
@@ -34,6 +35,6 @@ export const layout = {
 /** Elevation. Barely-there depth: low opacity, a small offset and a soft blur, in the palette's own olive, never a black drop shadow. */
 export const shadow = {
   none: {},
-  card: { shadowColor: '#2F3A27', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
-  button: { shadowColor: '#2F3A27', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 2 },
+  card: { shadowColor: '#17282A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 1 },
+  button: { shadowColor: '#17282A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 8, elevation: 2 },
 } as const;

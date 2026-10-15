@@ -106,25 +106,26 @@ describe('current water quality card', () => {
   const rule = { label: 'pH', unit: 'pH', enabled: true, source: 'provisional_demo', acceptableRange: { min: 6.5, max: 8.5 } };
   it('shows value, status in words, freshness and the normal range from the backend rule', () => {
     render(<WaterQualityCard parameter="ph" reading={reading(9.2, 'CRITICAL', 'pH')} rule={rule} />);
-    const c = screen.getByRole('region', { name: 'pH' });
-    expect(c).toHaveTextContent('9.20'); expect(c).toHaveTextContent('Critical'); expect(c).toHaveTextContent('Updated 3 min ago'); expect(c).toHaveTextContent('Normal: 6.5 to 8.5 (provisional limit)');
+    const c = screen.getByRole('region', { name: 'pH (acid or alkaline)' });
+    expect(c).toHaveTextContent('9.20'); expect(c).toHaveTextContent('Critical'); expect(c).toHaveTextContent('Updated 3 min ago'); expect(c).toHaveTextContent('Safe range: 6.5 to 8.5 (provisional)');
+    expect(c).toHaveTextContent('The water is far too alkaline.'); expect(c).toHaveTextContent('Pond sensor'); expect(c).toHaveTextContent('Why this matters');
   });
   it('a missing factor is "No reading", never zero or normal; an old one is flagged as not recent', () => {
     const { rerender } = render(<WaterQualityCard parameter="temperature" />);
-    const c = screen.getByRole('region', { name: 'Temperature' });
-    expect(c).toHaveTextContent('No reading'); expect(c).toHaveTextContent('No recent data'); expect(c).not.toHaveTextContent('Normal');
+    const c = screen.getByRole('region', { name: 'Water temperature' });
+    expect(c).toHaveTextContent('No reading'); expect(c).toHaveTextContent('No recent data'); expect(c).not.toHaveTextContent('Normal'); expect(c).not.toHaveTextContent('comfortable');
     rerender(<WaterQualityCard parameter="temperature" reading={reading(27, 'STALE', 'C', { ageMinutes: 400 })} />);
-    expect(screen.getByRole('region', { name: 'Temperature' })).toHaveTextContent('Data is not recent');
-    expect(screen.getByRole('region', { name: 'Temperature' })).toHaveTextContent('Updated 7 h ago');
+    expect(screen.getByRole('region', { name: 'Water temperature' })).toHaveTextContent('Data is not recent');
+    expect(screen.getByRole('region', { name: 'Water temperature' })).toHaveTextContent('Updated 7 h ago');
   });
 });
 
 describe('navigation and shared limit lines', () => {
-  it('has four everyday pages (including the chat assistant), three secondary tools, and no separate Forecasts page', () => {
-    expect(NAV_GROUPS[0]!.items.map((i) => i.label)).toEqual(['Overview', 'Ponds', 'Alerts', 'Ask PondFix']);
-    expect(NAV_GROUPS[1]!.items.map((i) => i.label)).toEqual(['Compare ponds', 'Demo & simulation', 'Tests']);
+  it('has five farmer tasks (also the phone bottom bar), four secondary tools, and no separate Forecasts page', () => {
+    expect(NAV_GROUPS[0]!.items.map((i) => i.label)).toEqual(['Home', 'My Ponds', 'Alerts', 'Pond Health', 'Help']);
+    expect(NAV_GROUPS[1]!.items.map((i) => i.label)).toEqual(['Ask PondFix', 'Demo & simulation', 'Advisor test lab', 'System status']);
     expect(NAV.some((i) => i.href === '/forecasts')).toBe(false);
-    expect(pageTitle('/health').title).toBe('System status'); expect(pageTitle('/ponds/abc')).toEqual({ title: 'Pond details', parent: { label: 'Ponds', href: '/ponds' } });
+    expect(pageTitle('/health').title).toBe('System status'); expect(pageTitle('/ponds/abc')).toMatchObject({ title: 'Pond details', parent: { label: 'My Ponds', href: '/ponds' } });
     expect(isActive('/ponds/abc', '/ponds')).toBe(true);
   });
   it('limit lines come from the backend rules for every factor', () => {
@@ -143,7 +144,7 @@ describe('marking an alert as seen from any list', () => {
     api.acknowledgeAlert.mockResolvedValue({ alert: { ...al, status: 'ACKNOWLEDGED' }, changed: true });
     render(<AlertFeed alerts={[al]} pondNames={{ p1: 'Pond 1' }} showGuidance />);
     const card = screen.getByRole('article', { name: 'Dissolved oxygen is critically low' });
-    expect(card).toHaveTextContent('Current: 1.80 mg/L'); expect(card).toHaveTextContent('What to check:'); expect(card).toHaveTextContent('Pond 1');
+    expect(card).toHaveTextContent('Current: 1.80 mg/L'); expect(card).toHaveTextContent('What to do now'); expect(card).toHaveTextContent('Switch on the aerator now. Do not wait.'); expect(card).toHaveTextContent('Pond 1');
     fireEvent.click(within(card).getByRole('button', { name: 'Mark as seen' }));
     await waitFor(() => expect(screen.getByRole('article', { name: 'Dissolved oxygen is critically low' })).toHaveTextContent('Marked as seen: the condition is still active'));
     expect(screen.queryByRole('button', { name: 'Mark as seen' })).toBeNull();

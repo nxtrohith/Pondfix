@@ -16,7 +16,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, busy, onCon
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-xl border border-line bg-card p-0 text-ink backdrop:bg-ink/30">
       <div className="p-6">
         <h2 id="confirm-title" className="text-base font-medium">{title}</h2>
-        <div className="mt-2 space-y-2 text-[13px] leading-relaxed text-ink-soft">{children}</div>
+        <div className="mt-2 space-y-2 text-sm leading-relaxed text-ink-soft">{children}</div>
         <div className="mt-6 flex justify-end gap-2">
           <Button onClick={onCancel} disabled={busy}>Cancel</Button>
           <Button variant="primary" onClick={onConfirm} disabled={busy}>{busy ? 'Submitting' : confirmLabel}</Button>

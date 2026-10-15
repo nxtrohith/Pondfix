@@ -133,7 +133,7 @@ function CompareSection({ parameter, pondIds, end, range, rules }: { parameter: 
                   const has = r.count > 0; const sev = has ? severity(r.lastValue, parameter, rules) : undefined;
                   return (
                     <Tr key={r.pondId}>
-                      <Td className={cx('max-w-56 font-semibold', STICKY_COL)}><span className="flex items-center gap-2"><span aria-hidden className="size-2 shrink-0 rounded-full bg-sage" /><span className="truncate" title={r.name}>{r.name}</span></span></Td>
+                      <Td className={cx('max-w-56 font-semibold', STICKY_COL)}><span className="flex items-center gap-2"><span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-soft" /><span className="truncate" title={r.name}>{r.name}</span></span></Td>
                       <Td className="text-right tabular-nums">{r.count}</Td>
                       <Td className="text-right">{has ? <Num v={r.mean} p={parameter} unit={r.unit} /> : <span className="text-ink-soft">no readings</span>}</Td>
                       <Td className="text-right">{has ? <Num v={r.min} p={parameter} unit={r.unit} /> : <span className="text-ink-soft">n/a</span>}</Td>
@@ -200,8 +200,8 @@ export function AnalyticsWorkspace({ ponds, initialPondId, rules }: { ponds: Tre
                 {ponds.map((p) => {
                   const on = picked.includes(p.id);
                   return (
-                    <label key={p.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] hover:bg-surface">
-                      <input type="checkbox" className="size-4 accent-[#637957]" checked={on} disabled={!on && picked.length >= MAX_COMPARE} onChange={() => setPicked((s) => (on ? s.filter((x) => x !== p.id) : [...s, p.id]))} />
+                    <label key={p.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
+                      <input type="checkbox" className="size-4 accent-brand" checked={on} disabled={!on && picked.length >= MAX_COMPARE} onChange={() => setPicked((s) => (on ? s.filter((x) => x !== p.id) : [...s, p.id]))} />
                       {p.name}
                     </label>
                   );

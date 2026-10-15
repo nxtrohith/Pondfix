@@ -11,19 +11,38 @@
   "tile": {
     "total": "Total ponds",
     "healthy": "Healthy",
-    "warning": "Warning",
-    "critical": "Critical"
+    "warning": "Attention",
+    "critical": "Urgent"
   },
   "incomplete_one": "{{count}} pond has incomplete data. It is not counted as healthy.",
   "incomplete_other": "{{count}} ponds have incomplete data. They are not counted as healthy.",
   "currentReadings": "{{current}} of {{total}} ponds have a current reading.",
   "openPonds": "Open ponds",
-  "recentAlerts": "Recent alerts",
+  "recentAlerts": "Other problems",
   "seeAll": "See all",
   "alertsErrorBody": "Alerts will appear here as soon as the server can be reached.",
   "allHealthyTitle": "All ponds are healthy",
   "allHealthyBody": "No active water-quality alerts.",
   "noAlertsBody": "No water-quality alerts are open. Ponds with old or missing readings are not counted as healthy.",
   "aboutTitle": "About these numbers",
-  "aboutBody": "Ponds, readings and alerts come from the PondFix server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it."
+  "aboutBody": "Ponds, readings and alerts come from the PondFix server. A pond is healthy only when all three readings are current and within range. Acknowledging an alert does not resolve it.",
+  "pondPicker": "Choose a pond",
+  "pondPickerHint": "Shows this pond's readings below. Your choice is remembered.",
+  "pondReadings": "{{name}}: readings now",
+  "openPond": "Open {{name}}",
+  "mostUrgent": "Most urgent: {{name}}",
+  "lastReading": "Last reading {{age}}",
+  "lastReadingNever": "No reading received yet",
+  "farmCounts": "Your ponds",
+  "testData": "Includes test data",
+  "headline": {
+    "urgent_one": "{{count}} pond needs action now",
+    "urgent_other": "{{count}} ponds need action now",
+    "attention_one": "{{count}} pond needs attention",
+    "attention_other": "{{count}} ponds need attention",
+    "healthy_one": "Your pond is healthy",
+    "healthy_other": "All {{count}} ponds are healthy",
+    "unknown": "{{unknown}} of {{total}} ponds have no recent reading"
+  },
+  "fullInstructions": "Full instructions"
 }

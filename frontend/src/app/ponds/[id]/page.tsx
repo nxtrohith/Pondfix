@@ -6,7 +6,6 @@ import { ApiError, serverApi } from '@/lib/api/client';
 import { toRow } from '@/lib/fleet';
 import { ALERT_PARAMETERS, CHEMISTRY_PARAMETERS } from '@/lib/alerts';
 import { formatDateTime } from '@/lib/format';
-import { POND_STATUS } from '@/lib/terms';
 import { PondScene } from '@/components/illustrations';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -26,6 +25,9 @@ import { EquipmentDemoPanel } from '@/components/features/EquipmentDemoPanel';
 import { PondNotes } from '@/components/features/PondNotes';
 import { SpeciesSettings } from '@/components/features/SpeciesSettings';
 import { isConfigured, speciesLine } from '@/lib/species';
+import { PARAMETER_URGENCY, pondVerdict } from '@/lib/care';
+import { PondVerdictBanner } from '@/components/features/PondStatusHero';
+import { ActionSteps } from '@/components/features/ActionSteps';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 const NOT_RECORDED = <span className="text-ink-soft">Not recorded</span>;
 const Section = ({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) => (
   <section aria-labelledby={id} className="space-y-3">
-    <div><h2 id={id} className="text-lg font-medium tracking-tight text-ink">{title}</h2>{hint ? <p className="mt-0.5 text-[13px] text-ink-soft">{hint}</p> : null}</div>
+    <div><h2 id={id} className="text-xl font-semibold tracking-tight text-ink">{title}</h2>{hint ? <p className="mt-0.5 text-sm text-ink-soft">{hint}</p> : null}</div>
     {children}
   </section>
 );
@@ -64,24 +66,31 @@ export default async function PondDetailPage({ params, searchParams }: { params:
   const problems = openR.status === 'fulfilled' ? openR.value.items : null;
   const past = pastR.status === 'fulfilled' ? pastR.value.items : [];
   const preds = predsR.status === 'fulfilled' ? predsR.value.items : null;
+  const worst = [...(problems ?? [])].sort((a, b) => (a.severity !== b.severity ? (a.severity === 'CRITICAL' ? -1 : 1) : (PARAMETER_URGENCY[a.parameter] ?? 9) - (PARAMETER_URGENCY[b.parameter] ?? 9)))[0];
+  const directionOf = (p: string) => problems?.find((a) => a.parameter === p)?.direction;
+  const verdict = pondVerdict(row.risk);
 
   return (
     <>
-      <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
+      <div className="mb-3"><Link href="/ponds" className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink"><ArrowLeft size={14} aria-hidden="true" />All ponds</Link></div>
       <PageHeader
         title={row.pond.name}
         visual={<PondScene health={row.risk} size={112} />}
-        description={<>{POND_STATUS[row.risk].summary} <span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>{isConfigured(pond.speciesConfig) ? `Species: ${speciesLine(pond.speciesConfig)}.` : 'Species not set yet.'}</span></>}
-        actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-[13px] text-ink-soft" /></>)}
+        description={<span className={isConfigured(pond.speciesConfig) ? 'text-ink' : 'text-warn-text'}>{isConfigured(pond.speciesConfig) ? `Species: ${speciesLine(pond.speciesConfig)}.` : 'Species not set yet.'}</span>}
+        actions={(<><StatusBadge status={row.risk} scope="pond" className="h-8 px-3 text-sm" /><LastUpdated at={row.latestAt} ageMinutes={row.latestAgeMinutes} className="text-sm text-ink-soft" /></>)}
       />
       <div className="space-y-8">
+        <PondVerdictBanner verdict={verdict} latestAt={row.latestAt} latestAgeMinutes={row.latestAgeMinutes} staleAfterMinutes={rules?.staleAfterMinutes} />
+        {worst ? <ActionSteps parameter={worst.parameter} direction={worst.direction} severity={worst.severity} backendAction={worst.recommendedAction} headingLevel="h2" />
+          : verdict === 'unknown' ? <ActionSteps stale headingLevel="h2" /> : null}
+
         {summaryR.status === 'rejected' ? <Card><ErrorState server error={summaryR.reason} title="Could not load the latest readings" /></Card> : null}
 
         <Section id="attention" title="What needs attention?">
           {openR.status === 'rejected' ? <Card><ErrorState server error={openR.reason} title="Could not load current problems" /></Card>
-            : problems && problems.length ? <AlertFeed alerts={problems} pondNames={{ [pond.id]: row.pond.name }} compact showGuidance />
+            : problems && problems.length ? <AlertFeed alerts={problems} pondNames={{ [pond.id]: row.pond.name }} compact showGuidance stepsLimit={1} />
             : (
-              <p className="flex items-start gap-2 rounded-xl border border-line bg-card px-4 py-4 text-[13px] text-ink">
+              <p className="flex items-start gap-2 rounded-xl border border-line bg-card px-4 py-4 text-sm text-ink">
                 <CheckCircle size={18} weight="fill" className="mt-px shrink-0 text-ok-text" aria-hidden="true" />
                 <span><span className="font-medium">No current problems.</span> {row.risk === 'STALE' || row.risk === 'NO_DATA' ? 'The readings are not recent, so check that the sensors are sending data.' : 'Every reading is within the acceptable range.'}</span>
               </p>
@@ -90,15 +99,15 @@ export default async function PondDetailPage({ params, searchParams }: { params:
 
         {showEquipmentDemo ? <EquipmentDemoPanel /> : null}
 
-        <PondNotes pondId={pond.id} />
-
         {summary ? (
           <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
             <div className={hasLiveLevel ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4' : 'grid grid-cols-1 gap-4 md:grid-cols-3'}>
-              {cardParameters.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} />)}
+              {cardParameters.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} direction={directionOf(p)} />)}
             </div>
           </Section>
         ) : null}
+
+        <PondNotes pondId={pond.id} />
 
         {downstreamR.status === 'fulfilled' && summary ? (
           <Section id="watch" title="What to watch for" hint="If one reading is moving, it can push another. These are rules of thumb from the latest readings, not measurements, and they never raise an alert.">
@@ -131,9 +140,9 @@ export default async function PondDetailPage({ params, searchParams }: { params:
 
         <Section id="past" title="Earlier problems" hint="The five most recent that have been resolved.">
           {pastR.status === 'rejected' ? <Card><ErrorState server error={pastR.reason} title="Could not load earlier problems" /></Card>
-            : past.length === 0 ? <p className="text-[13px] text-ink-soft">No resolved problems for this pond yet.</p>
+            : past.length === 0 ? <p className="text-sm text-ink-soft">No resolved problems for this pond yet.</p>
             : <AlertCardList alerts={past} compact />}
-          <p className="text-[13px]"><Link href={`/alerts?pond=${pond.id}`} className="text-olive-text underline-offset-2 hover:underline">See every alert for this pond</Link></p>
+          <p className="text-sm"><Link href={`/alerts?pond=${pond.id}`} className="text-brand-text underline-offset-2 hover:underline">See every alert for this pond</Link></p>
         </Section>
 
         <DataSourceToggle scope="pond" pondId={pond.id} pondName={row.pond.name} value={pond.dataSource ?? 'sensor'} />
@@ -143,7 +152,7 @@ export default async function PondDetailPage({ params, searchParams }: { params:
 
         <details className="rounded-xl border border-line bg-card">
           <summary className="cursor-pointer px-5 py-3.5 text-sm font-medium text-ink">Pond details</summary>
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-4 px-5 pb-5 pt-1 text-[13px] sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-4 px-5 pb-5 pt-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
             {([
               ['Name', row.pond.name], ['Source identifier', pond.sourceId ? <span key="s" className="font-mono text-xs">{pond.sourceId}</span> : NOT_RECORDED],
               ['Data from', pond.sourceDataset ?? NOT_RECORDED], ['Monitoring', <span key="m" className="capitalize">{pond.status}</span>],

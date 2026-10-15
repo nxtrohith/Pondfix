@@ -1,0 +1,33 @@
+{
+  "title": "Help",
+  "description": "What the readings mean, what to do in an emergency, and how to fix missing data.",
+  "emergency": "In an emergency",
+  "colours": "What the colours and words mean",
+  "measurements": "What each reading means",
+  "troubleshoot": "Readings are missing or old",
+  "troubleshootIntro": "Work through these checks in order. Each one tells you where the problem is.",
+  "stepPhone": "Is this phone online?",
+  "stepPhoneBody": "Open any other website or app. If nothing loads, the problem is your internet, not the pond.",
+  "stepService": "Can PondFix be reached?",
+  "stepServiceBody": "If other apps work but PondFix says “Can’t reach PondFix”, the service is down. Your pond device may still be recording. Try again in a few minutes.",
+  "stepDevice": "Is the pond device sending readings?",
+  "stepDeviceBody": "If PondFix loads but a pond says “Pond device not reporting”, check the device at the pond: power, Wi-Fi or mobile signal, and that the sensor is in the water.",
+  "stepConfirm": "Confirm readings are back",
+  "stepConfirmBody": "New readings appear by themselves. The pond’s “Last reading” time will show “just now” when the device is sending again.",
+  "now": "Right now: {{state}}",
+  "diagnostics": "Open connection details",
+  "status": {
+    "healthy": "Healthy: every reading is in the safe range.",
+    "warning": "Attention: a reading is outside the safe range. Check it today.",
+    "critical": "Urgent: fish may be in danger. Act now.",
+    "unknown": "No recent reading: we cannot tell how the pond is. This is never shown as healthy."
+  },
+  "problems": {
+    "dissolved_oxygen_low": "Oxygen is low",
+    "ph_high": "pH is too high",
+    "ph_low": "pH is too low",
+    "temperature_high": "Water is too warm",
+    "ammonia_high": "Ammonia is high"
+  },
+  "notMeasured": "Not measured by the pond device. Shown only when entered or calculated."
+}

@@ -52,7 +52,7 @@ export function WhatIfPlayground() {
         <CardHeader id="whatif-title" title="What if…" description="Pick a situation, or set the conditions yourself. Nothing is saved and no alert is created." />
         <CardBody className="space-y-5">
           <div>
-            <p className="text-[13px] font-medium text-ink">Try a situation</p>
+            <p className="text-sm font-medium text-ink">Try a situation</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {WHATIF_PRESETS.map((p) => (
                 <Button key={p.id} size="sm" variant={preset === p.id ? 'primary' : 'secondary'} aria-pressed={preset === p.id} title={p.hint} onClick={() => { setInput(p.input); setPreset(p.id); }}>{p.label}</Button>
@@ -73,12 +73,12 @@ export function WhatIfPlayground() {
           </div>
 
           <div>
-            <p className="text-[13px] font-medium text-ink">Time of day</p>
+            <p className="text-sm font-medium text-ink">Time of day</p>
             <div className="mt-2"><Segmented<string> label="Time of day" value={String(input.hourIst)} onChange={(v) => set('hourIst', Number(v))} options={[...TIMES_OF_DAY]} /></div>
           </div>
 
           <details className="rounded-lg border border-line bg-surface px-4 py-3">
-            <summary className="cursor-pointer text-[13px] font-medium text-ink">Add other water chemistry (optional)</summary>
+            <summary className="cursor-pointer text-sm font-medium text-ink">Add other water chemistry (optional)</summary>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {(['ammonia', 'nitrite', 'alkalinity'] as const).map((k) => (
                 <Field key={k} label={`${WHATIF_LABEL[k]} (${WHATIF_UNIT[k]})`} error={errors[k]}>
@@ -96,14 +96,14 @@ export function WhatIfPlayground() {
         <CardBody className="space-y-5" >
           <div aria-live="polite" className="space-y-5">
             {shownError ? <ErrorState error={shownError} title="Could not work this out" onRetry={() => setRetry((n) => n + 1)} />
-              : !shownResult ? <p className="text-[13px] text-ink-soft">{built.ok ? 'Working it out…' : 'Fix the highlighted values to see the result.'}</p>
+              : !shownResult ? <p className="text-sm text-ink-soft">{built.ok ? 'Working it out…' : 'Fix the highlighted values to see the result.'}</p>
               : (
                 <>
                   <section aria-label="Status of each value">
-                    <h3 className="text-[13px] font-medium text-ink">Would any alert be raised?</h3>
+                    <h3 className="text-sm font-medium text-ink">Would any alert be raised?</h3>
                     <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
                       {Object.entries(shownResult.status).map(([p, s]) => (
-                        <li key={p} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[13px]">
+                        <li key={p} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
                           <span className="text-ink">{PARAM_LABEL[p] ?? s.label} <span className="tabular-nums text-ink-soft">{formatValue(s.value, p)}</span></span>
                           <span className="flex items-center gap-2">
                             {s.direction ? <span className="text-xs text-ink-soft">{s.direction === 'high' ? 'above' : 'below'} the limit of {s.threshold}</span> : null}
@@ -121,9 +121,9 @@ export function WhatIfPlayground() {
                   </section>
 
                   <section aria-label="What to watch for">
-                    <h3 className="text-[13px] font-medium text-ink">What to watch for</h3>
+                    <h3 className="text-sm font-medium text-ink">What to watch for</h3>
                     {shownResult.risks.length ? <div className="mt-2"><DownstreamRiskList risks={shownResult.risks} compact /></div>
-                      : <p className={cx('mt-2 text-[13px] text-ink-soft')}>Nothing to watch for in this situation. That is not a guarantee: only the rules above were checked.</p>}
+                      : <p className={cx('mt-2 text-sm text-ink-soft')}>Nothing to watch for in this situation. That is not a guarantee: only the rules above were checked.</p>}
                   </section>
                   <p className="text-xs text-ink-soft">{shownResult.note}</p>
                 </>

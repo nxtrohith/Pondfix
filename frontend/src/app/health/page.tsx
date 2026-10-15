@@ -61,7 +61,7 @@ export default async function HealthPage() {
         <section aria-label="Services" className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {services.map((s) => { const I = Icon(s.tone); return (
             <Card key={s.name} className="p-5">
-              <div className="flex items-center justify-between gap-3"><p className="text-[13px] text-ink-soft">{s.name}</p><I size={20} className="text-ink-soft" aria-hidden="true" /></div>
+              <div className="flex items-center justify-between gap-3"><p className="text-sm text-ink-soft">{s.name}</p><I size={20} className="text-ink-soft" aria-hidden="true" /></div>
               <div className="mt-3"><StatusPill tone={s.tone}>{s.label}</StatusPill></div>
               <p className="mt-3 text-xs leading-relaxed text-ink-soft">{s.detail}</p>
             </Card>
@@ -71,7 +71,7 @@ export default async function HealthPage() {
         <Card aria-labelledby="data-title">
           <CardHeader id="data-title" title="Data freshness" description="Derived from stored readings and forecasts, not from the health check." />
           {fleetR.status === 'rejected' ? <ErrorState server error={fleetR.reason} title="Could not load pond data" /> : (
-            <dl className="grid grid-cols-1 gap-x-8 gap-y-5 px-5 pb-5 pt-4 text-[13px] sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid grid-cols-1 gap-x-8 gap-y-5 px-5 pb-5 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <div><dt className="text-ink-soft">Ponds</dt><dd className="mt-0.5 text-ink">{stats?.total} total, {fresh} with fresh data</dd></div>
               <div><dt className="text-ink-soft">Latest reading</dt><dd className="mt-0.5 text-ink">{stats?.latestAt ? `${formatDateTime(stats.latestAt)} (${formatAge(stats.latestAgeMinutes)})` : 'No readings recorded'}</dd></div>
               <div><dt className="text-ink-soft">Latest forecast stored</dt><dd className="mt-0.5 text-ink">{lastForecast ? formatDateTime(lastForecast) : 'No forecast has been stored'}</dd></div>
@@ -84,7 +84,7 @@ export default async function HealthPage() {
         <Card aria-labelledby="rules-title">
           <CardHeader id="rules-title" title="Risk rules in use" description="Owned by the backend and read from its API." />
           {rules ? (
-            <div className="space-y-3 pb-5 pt-4 text-[13px]">
+            <div className="space-y-3 pb-5 pt-4 text-sm">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5">
                 <StatusPill tone={rules.mode === 'configured' ? 'neutral' : 'warning'}>{rules.mode === 'configured' ? 'Configured limits' : 'Provisional demo limits'}</StatusPill>
                 {rules.version ? <span className="text-xs text-ink-soft">Rule set {rules.version}</span> : null}

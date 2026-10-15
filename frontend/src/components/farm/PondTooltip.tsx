@@ -9,7 +9,7 @@ export function PondTooltip({ snap, demo }: { snap: PondSnapshot; demo?: boolean
   return (
     <div className="w-64 rounded-lg border border-line bg-card p-3 text-xs shadow-[0_4px_16px_rgba(52,55,47,0.14)]" role="status">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0"><p className="truncate text-[13px] font-medium text-ink">{snap.name}</p><p className={snap.speciesSet ? 'truncate text-[11px] text-ink-soft' : 'truncate text-[11px] text-warn-text'}>{snap.species}</p>{demo ? <p className="text-[11px] text-olive-text">Demo fixture</p> : null}</div>
+        <div className="min-w-0"><p className="truncate text-sm font-medium text-ink">{snap.name}</p><p className={snap.speciesSet ? 'truncate text-xs text-ink-soft' : 'truncate text-xs text-warn-text'}>{snap.species}</p>{demo ? <p className="text-xs text-brand-text">Demo fixture</p> : null}</div>
         <StatusBadge status={snap.risk} scope="pond" />
       </div>
       {snap.readings.length ? (
@@ -26,7 +26,7 @@ export function PondTooltip({ snap, demo }: { snap: PondSnapshot; demo?: boolean
           {snap.problems.length > 2 ? <li className="font-normal text-ink-soft">and {snap.problems.length - 2} more</li> : null}
         </ul>
       ) : null}
-      {snap.forecastWarnings ? <p className="mt-1.5 text-olive-text">Forecast warning: a problem may develop soon</p> : null}
+      {snap.forecastWarnings ? <p className="mt-1.5 text-brand-text">Forecast warning: a problem may develop soon</p> : null}
     </div>
   );
 }

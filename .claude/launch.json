@@ -1,7 +1,41 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "backend", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "backend", "run", "start"], "port": 4000 },
-    { "name": "frontend", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "frontend", "run", "dev"], "port": 3000 }
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "backend",
+        "run",
+        "start"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "mobile-app",
+        "run",
+        "web",
+        "--",
+        "--port",
+        "8081"
+      ],
+      "port": 8081
+    }
   ]
 }

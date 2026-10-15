@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   summary: { backgroundColor: colors.surface, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.card, padding: spacing.md, gap: spacing.xs },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textOnBackground },
   body: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary, lineHeight: 19 },
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 8, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 8, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, flexWrap: 'wrap' },
   name: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   line: { fontSize: fontSize.body, color: colors.textPrimary, fontWeight: '600' },

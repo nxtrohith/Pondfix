@@ -1,0 +1,98 @@
+// English is the source of truth for every farmer-facing string on the web. Other languages are partial: a missing key falls back to
+// English, so an unfinished dictionary never shows a raw key. `care` (status verdicts, measurement explanations, action steps,
+// connection states) is shared word for word with the mobile app: see tests/design-tokens.test.ts.
+import care from './care.en.json';
+
+export const en = {
+  care,
+  brand: 'PondFix',
+  nav: {
+    main: 'Main',
+    home: 'Home',
+    ponds: 'My Ponds',
+    alerts: 'Alerts',
+    health: 'Pond Health',
+    /** Short labels for the phone's bottom bar (five fit at 320px). */
+    pondsShort: 'Ponds',
+    healthShort: 'Health',
+    help: 'Help',
+    more: 'More',
+    ask: 'Ask PondFix',
+    demo: 'Demo & simulation',
+    tests: 'Advisor test lab',
+    system: 'System status',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    menu: 'Menu',
+    skip: 'Skip to content',
+    searchPonds: 'Search ponds',
+    refresh: 'Refresh readings',
+    alertCount: '{{count}} open alerts',
+    alertCountUnknown: 'Alert count unavailable',
+    pondDetails: 'Pond details',
+  },
+  language: {
+    label: 'Language',
+    draftNote: 'Telugu is a draft translation. Safety instructions stay in English until a reviewed translation is ready.',
+  },
+  home: {
+    title: 'Home',
+    description: 'Is your pond safe right now, and what should you do?',
+    lastReading: 'Last reading {{age}}',
+    lastReadingNever: 'No reading received yet',
+    pondsLine: '{{healthy}} healthy · {{attention}} need attention · {{unknown}} no recent reading',
+    worstPond: 'Most urgent: {{pond}}',
+    openAlert: 'See full instructions',
+    openPond: 'Open {{pond}}',
+    allProblems: 'See all {{count}} problems',
+    needsAttention: 'Needs attention now',
+    needsAttentionHint: 'Measured problems, most serious first.',
+    noProblems: 'No measured problems right now.',
+    noProblemsUnknown: 'No measured problems, but some ponds have no recent reading, so their condition is not known.',
+    upcoming: 'Possible problems soon',
+    upcomingHint: 'Forecasts, not measurements. They may not happen.',
+    noUpcoming: 'No forecast warnings right now.',
+    yourPonds: 'Your ponds',
+    yourPondsHint: 'Most serious first.',
+    seeAllPonds: 'See all ponds',
+    farmMap: 'Farm map',
+    tryDemo: 'Try the demo',
+    testData: 'Includes test data',
+  },
+  help: {
+    title: 'Help',
+    description: 'What the readings mean, what to do in an emergency, and how to fix missing data.',
+    emergency: 'In an emergency',
+    colours: 'What the colours and words mean',
+    measurements: 'What each reading means',
+    safeRange: 'Safe range',
+    safeRangeUnknown: 'Set by your farm’s alert limits',
+    troubleshoot: 'Readings are missing or old',
+    troubleshootIntro: 'Work through these checks in order. Each one tells you where the problem is.',
+    stepPhone: 'Is this phone or computer online?',
+    stepPhoneBody: 'Open any other website or app. If nothing loads, the problem is your internet, not the pond.',
+    stepService: 'Can PondFix be reached?',
+    stepServiceBody: 'If other websites work but PondFix says “Can’t reach PondFix”, the service is down. Your pond device may still be recording. Try again in a few minutes.',
+    stepDevice: 'Is the pond device sending readings?',
+    stepDeviceBody: 'If PondFix loads but a pond says “Pond device not reporting”, check the device at the pond: power, Wi-Fi or mobile signal, and that the sensor is in the water.',
+    stepConfirm: 'Confirm readings are back',
+    stepConfirmBody: 'New readings appear by themselves. The pond’s “Last reading” time will show “just now” when the device is sending again.',
+    systemLink: 'Check the PondFix service status',
+    ask: 'Still unsure? Ask PondFix',
+    askBody: 'Ask a question in your own words about your pond, your fish or a reading.',
+    status: {
+      healthy: 'Healthy: every reading is in the safe range.',
+      warning: 'Attention: a reading is outside the safe range. Check it today.',
+      critical: 'Urgent: fish may be in danger. Act now.',
+      unknown: 'No recent reading: we cannot tell how the pond is. This is never shown as healthy.',
+    },
+  },
+  ponds: {
+    title: 'My Ponds',
+  },
+} as const;
+
+type Widen<T> = T extends string ? string : T extends readonly (infer U)[] ? readonly Widen<U>[] : { [K in keyof T]: Widen<T[K]> };
+export type Dictionary = Widen<typeof en>;
+type DeepPartial<T> = T extends string ? string : T extends readonly unknown[] ? T : { [K in keyof T]?: DeepPartial<T[K]> };
+export type PartialDictionary = DeepPartial<Dictionary>;

@@ -73,7 +73,7 @@ describe('AlertCard', () => {
   const critical = DEMO_ALERTS.find((a) => a.id === 'alert-1')!;
   it('shows severity, title, reading, limit, pond and time', () => {
     render(<AlertCard alert={critical} />);
-    expect(screen.getByText('Critical')).toBeOnTheScreen();
+    expect(screen.getByText('Urgent')).toBeOnTheScreen();
     expect(screen.getByText('Low dissolved oxygen')).toBeOnTheScreen();
     expect(screen.getByText(/Reading 1\.8 mg\/L · limit 2\.0 mg\/L/)).toBeOnTheScreen();
     expect(screen.getByText(/Pond 1 · Dissolved oxygen/)).toBeOnTheScreen();

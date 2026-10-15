@@ -144,7 +144,7 @@ describe('species shown consistently', () => {
     expect(card).toHaveTextContent('Pond 1'); expect(card).toHaveTextContent('Species:Rohu'); expect(card).toHaveTextContent('Current: 2.20 mg/L');
     expect(card).toHaveTextContent('General safety rules'); expect(card).toHaveTextContent('not specific to a species');
     expect(card).toHaveTextContent('at least 5 mg/L'); expect(card).toHaveTextContent('context, not an alert limit');
-    expect(card).toHaveTextContent('Low dissolved oxygen can stress'); expect(card).toHaveTextContent('Recommended next step: Verify the sensor reading');
+    expect(card).toHaveTextContent('Low dissolved oxygen can stress'); expect(card).toHaveTextContent('For this alert: Verify the sensor reading'); expect(card).toHaveTextContent('What to do now'); expect(card).toHaveTextContent('Switch on the aerator now');
   });
 
   it('alert card labels species-specific limits with their version, and an unset species plainly', () => {

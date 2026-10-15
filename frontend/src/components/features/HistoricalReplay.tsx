@@ -171,7 +171,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,260px)_1fr]">
             <Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => changePond(e.target.value)}>{ponds.data!.items.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.records.toLocaleString('en-GB')} records)</option>)}</Select>}</Field>
             <div>
-              <p className="mb-1.5 text-[13px] font-medium text-ink">Preset window</p>
+              <p className="mb-1.5 text-sm font-medium text-ink">Preset window</p>
               <div className="flex flex-wrap items-center gap-2">
                 {(['24h', '7d'] as const).map((k) => { const p = coverage.data?.presets[k]; return (
                   <Button key={k} size="sm" disabled={!p?.valid} onClick={() => applyPreset(k)} title={p?.valid ? `${p.records} of ${p.expected} expected records (${Math.round((p.coverage ?? 0) * 100)}%), ${p.gaps} gap(s)` : 'No continuous window of this length exists for this pond'}>{k === '24h' ? '24 hours' : '7 days'}</Button>
@@ -199,7 +199,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
           <Card aria-labelledby="rp-run">
             <CardHeader id="rp-run" title="Replay" description={<><StatusPill tone="neutral">HISTORICAL REPLAY</StatusPill> <span className="ml-1">Recorded {windowData.dataset ?? 'dataset'} data, never live.</span></>} />
             <div className="space-y-4 px-5 pb-5 pt-4">
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-[13px] md:grid-cols-3 xl:grid-cols-6">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3 xl:grid-cols-6">
                 <div><dt className="text-ink-soft">Pond</dt><dd className="font-medium text-ink">{windowData.pond.name}</dd></div>
                 <div><dt className="text-ink-soft">Source period</dt><dd className="tabular-nums text-ink">{formatDateTime(windowData.from)} to {formatDateTime(windowData.to)}</dd></div>
                 <div><dt className="text-ink-soft">Records loaded</dt><dd className="tabular-nums text-ink">{windowData.records}{windowData.duplicatesSkipped ? ` (${windowData.duplicatesSkipped} duplicate timestamp skipped)` : ''}</dd></div>
@@ -209,9 +209,9 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
               </dl>
 
               <div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-surface" role="progressbar" aria-label="Replay progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className="h-full bg-olive transition-[width] duration-200" style={{ width: `${pct}%` }} /></div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-surface" role="progressbar" aria-label="Replay progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className="h-full bg-brand transition-[width] duration-200" style={{ width: `${pct}%` }} /></div>
                 <div className="mt-1 flex justify-between text-xs tabular-nums text-ink-soft"><span>{formatDateTime(windowData.from)}</span><span>{pct}% · {count} of {windowData.records} records</span><span>{formatDateTime(windowData.to)}</span></div>
-                <input type="range" className="mt-2 w-full accent-[#637957]" aria-label="Replay position" min={0} max={Math.round(duration / 60_000)} step={1} value={Math.round((pb.position - pb.from) / 60_000)} onChange={(e) => dispatch({ type: 'seek', position: pb.from + Number(e.target.value) * 60_000 })} />
+                <input type="range" className="mt-2 w-full accent-brand" aria-label="Replay position" min={0} max={Math.round(duration / 60_000)} step={1} value={Math.round((pb.position - pb.from) / 60_000)} onChange={(e) => dispatch({ type: 'seek', position: pb.from + Number(e.target.value) * 60_000 })} />
               </div>
 
               <div className="flex flex-wrap items-end gap-3">
@@ -239,7 +239,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
             <div className="space-y-6 self-start">
               <Card aria-labelledby="rp-now">
                 <CardHeader id="rp-now" title="Current replayed reading" description={current ? formatDateTime(current.recordedAt) : 'Press Start'} />
-                <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
+                <dl className="space-y-3 px-5 pb-5 pt-4 text-sm">
                   {current ? PARAMS.map((p) => { const v = current.values.find((x) => x.parameter === p); const r = current.risk[p]?.status; return (
                     <div key={p} className="flex items-center justify-between gap-4"><dt className="text-ink-soft">{PARAM_LABEL[p]}</dt>
                       <dd className="flex items-center gap-2"><span className="tabular-nums">{v ? formatValue(v.value, p, true, v.unit) : 'no reading'}</span>
@@ -250,7 +250,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
 
               <Card aria-labelledby="rp-fc" aria-live="polite">
                 <CardHeader id="rp-fc" title="Model forecast" description={latestFc ? `Made from readings up to ${formatDateTime(latestFc.key)}` : 'Real PondFix model, run at measurement boundaries'} />
-                <div className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
+                <div className="space-y-3 px-5 pb-5 pt-4 text-sm">
                   {latestFc ? <ForecastTable data={latestFc.v.data} /> : null}
                   {latestFcEntry && 'data' in latestFcEntry.v && latestFcEntry.v.data.status !== 'ok' ? <p className="text-ink-soft">{FC_TEXT[latestFcEntry.v.data.status] ?? latestFcEntry.v.data.status}{latestFcEntry.v.data.message ? ` (${latestFcEntry.v.data.message})` : ''}</p> : null}
                   {latestFcEntry && 'error' in latestFcEntry.v ? <div role="alert" className="text-crit-text">{latestFcEntry.v.error}{latestFcEntry.v.retryable ? <> <button className="underline" onClick={() => retryForecast(latestFcEntry.key)}>Retry</button></> : null}</div> : null}
@@ -262,7 +262,7 @@ export function HistoricalReplay({ rules }: { rules: RiskRules | null }) {
 
               <Card aria-labelledby="rp-alerts">
                 <CardHeader id="rp-alerts" title="Replay alert timeline" description="Same rules as live readings. Not stored, separate from live alerts." />
-                <div className="px-5 pb-5 pt-4 text-[13px]">
+                <div className="px-5 pb-5 pt-4 text-sm">
                   {alerts.length ? (
                     <ol className="space-y-2.5" data-testid="alert-timeline">
                       {alerts.map((a, i) => (

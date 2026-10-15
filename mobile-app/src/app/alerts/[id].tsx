@@ -24,16 +24,18 @@ import { AdvisoryPanel } from '@/components/AdvisoryPanel';
 import { VoiceButton } from '@/components/VoiceButton';
 import { alertTitle } from '@/components/AlertCard';
 import { formatDateTime, formatValue } from '@/lib/format';
-import { parameterLabel, parameterUnit } from '@/lib/status';
+import { parameterLabel, parameterUnit , ageMinutes } from '@/lib/status';
 import { localizeSpeciesLabel } from '@/data/mockSpecies';
 import { param, routes } from '@/lib/routes';
+import { ActionSteps } from '@/components/ActionSteps';
+import { formatDuration, freshness, interpretation, whyItMatters } from '@/lib/care';
 
 export default function AlertDetailScreen() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams<{ id: string }>();
   const id = param(rawId) ?? '';
   const { activeAlerts, alertHistory, acknowledge, markSeen, loadState } = useAlerts();
-  const { ponds } = usePonds();
+  const { ponds, readings, asOf, staleAfterMinutes } = usePonds();
   const [ackFailed, setAckFailed] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const alert = activeAlerts.find((a) => a.id === id) ?? alertHistory.find((a) => a.id === id);
@@ -60,6 +62,12 @@ export default function AlertDetailScreen() {
   const limitKey = `alertDetail.limit.${alert.origin === 'predicted' ? 'predicted' : 'observed'}_${alert.direction === 'low' ? 'low' : 'high'}_${critical ? 'critical' : 'warning'}` as const;
   // What is read aloud: the severity and title from the dictionary, then the recommended action.
   const spoken = [severityText, alertTitle(alert), action].filter(Boolean).join('. ');
+  const meaning = alert.origin === 'observed' && !resolved ? interpretation(alert.parameter, alert.severity, alert.direction) : null;
+  const why = whyItMatters(alert.parameter);
+  // Is the reading behind this alert still current? The pond's newest reading of this parameter says so.
+  const latestAt = (readings[alert.pondId] ?? []).find((r) => r.parameter === alert.parameter)?.latest?.recordedAt ?? null;
+  const age = latestAt ? ageMinutes(latestAt, asOf) : null;
+  const fresh = freshness(age, staleAfterMinutes);
 
   return (
     <ScreenContainer bottomNav="alerts" testID="alert-detail-screen">
@@ -71,8 +79,18 @@ export default function AlertDetailScreen() {
         <Text accessibilityRole="header" style={styles.title}>{alertTitle(alert)}</Text>
         <Text style={styles.meta}>{pondName} · {parameterLabel(alert.parameter)}{alert.speciesLabel ? ` · ${localizeSpeciesLabel(alert.speciesLabel)}` : ''}</Text>
         <Text style={styles.meta}>{t('alerts.raisedAt', { time: formatDateTime(alert.raisedAt) })}{resolved && alert.resolvedAt ? ` · ${t('alerts.resolvedAt', { time: formatDateTime(alert.resolvedAt) })}` : ''}</Text>
+        {meaning ? <Text style={[styles.meaning, { color: critical ? colors.criticalDark : colors.warningDark }]} testID="alert-meaning">{meaning}</Text> : null}
         <VoiceButton text={spoken} testID="alert-voice" />
       </View>
+
+      {!resolved && alert.origin === 'observed' && fresh !== 'current' ? (
+        <View style={styles.stale} testID="alert-not-current">
+          <Ionicons name="time-outline" size={18} color={colors.warningDark} />
+          <Text style={styles.staleText}>{fresh === 'none' ? t('care.measure.stale') : `${t('care.connection.delayed.title')}: ${t('care.connection.delayed.body', { age: formatDuration(age ?? 0) })}`}</Text>
+        </View>
+      ) : null}
+
+      {!resolved && alert.origin === 'observed' ? <ActionSteps parameter={alert.parameter} direction={alert.direction} severity={alert.severity} backendAction={action || null} testID="recommended-actions" /> : null}
 
       {(prose.translated || showOriginal) ? (
         <View style={styles.translation} testID="translation-note">
@@ -90,14 +108,15 @@ export default function AlertDetailScreen() {
         {message ? <Text style={styles.body} testID="alert-message">{message}</Text> : null}
       </Panel>
 
-      {explanation ? (
+      {explanation || why ? (
         <Panel>
           <Text style={styles.heading}>{t('alertDetail.whyItMatters')}</Text>
-          <Text style={styles.body}>{explanation}</Text>
+          {why ? <Text style={styles.body}>{why}</Text> : null}
+          {explanation ? <Text style={styles.body}>{explanation}</Text> : null}
         </Panel>
       ) : null}
 
-      {action ? (
+      {action && (resolved || alert.origin !== 'observed') ? (
         <Panel testID="recommended-actions">
           <Text style={styles.heading}>{t('alertDetail.recommendedAction')}</Text>
           <View style={styles.actionRow}>
@@ -137,4 +156,7 @@ const styles = StyleSheet.create({
   small: { fontSize: fontSize.metadata, color: colors.textMuted, lineHeight: 16 },
   actionRow: { flexDirection: 'row', gap: spacing.xs, alignItems: 'flex-start' },
   translation: { gap: spacing.xxs },
+  meaning: { fontSize: fontSize.body, fontWeight: '700', lineHeight: 22 },
+  stale: { flexDirection: 'row', gap: spacing.xs, backgroundColor: colors.warningSurface, borderRadius: radius.card, padding: spacing.sm },
+  staleText: { flex: 1, fontSize: fontSize.secondary, color: colors.warningDark, fontWeight: '600', lineHeight: 20 },
 });

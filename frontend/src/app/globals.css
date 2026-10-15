@@ -1,46 +1,50 @@
 @import 'tailwindcss';
 
 /*
- * Single source of truth for the design system.
- * Shape rule (locked): cards 12px (rounded-xl), controls 8px (rounded-lg), pills and avatars fully round.
- * Palette: ivory canvas, white panels, pale sage outlines, one sage/olive accent. Light theme only.
- * Text variants (*-text) are slightly darker than the brand swatches so small text meets WCAG AA (4.5:1);
- * the swatches themselves are used for surfaces, borders, icons and chart strokes.
+ * Single source of truth for the web design system. The same palette is used by the mobile app (mobile-app/src/constants/colors.ts);
+ * docs/DESIGN_SYSTEM.md lists both, and tests/design-tokens.test.ts fails if the two drift apart.
+ * Shape rule: cards 12px (rounded-xl), controls 8px (rounded-lg), pills fully round.
+ * Palette: warm off-white page, white panels, deep teal for brand and primary actions, aquatic green for "healthy".
+ * Text variants (*-text) meet WCAG AA (4.5:1) on white and on their own tinted background; swatches are for fills, borders, icons and
+ * chart strokes. Status is never shown by colour alone: every status also has an icon and a word.
  */
 @theme {
-  --color-page: #f8f7f2;
+  --color-page: #f6f4ee;
   --color-card: #ffffff;
-  --color-sidebar: #f4f2ea;
-  --color-surface: #f1f0e9;
-  --color-ink: #34372f;
-  --color-ink-muted: #77796f;
-  --color-ink-soft: #6a6c62;
-  --color-line: #e5e3d9;
-  --color-line-strong: #cfcdc0;
-  --color-head: #eeece2;
-  --color-zebra: #faf9f5;
-  --color-hover: #f0f3ea;
-  --color-sage: #7d9274;
-  --color-olive: #637957;
-  --color-olive-text: #52684a;
-  --color-sage-pale: #eaf0e5;
-  --color-ok: #52734b;
-  --color-ok-text: #476a41;
-  --color-ok-bg: #edf4e8;
-  --color-warn: #a66d25;
-  --color-warn-text: #8e5a1a;
-  --color-warn-bg: #fbf1dd;
-  --color-crit: #b64d43;
-  --color-crit-text: #a5433a;
-  --color-crit-bg: #f9eae7;
+  --color-sidebar: #f1efe8;
+  --color-surface: #eeece5;
+  --color-ink: #17282a;
+  --color-ink-muted: #5b6a6c;
+  --color-ink-soft: #4a5a5c;
+  --color-line: #dedad0;
+  --color-line-strong: #c5c0b3;
+  --color-head: #ece9e1;
+  --color-zebra: #faf9f6;
+  --color-hover: #edf4f2;
+  --color-brand: #0f6b66;
+  --color-brand-hover: #0b5753;
+  --color-brand-text: #0c5d59;
+  --color-brand-soft: #6fa59c;
+  --color-brand-pale: #e2f0ec;
+  --color-ok: #2e7d4f;
+  --color-ok-text: #1f6a3e;
+  --color-ok-bg: #e5f3ea;
+  --color-warn: #b86e00;
+  --color-warn-text: #8a4e00;
+  --color-warn-bg: #fdf1dc;
+  --color-warn-line: #ecd3a6;
+  --color-crit: #c0392b;
+  --color-crit-text: #a3271b;
+  --color-crit-bg: #fcebe8;
+  --color-crit-line: #efc4bd;
   /* Illustration palette, sampled from the AquaGuard asset library (pond water, outline ink). Used for illustration wells only. */
   --color-aqua: #35b8b0;
   --color-aqua-deep: #1f8f93;
   --color-aqua-pale: #e7f4f2;
   --color-outline: #24474f;
-  --color-stale: #77796f;
-  --color-stale-text: #5e6057;
-  --color-stale-bg: #ecebe5;
+  --color-stale: #6b7778;
+  --color-stale-text: #4d5a5c;
+  --color-stale-bg: #eceeed;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -62,17 +66,18 @@
   body {
     min-height: 100dvh;
     font-family: var(--font-sans);
-    font-size: 0.875rem;
-    line-height: 1.45;
+    /* 16px body: readable outdoors and on small phones. Secondary text uses text-sm (14px); nothing farmer-facing goes below 12px. */
+    font-size: 1rem;
+    line-height: 1.5;
     font-feature-settings: 'tnum' 1, 'cv11' 1;
     -webkit-font-smoothing: antialiased;
   }
   :focus-visible {
-    outline: 2px solid var(--color-olive);
+    outline: 3px solid var(--color-brand);
     outline-offset: 2px;
     border-radius: 4px;
   }
-  ::selection { background: var(--color-sage-pale); }
+  ::selection { background: var(--color-brand-pale); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
   }

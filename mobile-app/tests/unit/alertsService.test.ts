@@ -30,10 +30,10 @@ describe('normalizeAlert', () => {
 describe('connection messages', () => {
   const base = { status: 'connected', configError: null, lastUpdated: '2026-10-12T10:00:00Z', restError: null };
   it('reports live monitoring only when REST works and the socket is connected', () => {
-    expect(connectionMessage(base)).toMatchObject({ title: 'Live monitoring', ok: true });
+    expect(connectionMessage(base)).toMatchObject({ title: 'Connected', detail: 'Receiving current readings.', ok: true });
   });
   it('says reconnecting only while attempts are in progress', () => {
-    expect(connectionMessage({ ...base, status: 'reconnecting' }).title).toBe('Reconnecting…');
+    expect(connectionMessage({ ...base, status: 'reconnecting' }).title).toBe('Reconnecting');
   });
   it('connected but still loading is not "Live monitoring"', () => {
     expect(connectionMessage({ ...base, lastUpdated: null, dataState: 'loading' }).title).toBe('Connected, loading data…');
@@ -43,7 +43,7 @@ describe('connection messages', () => {
     expect(connectionMessage({ ...base, dataState: 'error' }).title).toBe('Connected, but data could not be loaded');
   });
   it('Live monitoring needs the data to have loaded', () => {
-    expect(connectionMessage({ ...base, dataState: 'ready' })).toMatchObject({ title: 'Live monitoring', ok: true });
+    expect(connectionMessage({ ...base, dataState: 'ready' })).toMatchObject({ title: 'Connected', ok: true });
   });
   it('REST fine but socket down: live updates unavailable, data still reported as loaded', () => {
     const m = connectionMessage({ ...base, status: 'disconnected', serverLabel: '172.16.19.138:4000' });
@@ -54,11 +54,16 @@ describe('connection messages', () => {
   });
   it('REST failing is reported as its own problem, with the last known data', () => {
     const m = connectionMessage({ ...base, status: 'disconnected', restError: 'Unable to reach the server.' });
-    expect(m.title).toBe('Connection lost');
-    expect(m.detail).toMatch(/Unable to reach the server\..*Showing last known data/);
+    // A failed request proves only that PondFix did not answer: never "No internet".
+    expect(m.title).toBe("Can't reach PondFix");
+    expect(m.detail).toMatch(/Your internet may still be working.*Unable to reach the server\..*Showing last known data/);
   });
   it('nothing ever loaded and REST failing is "Unable to connect"', () => {
-    expect(connectionMessage({ ...base, lastUpdated: null, status: 'disconnected', restError: 'Unable to reach the server.' }).title).toBe('Unable to connect');
+    expect(connectionMessage({ ...base, lastUpdated: null, status: 'disconnected', restError: 'Unable to reach the server.' })).toMatchObject({ title: "Can't reach PondFix", ok: false });
+  });
+  it('says "No internet" only when the device itself reports it is offline', () => {
+    expect(connectionMessage({ ...base, status: 'disconnected', restError: 'Unable to reach the server.', offline: true }).title).toBe('No internet');
+    expect(connectionMessage({ ...base, status: 'disconnected', restError: 'Unable to reach the server.' }).title).not.toBe('No internet');
   });
   it('a bad server address is terminal: it never says reconnecting', () => {
     const m = connectionMessage({ ...base, status: 'reconnecting', configError: 'The server address is not valid.' });

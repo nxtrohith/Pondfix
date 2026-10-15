@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import type { AlertAdvisory } from '@/types';
 import { parameterLabel } from '@/lib/status';
 import { useTranslatedTexts } from '@/i18n/useTranslated';
@@ -81,7 +81,7 @@ export function AdvisoryPanel({ advisory: a }: { advisory: AlertAdvisory }) {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs, flexWrap: 'wrap' },
   heading: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary, flexShrink: 1 },
-  chip: { fontSize: fontSize.metadata, color: colors.textSecondary, borderWidth: 0.5, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 4 },
+  chip: { fontSize: fontSize.metadata, color: colors.textSecondary, borderWidth: layout.borderWidth, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 4 },
   warn: { flexDirection: 'row', gap: spacing.xs, alignItems: 'flex-start', backgroundColor: colors.warningSurface, borderRadius: radius.chip, padding: spacing.sm },
   solution: { gap: 4, backgroundColor: colors.inputBackground, borderRadius: radius.chip, padding: spacing.sm },
   source: { fontSize: fontSize.metadata, color: colors.textSecondary, fontWeight: '600' },

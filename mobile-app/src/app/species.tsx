@@ -21,7 +21,7 @@ export default function SpeciesScreen() {
   const [selectedId, setSelectedId] = useState(SPECIES[0]!.id);
   const species = SPECIES.find((s) => s.id === selectedId) ?? SPECIES[0]!;
   return (
-    <ScreenContainer testID="species-screen">
+    <ScreenContainer bottomNav="profile" testID="species-screen">
       <AppHeader title={t('species.title')} subtitle={t('species.subtitle')} />
       <DemoLabel text={t('species.demoLabel')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabel={t('species.selector')}>

@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing, shadow } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 import { ageMinutes, CHEMISTRY_HINT, CHEMISTRY_LABEL, CHEMISTRY_UNIT } from '@/lib/status';
 import { extent } from '@/lib/chart';
 import { formatAge, formatTime, formatValue } from '@/lib/format';
@@ -48,7 +48,7 @@ export function ChemistryCard({ reading, asOf, staleAfterMinutes, testID }: { re
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingHorizontal: spacing.md, paddingVertical: spacing.md, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   left: { flex: 1, gap: 4 },
   name: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   meta: { fontSize: fontSize.metadata, color: colors.textSecondary },

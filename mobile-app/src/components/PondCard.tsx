@@ -4,7 +4,7 @@ import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing, shadow } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 import { formatDateTime, formatValue } from '@/lib/format';
 import type { PondSummary } from '@/lib/pondSummary';
 import { PARAMETER_SHORT, PARAMETER_UNIT, POND_PRESENTATION } from '@/lib/status';
@@ -62,7 +62,7 @@ export function PondCard({ summary, onPress }: { summary: PondSummary; onPress: 
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, alignItems: 'center', borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  card: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, alignItems: 'center', borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   body: { flex: 1, gap: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
   name: { flex: 1, fontSize: fontSize.cardHeading, fontWeight: '600', color: colors.textPrimary },

@@ -77,7 +77,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
   }
 
   if (scen.loading && !scen.data) return <Card className="p-5"><Skeleton className="h-6 w-56" /><Skeleton className="mt-4 h-40 w-full" /></Card>;
-  if (scen.error instanceof ApiError && scen.error.status === 404) return <Card><div className="px-6 py-12 text-center"><p className="text-sm font-medium">Simulation is disabled on this server</p><p className="mx-auto mt-1 max-w-[52ch] text-[13px] text-ink-soft">The backend only exposes demo endpoints when demo mode is enabled (it is off in production by default). Set <code className="font-mono text-xs">DEMO_ENABLED=true</code> on the API to use this page.</p></div></Card>;
+  if (scen.error instanceof ApiError && scen.error.status === 404) return <Card><div className="px-6 py-12 text-center"><p className="text-sm font-medium">Simulation is disabled on this server</p><p className="mx-auto mt-1 max-w-[52ch] text-sm text-ink-soft">The backend only exposes demo endpoints when demo mode is enabled (it is off in production by default). Set <code className="font-mono text-xs">DEMO_ENABLED=true</code> on the API to use this page.</p></div></Card>;
   if (scen.error) return <Card><ErrorState error={scen.error} title="Could not check simulation availability" onRetry={scen.reload} /></Card>;
 
   return (
@@ -86,8 +86,8 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
       {!db.loading && !db.canWrite ? <Notice tone="warning"><strong className="font-medium">Simulation is disabled.</strong> {db.error ? 'The API\'s database could not be checked.' : db.target === 'atlas' ? 'Demo mode is off on the API (DEMO_ENABLED=false), so simulated readings are not accepted.' : 'This API did not report an Atlas database.'}</Notice> : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="p-5"><p className="text-sm font-medium text-ink">Simulated reading</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">One reading with dissolved oxygen, pH and temperature, sent as a single request. Use the form further down. Each parameter is checked against its own alert rule.</p></Card>
-        <Card className="p-5"><p className="text-sm font-medium text-ink">Guided alert demo</p><p className="mt-1 text-[13px] leading-relaxed text-ink-soft">Four dissolved-oxygen readings in sequence (3.5, 2.5, 1.5, 3.5 mg/L) that open, escalate and resolve one alert. It sends dissolved oxygen only.</p></Card>
+        <Card className="p-5"><p className="text-sm font-medium text-ink">Simulated reading</p><p className="mt-1 text-sm leading-relaxed text-ink-soft">One reading with dissolved oxygen, pH and temperature, sent as a single request. Use the form further down. Each parameter is checked against its own alert rule.</p></Card>
+        <Card className="p-5"><p className="text-sm font-medium text-ink">Guided alert demo</p><p className="mt-1 text-sm leading-relaxed text-ink-soft">Four dissolved-oxygen readings in sequence (3.5, 2.5, 1.5, 3.5 mg/L) that open, escalate and resolve one alert. It sends dissolved oxygen only.</p></Card>
       </div>
 
       <AlertDemoRunner ponds={ponds} />
@@ -100,14 +100,14 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
             <Field label="Pond" error={errors.pond}>{(id, d) => <Select id={id} aria-describedby={d} value={input.pondId} onChange={(e) => setInput((s) => ({ ...s, pondId: e.target.value }))}>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
 
             <fieldset>
-              <legend className="mb-2 text-[13px] font-medium text-ink">Values</legend>
+              <legend className="mb-2 text-sm font-medium text-ink">Values</legend>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                 {PARAM_ORDER.map((p) => {
                   const v = input[p]; const [lo, hi] = SIM_BOUNDS[p]; const err = errors[p];
                   return (
                     <div key={p} className={cx('rounded-lg border p-3.5', v.include ? 'border-line bg-card' : 'border-line bg-surface/60')}>
-                      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
-                        <input type="checkbox" className="size-4 accent-[#637957]" checked={v.include} onChange={(e) => setParam(p, { include: e.target.checked })} />
+                      <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink">
+                        <input type="checkbox" className="size-4 accent-brand" checked={v.include} onChange={(e) => setParam(p, { include: e.target.checked })} />
                         {SIM_LABEL[p]} <span className="font-normal text-ink-soft">({SIM_UNIT[p]})</span>
                       </label>
                       <div className="mt-3 space-y-2.5">
@@ -138,8 +138,8 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
             </fieldset>
 
             <fieldset>
-              <legend className="mb-1.5 text-[13px] font-medium text-ink">Reading time</legend>
-              <label className="flex cursor-pointer items-center gap-2 text-[13px]"><input type="checkbox" className="size-4 accent-[#637957]" checked={input.useNow} onChange={(e) => setInput((s) => ({ ...s, useNow: e.target.checked }))} />Use the current time</label>
+              <legend className="mb-1.5 text-sm font-medium text-ink">Reading time</legend>
+              <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-brand" checked={input.useNow} onChange={(e) => setInput((s) => ({ ...s, useNow: e.target.checked }))} />Use the current time</label>
               {!input.useNow ? (
                 <div className="mt-3 flex flex-wrap items-end gap-3">
                   <div className="w-60"><Field label="Reading time (UTC)" hint="Date and time in UTC" error={errors.recordedAt}>{(id, d) => <Input id={id} aria-describedby={d} type="datetime-local" value={input.recordedAtInput} onChange={(e) => setInput((s) => ({ ...s, recordedAtInput: e.target.value }))} />}</Field></div>
@@ -159,7 +159,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
         <div className="space-y-6">
           <Card aria-labelledby="sim-prev" className="self-start">
             <CardHeader id="sim-prev" title="What will be submitted" description="Nothing is sent yet." />
-            <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
+            <dl className="space-y-3 px-5 pb-5 pt-4 text-sm">
               <div className="flex justify-between gap-4"><dt className="text-ink-soft">Pond</dt><dd className="text-right tabular-nums text-ink">{pond?.name ?? 'n/a'}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-ink-soft">Species</dt><dd className="text-right text-ink">{speciesLine(pond?.species)}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-ink-soft">Alert limits</dt><dd className="text-right text-ink">{pond?.species ? RULE_SCOPE_LABEL[pond.species.safetyProfile.ruleScope ?? 'general'] : 'General safety rules'}{pond?.species && !pond.species.safetyProfile.alertsEnabled ? <span className="block text-xs text-ink-soft">{SAFETY_LABEL[pond.species.safetyProfile.status].label}</span> : null}</dd></div>
@@ -170,7 +170,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
               <div className="flex items-center justify-between gap-4"><dt className="text-ink-soft">Data source</dt><dd><SourceBadge source="simulated" /></dd></div>
               {rules && doNumber !== undefined && !pond?.species?.safetyProfile.alertsEnabled ? <p className="border-t border-line pt-3 text-xs text-ink-soft">Under the backend rules, {doNumber} {rules.dissolvedOxygen.unit} is {doNumber < rules.dissolvedOxygen.criticalBelow ? 'critical (below ' + fmtThreshold(rules.dissolvedOxygen.criticalBelow) + ')' : doNumber < rules.dissolvedOxygen.warningBelow ? 'a warning (below ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')' : 'not a warning (at or above ' + fmtThreshold(rules.dissolvedOxygen.warningBelow) + ')'}. The server makes the final classification.</p> : null}
               {pond?.species?.safetyProfile.alertsEnabled ? <p className="border-t border-line pt-3 text-xs text-ink-soft">This pond uses species-specific alert limits, so the general limits above may not apply. The server makes the classification and shows which limits it used.</p> : null}
-              <p className="text-xs text-ink-soft"><Link href={`/ponds/${input.pondId}`} className="text-olive-text underline-offset-2 hover:underline">Change this pond&apos;s species</Link> to see how future simulated readings are evaluated.</p>
+              <p className="text-xs text-ink-soft"><Link href={`/ponds/${input.pondId}`} className="text-brand-text underline-offset-2 hover:underline">Change this pond&apos;s species</Link> to see how future simulated readings are evaluated.</p>
             </dl>
           </Card>
 
@@ -179,7 +179,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
             {result ? (
               <Card aria-labelledby="sim-res">
                 <CardHeader id="sim-res" title="Result from the server" description={result.duplicate ? 'This reading was already saved.' : 'The simulated reading was saved.'} />
-                <dl className="space-y-3 px-5 pb-5 pt-4 text-[13px]">
+                <dl className="space-y-3 px-5 pb-5 pt-4 text-sm">
                   <div className="flex justify-between gap-4"><dt className="text-ink-soft">Stored as</dt><dd className="flex items-center gap-2"><SourceBadge source={result.measurement.source} /></dd></div>
                   <div className="flex justify-between gap-4"><dt className="text-ink-soft">Reading time</dt><dd className="tabular-nums">{formatDateTime(result.measurement.recordedAt)}</dd></div>
                   {result.measurement.values.map((m) => {
@@ -198,7 +198,7 @@ export function SimulationForm({ ponds, rules }: { ponds: TrendPond[]; rules: Ri
                 </dl>
                 <details className="border-t border-line px-5 py-3 text-xs">
                   <summary className="cursor-pointer text-ink-soft hover:text-ink">Request sent and raw server response</summary>
-                  <pre className="mt-2 overflow-x-auto rounded-lg bg-surface p-3 font-mono text-[11px] leading-relaxed text-ink">{JSON.stringify({ request: sent, response: result }, null, 2)}</pre>
+                  <pre className="mt-2 overflow-x-auto rounded-lg bg-surface p-3 font-mono text-xs leading-relaxed text-ink">{JSON.stringify({ request: sent, response: result }, null, 2)}</pre>
                 </details>
                 <div className="flex flex-wrap gap-2 border-t border-line px-5 py-4">
                   <Link href={`/ponds/${result.measurement.pondId}`} className={linkButtonClass('secondary', 'sm')}>See this pond (problems and forecast)</Link>

@@ -30,6 +30,9 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
   const [parameter, setParameter] = useState('');
   const [severity, setSeverity] = useState<'' | 'CRITICAL' | 'WARNING'>('');
   const [kind, setKind] = useState<'' | 'observed' | 'predicted'>('');
+  const filtering = !!(pondId || parameter || severity || kind);
+  // Open by default when the page was reached already filtered (e.g. from a pond's "See every alert").
+  const [filtersOpen, setFiltersOpen] = useState(() => !!initialPondId);
 
   // Tab counts always describe ALL unresolved alerts, whatever the filters.
   const open = useApiQuery((s) => api.alerts({ status: 'OPEN', limit: 1000 }, s), []);
@@ -81,17 +84,21 @@ export function AlertsCenter({ ponds, initialPondId = '' }: { ponds: { id: strin
           ]} />
           {open.error ? <Notice tone="warning">The counts could not be loaded. <button type="button" onClick={open.reload} className="underline">Retry</button></Notice>
             : open.data ? <p className="text-xs text-ink-soft" data-testid="alert-breakdown">Right now: {current} current {current === 1 ? 'problem' : 'problems'} and {upcoming} possible upcoming {upcoming === 1 ? 'problem' : 'problems'} (forecasts, not measurements).</p> : null}
-          <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
+          {/* Phones: filters fold away behind one button so the alerts themselves come first. Wider screens always show them. */}
+          <button type="button" aria-expanded={filtersOpen} aria-controls="alert-filters" onClick={() => setFiltersOpen((v) => !v)} className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-line px-3 text-[15px] font-medium text-ink md:hidden">
+            Filter alerts{filtering ? <span className="rounded-full bg-brand-pale px-2 text-xs text-brand-text">On</span> : null}
+          </button>
+          <form id="alert-filters" className={cx('mt-3 grid-cols-1 gap-3 sm:grid-cols-2 md:mt-0 md:grid xl:grid-cols-4', filtersOpen ? 'grid' : 'hidden')} onSubmit={(e) => e.preventDefault()} aria-label="Alert filters">
             <Field label="Pond">{(id) => <Select id={id} value={pondId} onChange={(e) => setPondId(e.target.value)}><option value="">All ponds</option>{ponds.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</Select>}</Field>
             <Field label="Measurement">{(id) => <Select id={id} value={parameter} onChange={(e) => setParameter(e.target.value)}><option value="">All factors</option>{ALERT_PARAMETERS.map((p) => <option key={p} value={p}>{PARAM_LABEL[p] ?? p}</option>)}</Select>}</Field>
-            <Field label="Severity">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Any level</option><option value="CRITICAL">Critical only</option><option value="WARNING">Warning only</option></Select>}</Field>
+            <Field label="Severity">{(id) => <Select id={id} value={severity} onChange={(e) => setSeverity(e.target.value as typeof severity)}><option value="">Any level</option><option value="CRITICAL">Urgent only</option><option value="WARNING">Warning only</option></Select>}</Field>
             <Field label="Kind">{(id) => <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}><option value="">Current and upcoming</option><option value="observed">Current only</option><option value="predicted">Upcoming only</option></Select>}</Field>
           </form>
         </div>
 
         <div aria-live="polite" className="px-5 pt-2">
           {feedback ? (
-            <div role={feedback.kind === 'error' ? 'alert' : 'status'} className={cx('flex items-start gap-2 rounded-lg px-3.5 py-2.5 text-[13px]', feedback.kind === 'ok' ? 'bg-ok-bg text-ok-text' : 'bg-crit-bg text-crit-text')}>
+            <div role={feedback.kind === 'error' ? 'alert' : 'status'} className={cx('flex items-start gap-2 rounded-lg px-3.5 py-2.5 text-sm', feedback.kind === 'ok' ? 'bg-ok-bg text-ok-text' : 'bg-crit-bg text-crit-text')}>
               {feedback.kind === 'ok' ? <CheckCircle size={16} className="mt-px shrink-0" aria-hidden="true" /> : null}<span>{feedback.text}</span>
             </div>
           ) : null}

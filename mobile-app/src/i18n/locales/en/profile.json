@@ -17,5 +17,13 @@
   "name": "Name",
   "farmName": "Farm name",
   "save": "Save profile",
-  "demoLocation": "Demo location (not a real farm)"
+  "demoLocation": "Demo location (not a real farm)",
+  "links": {
+    "title": "More",
+    "species": "Fish species guide",
+    "settings": "Settings and language",
+    "notifications": "Notifications",
+    "diagnostics": "Connection details",
+    "help": "Help and troubleshooting"
+  }
 }

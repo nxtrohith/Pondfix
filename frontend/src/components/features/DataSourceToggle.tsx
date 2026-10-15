@@ -37,7 +37,7 @@ export function DataSourceToggle(props: Props) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-card px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium text-ink">Data source{props.scope === 'all' ? ' for all ponds' : ''}</p>
+        <p className="text-sm font-medium text-ink">Data source{props.scope === 'all' ? ' for all ponds' : ''}</p>
         <p className="text-xs text-ink-soft" aria-live="polite">
           {value === 'mixed' ? 'Ponds use different sources. Pick one to apply it to every pond.'
             : value === 'simulator' ? `${subject}: synthetic readings from the PondFix simulator (not measured). Start it with "npm run simulator".`

@@ -9,7 +9,7 @@ const TONE: Record<Tone, string> = {
   warning: 'bg-warn-bg text-warn-text',
   critical: 'bg-crit-bg text-crit-text ring-1 ring-inset ring-crit-text/30',
   muted: 'bg-stale-bg text-stale-text',
-  neutral: 'bg-sage-pale text-olive-text',
+  neutral: 'bg-brand-pale text-brand-text',
 };
 const ICON = { NORMAL: CheckCircle, WARNING: Warning, CRITICAL: WarningOctagon, STALE: Clock, NO_DATA: Clock, UNKNOWN: Minus, ERROR: Question } as const;
 

@@ -23,7 +23,7 @@ export function Composer({ value, onChange, onSend, onStop, busy, disabled, plac
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); if (canSend) onSend(); }}
-      className={cx('rounded-2xl border bg-card p-2 shadow-[0_1px_2px_rgba(52,55,47,0.04)] transition-colors focus-within:border-olive', disabled ? 'border-line opacity-60' : 'border-line-strong')}>
+      className={cx('rounded-2xl border bg-card p-2 shadow-[0_1px_2px_rgba(52,55,47,0.04)] transition-colors focus-within:border-brand', disabled ? 'border-line opacity-60' : 'border-line-strong')}>
       <label htmlFor="chat-input" className="sr-only">Message to the pond assistant</label>
       <textarea id="chat-input" ref={ref} rows={1} value={value} maxLength={MAX_MESSAGE} disabled={disabled} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)} onKeyDown={onKey}
@@ -35,7 +35,7 @@ export function Composer({ value, onChange, onSend, onStop, busy, disabled, plac
             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-white transition-all duration-150 hover:bg-ink/85 active:scale-95"><Stop size={16} weight="fill" aria-hidden="true" /></button>
         ) : (
           <button type="submit" disabled={!canSend} aria-label="Send message"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-olive text-white transition-all duration-150 hover:bg-[#587049] active:scale-95 disabled:bg-surface disabled:text-ink-muted"><ArrowUp size={18} weight="bold" aria-hidden="true" /></button>
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-all duration-150 hover:bg-brand-hover active:scale-95 disabled:bg-surface disabled:text-ink-muted"><ArrowUp size={18} weight="bold" aria-hidden="true" /></button>
         )}
       </div>
     </form>

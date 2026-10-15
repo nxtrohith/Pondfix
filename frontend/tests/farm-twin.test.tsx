@@ -46,7 +46,7 @@ describe('farm view, 2D plan (what jsdom and no-WebGL browsers get)', () => {
     fireEvent.pointerMove(frame(), { clientX: 100, clientY: 100, pointerType: 'mouse' });
     fireEvent.pointerEnter(pond(/Demo pond 11/));
     const tip = screen.getByRole('status');
-    expect(tip).toHaveTextContent('Demo pond 11'); expect(tip).toHaveTextContent('Critical'); expect(tip).toHaveTextContent('9.40'); expect(tip).toHaveTextContent('34.0 °C'); expect(tip).toHaveTextContent('Latest reading');
+    expect(tip).toHaveTextContent('Demo pond 11'); expect(tip).toHaveTextContent('Urgent'); expect(tip).toHaveTextContent('9.40'); expect(tip).toHaveTextContent('34.0 °C'); expect(tip).toHaveTextContent('Latest reading');
     expect(tip).toHaveTextContent('pH is critically high'); expect(tip).toHaveTextContent('Water temperature is too high');
     fireEvent.pointerLeave(pond(/Demo pond 11/)); expect(screen.queryByRole('status')).toBeNull();
     fireEvent.pointerMove(frame(), { clientX: 120, clientY: 110, pointerType: 'mouse' }); fireEvent.pointerEnter(pond(/Demo pond 17/)); expect(screen.getByRole('status')).toHaveTextContent('No reading yet'); expect(screen.getByRole('status')).not.toHaveTextContent(/\b0\.0/);
@@ -144,7 +144,7 @@ describe('farm view with real (non-demo) data', () => {
     fireEvent.click(pond(/ara2_00,/)); expect(screen.getByRole('complementary', { name: 'Selected pond: ara2_00' })).toBeInTheDocument();
     const worse = rows.map((r) => (r.pond.id === 'real0' ? { ...r, risk: 'CRITICAL' as const } : r));
     rerender(<FarmTwin rows={worse} alerts={[]} mode="live" loadedAt="2026-03-01T12:05:00.000Z" />);
-    expect(screen.getByRole('complementary', { name: 'Selected pond: ara2_00' })).toHaveTextContent('Critical'); expect(pond(/ara2_00, critical/)).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Selected pond: ara2_00' })).toHaveTextContent('Urgent'); expect(pond(/ara2_00, critical/)).toBeInTheDocument();
     rerender(<FarmTwin rows={worse.filter((r) => r.pond.id !== 'real0')} alerts={[]} mode="live" loadedAt={LOADED} />);
     expect(screen.queryByRole('complementary')).toBeNull();
   });

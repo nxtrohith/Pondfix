@@ -26,14 +26,28 @@ describe('dashboard', () => {
     renderApp('/dashboard');
     expect(screen.getByLabelText('Total ponds: 4')).toBeOnTheScreen();
     expect(screen.getByLabelText('Healthy: 1')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Warning: 2')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Critical: 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Attention: 2')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Urgent: 1')).toBeOnTheScreen();
   });
 
-  it('shows the three most serious open alerts first, critical before warning', () => {
+  it('answers "is it safe, and what do I do?" first: verdict, the most urgent problem and its numbered steps', () => {
     renderApp('/dashboard');
-    const cards = screen.getAllByRole('button', { name: /Pond \d, / });
-    expect(cards[0]!.props.accessibilityLabel).toMatch(/Low dissolved oxygen, Pond 1/);
+    expect(screen.getByTestId('pond-verdict')).toHaveTextContent('Urgent action required');
+    const top = screen.getByTestId('top-problem');
+    expect(top).toHaveTextContent(/Most urgent: Pond 1/); expect(top).toHaveTextContent(/Low dissolved oxygen/);
+    expect(top).toHaveTextContent(/Switch on the aerator now/);
+    // The other open problems follow, warnings after the critical one already shown.
+    const cards = screen.getAllByRole('button', { name: /Pond \d, / }).filter((c) => /Low|High/.test(String(c.props.accessibilityLabel)));
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.every((c) => !/Low dissolved oxygen, Pond 1/.test(String(c.props.accessibilityLabel)))).toBe(true);
+  });
+
+  it('shows the chosen pond\'s readings in plain language, and remembers a different choice', () => {
+    renderApp('/dashboard');
+    expect(screen.getByTestId('chosen-pond')).toHaveTextContent(/Pond 1: readings now/);
+    expect(screen.getByTestId('home-metric-dissolved_oxygen-meaning')).toHaveTextContent(/Oxygen is (dangerously )?low/);
+    fireEvent.press(screen.getAllByRole('button', { name: /^Pond 2, / })[0]!);
+    expect(screen.getByTestId('chosen-pond')).toHaveTextContent(/Pond 2: readings now/);
   });
 
   it('the bell shows the unread count and opens notifications', () => {
@@ -55,9 +69,9 @@ describe('dashboard', () => {
     expect(screen.getByTestId('ponds-screen')).toBeOnTheScreen();
     press('tab', 'Alerts');
     expect(screen.getByTestId('alerts-screen')).toBeOnTheScreen();
-    press('tab', 'Species');
-    expect(screen.getByTestId('species-screen')).toBeOnTheScreen();
-    press('tab', 'Profile');
+    press('tab', 'Help');
+    expect(screen.getByTestId('help-screen')).toBeOnTheScreen();
+    press('tab', 'More');
     expect(screen.getByTestId('profile-screen')).toBeOnTheScreen();
     press('tab', 'Home');
     expect(screen.getByTestId('dashboard-screen')).toBeOnTheScreen();
@@ -224,7 +238,7 @@ describe('alerts', () => {
   it('Active and History tabs show the right alerts', () => {
     renderApp('/alerts');
     expect(screen.getByLabelText(/Low dissolved oxygen, Pond 1/)).toBeOnTheScreen();
-    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Live monitoring/);
+    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Connected/);
     press('radio', /History \(2\)/);
     expect(screen.getByText(/Resolved Oct 11/)).toBeOnTheScreen();
     expect(screen.queryByLabelText(/Low dissolved oxygen, Pond 1/)).toBeNull();

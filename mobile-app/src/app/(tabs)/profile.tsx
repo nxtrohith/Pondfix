@@ -1,10 +1,10 @@
 // Screen 11: farmer profile. Demo data, edited locally. Nothing is retrieved from or saved to a backend.
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View , Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
-import { fontSize, spacing } from '@/constants/theme';
+import { fontSize, spacing , layout } from '@/constants/theme';
 import { useAppStore } from '@/context/AppStore';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -13,6 +13,9 @@ import { FormField } from '@/components/FormField';
 import { DemoLabel } from '@/components/DemoLabel';
 import { Panel } from '@/components/SectionHeader';
 import { usePonds } from '@/context/LiveData';
+import { Ionicons } from '@expo/vector-icons';
+import { router, type Href } from 'expo-router';
+import { routes } from '@/lib/routes';
 import type { FarmerProfile } from '@/types';
 
 export default function ProfileScreen() {
@@ -50,6 +53,22 @@ export default function ProfileScreen() {
             <Row id="species-configured" label={t('profile.speciesConfigured')} value={String(configuredSpecies)} />
           </Panel>
           <AppButton label={t('profile.edit')} icon="create-outline" onPress={() => setEditing(true)} testID="edit-profile" />
+          <Panel testID="more-links">
+            <Text accessibilityRole="header" style={styles.linksTitle}>{t('profile.links.title')}</Text>
+            {([
+              ['settings', 'settings-outline', routes.settings],
+              ['species', 'leaf-outline', routes.species],
+              ['notifications', 'notifications-outline', routes.notifications],
+              ['diagnostics', 'pulse-outline', routes.diagnostics],
+              ['help', 'help-buoy-outline', routes.help],
+            ] as const).map(([key, icon, href]) => (
+              <Pressable key={key} accessibilityRole="link" onPress={() => router.push(href as Href)} style={({ pressed }) => [styles.link, pressed && { opacity: 0.7 }]} testID={`more-${key}`}>
+                <Ionicons name={icon} size={22} color={colors.primary} />
+                <Text style={styles.linkText}>{t(`profile.links.${key}`)}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+              </Pressable>
+            ))}
+          </Panel>
         </>
       )}
     </ScreenContainer>
@@ -98,6 +117,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700', color: colors.textOnBackground },
   sub: { fontSize: fontSize.secondary, color: colors.textOnBackgroundSecondary },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 4 },
+  linksTitle: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
+  link: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: layout.minTouchTarget, borderTopWidth: layout.borderWidth, borderTopColor: colors.divider },
+  linkText: { flex: 1, fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   label: { fontSize: fontSize.body, color: colors.textSecondary },
   value: { flexShrink: 1, fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary, textAlign: 'right' },
 });

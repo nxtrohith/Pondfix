@@ -8,7 +8,7 @@ export const TOP_LEVEL_TABS: readonly TopLevelTab[] = [
   { key: 'home', route: 'dashboard' },
   { key: 'ponds', route: 'ponds' },
   { key: 'alerts', route: 'alerts' },
-  { key: 'species', route: 'species' },
+  { key: 'help', route: 'help' },
   { key: 'profile', route: 'profile' },
 ];
 

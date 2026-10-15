@@ -36,23 +36,23 @@ export function PondNotes({ pondId }: { pondId: string }) {
       <CardHeader id="notes-title" title="Field notes" description="Write what you saw at the pond, such as fish at the surface, a change in colour or a broken aerator. Notes are sorted automatically and shown to the alert assistant. They never raise or close an alert." />
       <CardBody className="space-y-4">
         <form onSubmit={(e) => { e.preventDefault(); if (trimmed.length >= 3 && !busy) void save(); }} className="space-y-2">
-          <label htmlFor="note-text" className="text-[13px] font-medium text-ink">New note</label>
+          <label htmlFor="note-text" className="text-sm font-medium text-ink">New note</label>
           <textarea id="note-text" value={text} maxLength={MAX} rows={3} onChange={(e) => setText(e.target.value)} placeholder="For example: Fish gulping at the surface near the inlet this morning"
-            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-ink-soft focus-visible:border-olive" />
+            className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-ink-soft focus-visible:border-brand" />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className={cx('text-xs tabular-nums', text.length > MAX - 40 ? 'text-warn-text' : 'text-ink-soft')}>{text.length}/{MAX}</span>
             <Button variant="primary" size="sm" type="submit" disabled={busy || trimmed.length < 3}>{busy ? 'Saving' : 'Save note'}</Button>
           </div>
-          {error ? <p role="alert" className="text-[13px] text-crit-text">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-crit-text">{error}</p> : null}
         </form>
 
         {list.error ? <ErrorState error={list.error} title="Could not load notes" onRetry={list.reload} />
           : list.loading && !list.data ? <Skeleton className="h-16 w-full" />
-          : list.data && list.data.items.length === 0 ? <p className="text-[13px] text-ink-soft">No notes for this pond yet.</p>
+          : list.data && list.data.items.length === 0 ? <p className="text-sm text-ink-soft">No notes for this pond yet.</p>
           : (
             <ul className="divide-y divide-line rounded-lg border border-line">
               {list.data?.items.map((n) => (
-                <li key={n.id} className="space-y-1 px-3.5 py-3 text-[13px]">
+                <li key={n.id} className="space-y-1 px-3.5 py-3 text-sm">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-ink">{CATEGORY[n.category] ?? 'Other'}</span>
                     {n.distress !== undefined && n.distress >= 0.7 ? <span className="rounded-full bg-crit-bg px-2 py-0.5 text-xs font-medium text-crit-text">Possible distress</span> : null}

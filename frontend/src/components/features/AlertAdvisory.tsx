@@ -18,9 +18,9 @@ export function AlertAdvisory({ alert: a }: { alert: Alert }) {
   const sol = adv.solution;
   const held = adv.guard && !adv.guard.passed && sol?.source === 'rules' && adv.guard.reasons.some((r) => !r.startsWith('llm failed'));
   return (
-    <section className="mt-3 rounded-lg border border-line bg-sage-pale/50 p-3 text-[13px]" aria-label="Suggested priorities and next steps">
+    <section className="mt-3 rounded-lg border border-line bg-brand-pale/50 p-3 text-sm" aria-label="Suggested priorities and next steps">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 font-semibold text-olive-text"><Sparkle size={15} weight="fill" aria-hidden="true" />Suggested priorities and next steps</p>
+        <p className="flex items-center gap-1.5 font-semibold text-brand-text"><Sparkle size={15} weight="fill" aria-hidden="true" />Suggested priorities and next steps</p>
         <span className="rounded-full border border-line bg-card px-2 py-0.5 text-xs text-ink-soft">{adv.analysedBy === 'jev' ? 'Analysed by Jev' : 'Rules only: analysis service unavailable'}</span>
       </div>
 

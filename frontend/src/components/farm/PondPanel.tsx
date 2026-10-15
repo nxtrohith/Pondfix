@@ -31,14 +31,14 @@ export function PondPanel({ snap, alerts, readings, demo, onClose }: { snap: Pon
         <div className="min-w-0">
           <h3 className="truncate text-[15px] font-medium text-ink">{snap.name}</h3>
           <p className={snap.speciesSet ? 'mt-0.5 truncate text-xs text-ink-soft' : 'mt-0.5 truncate text-xs text-warn-text'}>{snap.species}</p>
-          <p className="mt-0.5 truncate font-mono text-[11px] text-ink-soft">{snap.id}</p>
+          <p className="mt-0.5 truncate font-mono text-xs text-ink-soft">{snap.id}</p>
           <div className="mt-2"><StatusBadge status={snap.risk} scope="pond" /></div>
         </div>
         <button type="button" onClick={onClose} aria-label="Close pond details" className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-surface hover:text-ink"><X size={18} aria-hidden="true" /></button>
       </div>
-      <div className="px-5 py-4 text-[13px]">
+      <div className="px-5 py-4 text-sm">
         <p className="text-ink-soft">{POND_STATUS[snap.risk].summary}</p>
-        {demo ? <p className="mt-3 rounded-lg bg-sage-pale px-3 py-2 text-xs text-olive-text">Demo fixture. These values are made up for illustration and are not from any pond.</p> : null}
+        {demo ? <p className="mt-3 rounded-lg bg-brand-pale px-3 py-2 text-xs text-brand-text">Demo fixture. These values are made up for illustration and are not from any pond.</p> : null}
         <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section aria-label="Current readings">
           <h4 className="text-xs font-medium uppercase tracking-wide text-ink-soft">Current readings</h4>
