@@ -76,3 +76,32 @@ test('notes use the same stable IDs as migration; history is UUID validated', as
   await env.bot.history(pond, id);
   assert.equal(env.filters[0].pondId, pond._id);
 });
+
+test('conversations lists recent threads titled by their first question', async () => {
+  const pipelines = [];
+  const turns = {
+    createIndex: async () => 'index',
+    aggregate: (pipeline) => { pipelines.push(pipeline); return { toArray: async () => [{ _id: id, title: 'Fish are gulping', startedAt: new Date('2026-10-15T00:00:00Z'), updatedAt: new Date('2026-10-15T01:00:00Z'), turns: 2 }] }; },
+  };
+  const bot = createChatbot({ db: { collection: () => turns }, config, rag: {}, llm: {}, log: () => {}, summary: async () => ({}) });
+  const out = await bot.conversations(pond, 500);
+  assert.deepEqual(out.items.map((c) => [c.conversationId, c.title, c.turns]), [[id, 'Fish are gulping', 2]]);
+  assert.equal(pipelines[0][0].$match.pondId, pond._id);
+  assert.equal(pipelines[0].at(-1).$limit, 100);
+});
+
+test('chatStream emits start then deltas, stores the full answer once, and skips storage when aborted', async () => {
+  const env = setup();
+  const events = [];
+  const llm = { model: 'fake', stream: async function* () { yield 'Check '; yield 'the meter [S1]'; } };
+  const bot = createChatbot({ db: { collection: () => ({ createIndex: async () => 1, find: () => ({ sort: () => ({ limit: () => ({ toArray: async () => [] }) }) }), insertOne: async (t) => { env.stored.push(t); return { insertedId: new ObjectId('507f1f77bcf86cd799439012') }; } }) }, config,
+    rag: { search: async () => [], upsert: async () => {} }, llm, log: () => {}, summary: async () => ({}) });
+  const done = await bot.chatStream(pond, { message: 'Hello', conversationId: id }, { onStart: (d) => events.push(['start', d.conversationId]), onDelta: (t) => events.push(['delta', t]) });
+  assert.deepEqual(events, [['start', id], ['delta', 'Check '], ['delta', 'the meter [S1]']]);
+  assert.equal(done.answer, 'Check the meter [S1]');
+  assert.equal(env.stored.length, 1);
+  const ctrl = new AbortController();
+  const aborting = createChatbot({ db: { collection: () => ({ createIndex: async () => 1, find: () => ({ sort: () => ({ limit: () => ({ toArray: async () => [] }) }) }), insertOne: async () => { throw new Error('must not store'); } }) }, config,
+    rag: { search: async () => [], upsert: async () => {} }, llm: { stream: async function* () { ctrl.abort(); yield 'x'; } }, log: () => {}, summary: async () => ({}) });
+  assert.equal(await aborting.chatStream(pond, { message: 'Hello' }, { onDelta: () => {}, signal: ctrl.signal }), null);
+});

@@ -136,3 +136,12 @@ Operations: run `npm run db:init -w database && npm run db:indexes -w database` 
 ## Chroma knowledge and pond chat
 
 See [Chroma setup and migration](../docs/CHROMA_SETUP.md) for configuration, opt-in dry-run/write migration, privacy and billing boundaries, and the chat API. Chat defaults off (`CHATBOT_ENABLED=true` to enable). There is no authentication: it is intended for a private local deployment only. The classified starter corpus lives in [`../knowledge`](../knowledge/README.md).
+
+
+### Chat endpoints (when `CHATBOT_ENABLED=true`)
+
+- `POST /api/ponds/:id/chat` `{ message, conversationId? }` returns the answer, `conversationId` and cited `sources`.
+- `GET /api/ponds/:id/chats` lists the pond's recent conversations (`conversationId`, `title`, `updatedAt`, `turns`).
+- `GET /api/ponds/:id/chat/:conversationId` returns the turns, including each answer's sources.
+
+The web UI is the **Ask PondFix** page (`/chat`) in `frontend/`.

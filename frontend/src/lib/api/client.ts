@@ -29,6 +29,8 @@ interface RequestOptions<T extends ZodTypeAny> {
   query?: Query;
   body?: unknown;
   signal?: AbortSignal;
+  /** Overrides the client timeout (answer generation is slower than a read). */
+  timeoutMs?: number;
 }
 
 export interface ClientConfig {
@@ -38,14 +40,15 @@ export interface ClientConfig {
 }
 
 export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: ClientConfig) {
-  async function request<T extends ZodTypeAny>(path: string, { schema, method = 'GET', query, body, signal }: RequestOptions<T>): Promise<z.infer<T>> {
+  async function request<T extends ZodTypeAny>(path: string, { schema, method = 'GET', query, body, signal, timeoutMs: requestTimeout }: RequestOptions<T>): Promise<z.infer<T>> {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(query ?? {})) if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
     const url = `${baseUrl}${path}${qs.size ? `?${qs}` : ''}`;
 
     const ctrl = new AbortController();
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
+    const limit = requestTimeout ?? timeoutMs;
+    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, limit);
     const onAbort = () => ctrl.abort();
     signal?.addEventListener('abort', onAbort, { once: true });
     if (signal?.aborted) ctrl.abort();
@@ -65,7 +68,7 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
       text = await res.text();
     } catch {
       if (signal?.aborted) throw new ApiError('aborted', 'Request was cancelled');
-      if (timedOut) throw new ApiError('timeout', `The API did not respond within ${Math.round(timeoutMs / 1000)} seconds`);
+      if (timedOut) throw new ApiError('timeout', `The API did not respond within ${Math.round(limit / 1000)} seconds`);
       throw new ApiError('network', 'Could not reach the PondFix API. Check that the backend is running.');
     } finally {
       clearTimeout(timer);
@@ -86,7 +89,60 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
   }
 
   const enc = encodeURIComponent;
+
+  /** POST /chat/stream: server-sent events (`start`, `delta`, `done`, `error`). Resolves with the final reply; callers see text as it arrives. */
+  async function chatStream(id: string, body: { message: string; conversationId?: string }, h: { onStart?: (d: { conversationId: string; sources: S.ChatSource[] }) => void; onDelta: (text: string) => void }, signal?: AbortSignal): Promise<S.ChatReply> {
+    let res: Response;
+    try {
+      res = await (fetchImpl ?? fetch)(`${baseUrl}/ponds/${enc(id)}/chat/stream`, { method: 'POST', headers: { accept: 'text/event-stream', 'content-type': 'application/json' }, body: JSON.stringify(body), signal, cache: 'no-store' });
+    } catch {
+      if (signal?.aborted) throw new ApiError('aborted', 'Request was cancelled');
+      throw new ApiError('network', 'Could not reach the PondFix API. Check that the backend is running.');
+    }
+    if (!res.ok || !res.body) {
+      let json: unknown = null;
+      try { json = await res.json(); } catch { /* not JSON */ }
+      const env = S.errorEnvelope.safeParse(json);
+      if (env.success) throw new ApiError('http', env.data.error.message, res.status, env.data.error.code, env.data.error.details);
+      throw new ApiError('http', `The API returned HTTP ${res.status}`, res.status);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let result: S.ChatReply | null = null;
+    const handle = (block: string) => {
+      let event = 'message'; let data = '';
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data += line.slice(5).trim();
+      }
+      if (!data) return;
+      let json: unknown; try { json = JSON.parse(data); } catch { return; }
+      if (event === 'start') { const p = z.object({ conversationId: z.string(), sources: z.array(S.chatSourceSchema) }).safeParse(json); if (p.success) h.onStart?.(p.data); }
+      else if (event === 'delta') { const p = z.object({ text: z.string() }).safeParse(json); if (p.success) h.onDelta(p.data.text); }
+      else if (event === 'done') { const p = S.chatReplySchema.safeParse(json); if (p.success) result = p.data; }
+      else if (event === 'error') { const p = z.object({ code: z.string(), message: z.string() }).safeParse(json); throw new ApiError('http', p.success ? p.data.message : 'The answer was interrupted', 503, p.success ? p.data.code : undefined); }
+    };
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split('\n\n'); buffer = blocks.pop() ?? '';
+        blocks.forEach(handle);
+      }
+      if (buffer.trim()) handle(buffer);
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      if (signal?.aborted) throw new ApiError('aborted', 'Request was cancelled');
+      throw new ApiError('network', 'The connection dropped while the answer was being written.');
+    }
+    if (!result) throw new ApiError('invalid', 'The answer ended before it was complete');
+    return result;
+  }
+
   return {
+    chatStream,
     health: (signal?: AbortSignal) => request('/health', { schema: S.healthResponse, signal }),
     riskRules: (signal?: AbortSignal) => request('/risk-rules', { schema: S.riskRulesResponse, signal }),
     ponds: (signal?: AbortSignal) => request('/ponds', { schema: S.pondsResponse, signal }),
@@ -110,6 +166,9 @@ export function createApiClient({ baseUrl, fetchImpl, timeoutMs = 20_000 }: Clie
     whatIf: (body: Record<string, unknown>, signal?: AbortSignal) => request('/what-if', { schema: S.whatIfResponse, method: 'POST', body, signal }),
     notes: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.notesResponse, query: { limit: 20 }, signal }),
     addNote: (id: string, text: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/notes`, { schema: S.noteSchema, method: 'POST', body: { text }, signal }),
+    chat: (id: string, body: { message: string; conversationId?: string }, signal?: AbortSignal) => request(`/ponds/${enc(id)}/chat`, { schema: S.chatReplySchema, method: 'POST', body, signal, timeoutMs: 90_000 }),
+    chatHistory: (id: string, conversationId: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/chat/${enc(conversationId)}`, { schema: S.chatHistorySchema, signal }),
+    chatConversations: (id: string, signal?: AbortSignal) => request(`/ponds/${enc(id)}/chats`, { schema: S.chatConversationsSchema, signal }),
     analytics: (id: string, query: { parameter?: string; from?: string; to?: string; source?: string; bucket?: 'none' | 'hour' | 'day' }, signal?: AbortSignal) =>
       request(`/ponds/${enc(id)}/analytics`, { schema: S.analyticsResponse, query, signal }),
     compare: (query: { parameter?: string; from?: string; to?: string; pondIds?: string }, signal?: AbortSignal) => request('/analytics/compare', { schema: S.compareResponse, query, signal }),

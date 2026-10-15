@@ -149,6 +149,24 @@ export function buildRouter(deps) {
 
   if (deps.chatbot) {
     r.post('/ponds/:id/chat', asyncHandler(async (req, res) => res.json(await deps.chatbot.chat(await requirePond(db, req.params.id), req.body))));
+    // Server-sent events: `start` (conversationId, sources), `delta` (text), then `done` (final record) or `error`.
+    r.post('/ponds/:id/chat/stream', asyncHandler(async (req, res) => {
+      const pond = await requirePond(db, req.params.id);
+      const ctrl = new AbortController();
+      res.on('close', () => { if (!res.writableFinished) ctrl.abort(); });
+      let open = false;
+      const send = (event, data) => { if (!open) { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' }); open = true; } res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); };
+      try {
+        const done = await deps.chatbot.chatStream(pond, req.body, { signal: ctrl.signal, onStart: (d) => send('start', d), onDelta: (text) => send('delta', { text }) });
+        if (done) send('done', done);
+        res.end();
+      } catch (e) {
+        if (!open) throw e; // nothing sent yet: normal JSON error response
+        send('error', { code: e.code ?? 'INTERNAL_ERROR', message: e.status ? e.message : 'internal server error' });
+        res.end();
+      }
+    }));
+    r.get('/ponds/:id/chats', asyncHandler(async (req, res) => res.json(await deps.chatbot.conversations(await requirePond(db, req.params.id), Number.parseInt(req.query.limit, 10) || 30))));
     r.get('/ponds/:id/chat/:conversationId', asyncHandler(async (req, res) => res.json(await deps.chatbot.history(await requirePond(db, req.params.id), req.params.conversationId))));
   }
 

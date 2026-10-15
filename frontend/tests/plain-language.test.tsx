@@ -120,8 +120,8 @@ describe('current water quality card', () => {
 });
 
 describe('navigation and shared limit lines', () => {
-  it('has three everyday pages, three secondary tools, and no separate Forecasts page', () => {
-    expect(NAV_GROUPS[0]!.items.map((i) => i.label)).toEqual(['Overview', 'Ponds', 'Alerts']);
+  it('has four everyday pages (including the chat assistant), three secondary tools, and no separate Forecasts page', () => {
+    expect(NAV_GROUPS[0]!.items.map((i) => i.label)).toEqual(['Overview', 'Ponds', 'Alerts', 'Ask PondFix']);
     expect(NAV_GROUPS[1]!.items.map((i) => i.label)).toEqual(['Compare ponds', 'Demo & simulation', 'Tests']);
     expect(NAV.some((i) => i.href === '/forecasts')).toBe(false);
     expect(pageTitle('/health').title).toBe('System status'); expect(pageTitle('/ponds/abc')).toEqual({ title: 'Pond details', parent: { label: 'Ponds', href: '/ponds' } });

@@ -37,7 +37,19 @@ export function createChatbot({ db, config, rag, llm, now = () => new Date(), lo
     id = conversationId(id);
     await prepare();
     const items = await turns.find({ pondId: pond._id, conversationId: id }).sort({ createdAt: -1, _id: -1 }).limit(limit).toArray();
-    return { conversationId: id, items: items.reverse().map(({ _id, question, answer, createdAt }) => ({ id: String(_id), question, answer, createdAt })) };
+    return { conversationId: id, items: items.reverse().map(({ _id, question, answer, createdAt, sources }) => ({ id: String(_id), question, answer, createdAt, sources: sources ?? [] })) };
+  }
+  // Recent conversations for a pond, newest first, titled by their first question.
+  async function conversations(pond, limit = 30) {
+    await prepare();
+    const rows = await turns.aggregate([
+      { $match: { pondId: pond._id } },
+      { $sort: { createdAt: 1, _id: 1 } },
+      { $group: { _id: '$conversationId', title: { $first: '$question' }, startedAt: { $first: '$createdAt' }, updatedAt: { $last: '$createdAt' }, turns: { $sum: 1 } } },
+      { $sort: { updatedAt: -1 } },
+      { $limit: Math.min(Math.max(limit, 1), 100) },
+    ]).toArray();
+    return { items: rows.map(({ _id, title, startedAt, updatedAt, turns: count }) => ({ conversationId: _id, title: title.slice(0, 120), startedAt, updatedAt, turns: count })) };
   }
   async function indexNote(pond, note) {
     const scope = ragScopes(config.chroma, pond._id).memory;
@@ -46,7 +58,8 @@ export function createChatbot({ db, config, rag, llm, now = () => new Date(), lo
         metadata: { kind: 'note', pondId: String(pond._id), createdAt: note.createdAt.toISOString() } });
     } catch { log('[RAG] Note saved in MongoDB but not indexed; retry with chroma:migrate --mongo --write'); }
   }
-  async function chat(pond, body) {
+  // Validates, retrieves context and builds the prompt; shared by the one-shot and streaming paths.
+  async function prepareTurn(pond, body) {
     const parsed = input.safeParse(body);
     if (!parsed.success) throw validationError('request validation failed', parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
     const { message } = parsed.data;
@@ -62,13 +75,15 @@ export function createChatbot({ db, config, rag, llm, now = () => new Date(), lo
     const passages = [...knowledge, ...memory].map((row, i) => ({
       citation: `S${i + 1}`, text: row.document, ...row.metadata,
     }));
-    let reply;
-    try {
-      reply = await llm.complete({ system: SYSTEM, maxTokens: 2500,
-        user: JSON.stringify({ question: message, currentPond: snapshot,
-          recentConversation: recent.items.map(({ question, answer }) => ({ question, answer: answer.slice(0, 4000) })), passages }) });
-    } catch { throw new ApiError(503, 'CHAT_LLM_UNAVAILABLE', 'Answer generation failed; check the configured LLM credentials, model and quota'); }
-    const turn = { pondId: pond._id, conversationId: id, question: message, answer: reply.text, createdAt: now() };
+    const sources = [...knowledge, ...memory].map((row, i) => ({ citation: `S${i + 1}`, id: row.id, score: row.score, ...row.metadata }));
+    const prompt = { system: SYSTEM, maxTokens: 2500,
+      user: JSON.stringify({ question: message, currentPond: snapshot,
+        recentConversation: recent.items.map(({ question, answer }) => ({ question, answer: answer.slice(0, 4000) })), passages }) };
+    return { message, id, scopes, sources, prompt };
+  }
+  const llmUnavailable = () => new ApiError(503, 'CHAT_LLM_UNAVAILABLE', 'Answer generation failed; check the configured LLM credentials, model and quota');
+  async function finishTurn(pond, { message, id, scopes, sources }, reply) {
+    const turn = { pondId: pond._id, conversationId: id, question: message, answer: reply.text, sources, createdAt: now() };
     const { insertedId } = await turns.insertOne(turn);
     let memoryIndexed = true;
     try {
@@ -79,8 +94,26 @@ export function createChatbot({ db, config, rag, llm, now = () => new Date(), lo
       memoryIndexed = false;
       log('[RAG] Conversation saved in MongoDB but not indexed; retry with chroma:migrate --mongo --write');
     }
-    return { answer: reply.text, conversationId: id, model: reply.model, memoryIndexed,
-      sources: [...knowledge, ...memory].map((row, i) => ({ citation: `S${i + 1}`, id: row.id, score: row.score, ...row.metadata })) };
+    return { answer: reply.text, conversationId: id, model: reply.model, memoryIndexed, sources };
   }
-  return { chat, history, indexNote };
+  async function chat(pond, body) {
+    const ctx = await prepareTurn(pond, body);
+    let reply;
+    try { reply = await llm.complete(ctx.prompt); } catch { throw llmUnavailable(); }
+    return finishTurn(pond, ctx, reply);
+  }
+  // Streaming variant. Retrieval errors throw before anything is emitted. `onStart({conversationId, sources})` fires once the
+  // context is ready, then `onDelta(text)` per chunk. A turn aborted via `signal` is never stored.
+  async function chatStream(pond, body, { onStart, onDelta, signal }) {
+    const ctx = await prepareTurn(pond, body);
+    onStart?.({ conversationId: ctx.id, sources: ctx.sources });
+    let text = '';
+    try {
+      if (llm.stream) for await (const delta of llm.stream({ ...ctx.prompt, signal })) { text += delta; onDelta(delta); }
+      else { const r = await llm.complete(ctx.prompt); text = r.text; onDelta(text); }
+    } catch (e) { if (signal?.aborted) return null; throw llmUnavailable(); }
+    if (signal?.aborted || !text.trim()) { if (signal?.aborted) return null; throw llmUnavailable(); }
+    return finishTurn(pond, ctx, { text, model: llm.model });
+  }
+  return { chat, chatStream, history, conversations, indexNote };
 }
