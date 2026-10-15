@@ -11,7 +11,8 @@ export function createSarvamCaller(cfg, { fetchImpl = globalThis.fetch, now = ()
   const lastCall = new Map(); // pondId -> Date; stops a flapping reading from phoning the farmer repeatedly
 
   /** Context handed to the Sarvam agent as `agent_variables`. Sarvam rejects (422) names the agent has not declared, so only the names
-   *  listed in cfg.variables are sent (default none). Available: pond_name, parameter, severity, reading, summary, verify_first, first_step, call_type. */
+   *  listed in cfg.variables are sent (default none). Available: pond_name, parameter, severity, reading, summary, verify_first, first_step, all_steps, call_type.
+   *  summary/verify_first/steps are the LLM solution (or the rule-based fallback), so the agent can read the fix out on the call. */
   function variables({ pond, alert, solution, firstPriority }) {
     const all = {
       pond_name: pond.name,
@@ -21,6 +22,7 @@ export function createSarvamCaller(cfg, { fetchImpl = globalThis.fetch, now = ()
       summary: solution?.summary ?? alert.message ?? '',
       verify_first: solution?.verifyFirst ?? '',
       first_step: solution?.steps?.[0] ?? '',
+      all_steps: (solution?.steps ?? []).map((s, i) => `${i + 1}. ${s}`).join(' '),
       call_type: cfg.testMode ? 'TEST CALL' : 'REAL ALERT',
     };
     return Object.fromEntries(Object.entries(all).filter(([k]) => cfg.variables?.includes(k)));

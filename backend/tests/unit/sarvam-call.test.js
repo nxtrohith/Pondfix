@@ -21,6 +21,12 @@ test('posts the documented outbound request and masks the farmer number', async 
   assert.deepEqual(b.app_config.agent_variables, { parameter: 'dissolved oxygen', call_type: 'TEST CALL' }); // only declared names are sent
 });
 
+test('sends the LLM solution (summary and every step) when the agent declares them', async () => {
+  const calls = []; const c = createSarvamCaller({ ...cfg, variables: ['summary', 'verify_first', 'all_steps'] }, { fetchImpl: ok(calls) });
+  await c.call({ ...ctx, solution: { summary: 'Oxygen is low.', verifyFirst: 'Check meter', steps: ['Run aerators', 'Recheck in 30 min'] } });
+  assert.deepEqual(JSON.parse(calls[0].init.body).app_config.agent_variables, { summary: 'Oxygen is low.', verify_first: 'Check meter', all_steps: '1. Run aerators 2. Recheck in 30 min' });
+});
+
 test('a second call for the same pond inside the cooldown is skipped', async () => {
   const calls = []; let t = new Date('2026-10-15T10:00:00Z'); const c = createSarvamCaller(cfg, { fetchImpl: ok(calls), now: () => t });
   await c.call(ctx);

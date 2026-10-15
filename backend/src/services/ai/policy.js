@@ -59,9 +59,10 @@ export const DEFAULT_VERIFY_FIRST = 'Check the reading against a second meter or
 // a summary and at least one step must exist, and every string is length-bounded.
 const text = (max) => z.string().trim().min(1).max(max);
 const solutionSchema = z.object({
-  summary: text(800),
-  verifyFirst: z.preprocess((v) => (typeof v === 'string' && v.trim() ? v : DEFAULT_VERIFY_FIRST), text(400)),
-  steps: z.array(text(400)).min(1).max(8),
+  // Telugu takes more characters than English for the same meaning, so the bounds leave room for a detailed reply.
+  summary: text(1500),
+  verifyFirst: z.preprocess((v) => (typeof v === 'string' && v.trim() ? v : DEFAULT_VERIFY_FIRST), text(600)),
+  steps: z.array(text(600)).min(1).max(8),
 });
 
 /** Extracts and validates the JSON the LLM was asked for. -> { ok: true, solution } | { ok: false, reason } (the reason names the failing field). */
