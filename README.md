@@ -58,6 +58,21 @@ The system manages 17 ponds, **Pond 1** through **Pond 17**, and includes read-o
 - **Farmer field notes.** Farmers can log observations such as "fish gulping at the surface" on a pond (`GET`/`POST /api/ponds/:id/notes`). Jev classifies each note. Notes inform the advisor and never change an alert.
 - **Off by default.** The advisor runs only when `JEV_API_KEY` (or `TYPESAFE_API_KEY`) is set. See [Security](#security) for what is sent to these services.
 
+### Farmer chatbot (optional, RAG)
+
+- **Pond-aware Q&A.** Farmers ask questions in the web dashboard (`/chat`) and get streamed answers grounded in the pond's own context: its species, latest readings, open alerts, and recent field notes.
+- **Classified knowledge base.** Answers draw on the versioned library in [`knowledge/`](knowledge/README.md) (water quality, pond management, species profiles, diseases, AquaGuard docs, farmer support, safety), indexed in Chroma Cloud with category and species filters. A pond with a species gets general documents plus its own species.
+- **Safety-first.** All content is `pending_expert_review`. The model must not diagnose disease from symptoms alone or prescribe antibiotics or chemical doses, and must give the safest immediate step (such as aeration) when fish are gasping or dying.
+- **Rebuildable index.** MongoDB stays the store for chats and notes. Chroma holds only knowledge, farmer notes, and user questions. Generated answers are never embedded. See [`docs/CHROMA_SETUP.md`](docs/CHROMA_SETUP.md).
+- **Off by default.** Needs `CHROMA_ENABLED`, `CHATBOT_ENABLED`, and an OpenAI-compatible LLM. See [Configuration](#configuration).
+
+### Multilingual interface and voice
+
+- **Languages.** The interface ships English and Telugu dictionaries (`frontend/src/i18n`). Dynamic text (alert advice, notes) can be translated on demand into 12 more languages through Sarvam: Hindi, Tamil, Kannada, Malayalam, Bengali, Marathi, Gujarati, Odia, Punjabi, Assamese, and Urdu.
+- **Text to speech.** `POST /api/tts` reads text aloud in 11 languages (Assamese and Urdu have no voice). Audio is cached.
+- **Failure-safe.** If translation fails for an item, the English original is shown. Both endpoints are rate limited.
+- **Voice alert calls.** For an observed `CRITICAL` alert, a Sarvam Voice Agent can phone the farmer with the advice (cooldown per pond, test mode available). Off unless `ALERT_CALLS_ENABLED=true`.
+
 ### Forecasting
 
 - **Multi-horizon forecasts.** A scikit-learn model predicts dissolved oxygen, pH, and water temperature at **+15, +60, and +180 minutes**.
@@ -74,6 +89,7 @@ The system manages 17 ponds, **Pond 1** through **Pond 17**, and includes read-o
 - **Compare ponds.** Side-by-side telemetry overlays of several ponds over a selectable time range.
 - **Demo and simulation.** Read-only historical replay (24-hour or 7-day windows, at real time or up to 10,800× speed), a guided alert simulator that walks through warning, escalation, and resolution on the database, and a what-if playground.
 - **System status.** API uptime, database and ML worker health.
+- **Chat and help.** A chat workspace for the farmer chatbot, and a help page.
 - **Tests.** An advisor test lab for exercising the alert advisor against sample alerts.
 
 ### 3D digital twin
@@ -190,6 +206,8 @@ Every reading, whether from hardware, the simulator, or an import, goes through 
 |---|---|
 | API | Node.js ≥ 22, Express 4, Zod 3, MongoDB Node driver 6, Socket.IO 4, cors |
 | AI advisor | Jev (TypeSafe) for analysis and checks; any OpenAI-compatible chat endpoint for solution text. Both optional. |
+| Chatbot (RAG) | Chroma Cloud (Qwen dense and Splade sparse embeddings), the same OpenAI-compatible LLM, server-sent events for streaming. Optional. |
+| Languages and voice | Sarvam (translation, text to speech, Voice Agent calls). Optional. |
 | Web | Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind CSS v4, Recharts, Three.js with React Three Fiber and Drei, Phosphor icons, Geist font, Zod |
 | Mobile | React Native 0.86, Expo SDK 57, Expo Router, React Native Tab View, Socket.IO client, Jest with Testing Library |
 | Database | MongoDB Atlas, JSON Schema validators, compound and partial unique indexes |
@@ -211,22 +229,27 @@ Every reading, whether from hardware, the simulator, or an import, goes through 
 │   │   ├── routes/          HTTP routes (thin handlers)
 │   │   ├── services/        risk, alerts, species, ingestion, inference, replay, queries,
 │   │   │                    analytics, downstream risks, what-if, demo pond, pond sync
-│   │   │   └── ai/          alert advisor, Jev and LLM clients, couplings, policy, farmer notes
+│   │   │   ├── ai/          alert advisor, chatbot, Chroma search, Jev and LLM clients, Sarvam call,
+│   │   │   │                couplings, policy, farmer notes
+│   │   │   └── i18n/        language registry, Sarvam client, translation, speech
 │   │   ├── validators/      Zod input schemas
 │   │   ├── ml/              client for the Python worker
 │   │   ├── middleware/      request logging, error handling
 │   │   └── utils/           errors, params, HTTP helpers
+│   ├── scripts/             Chroma migration, knowledge evaluation, RAG prompt tests
 │   └── tests/               unit and integration suites
 ├── frontend/                Next.js web dashboard (port 3000)
 │   └── src/
 │       ├── app/             routes: Overview, Ponds, Pond details, Alerts, Compare ponds,
-│       │                    Demo & simulation, Tests, System status
+│       │                    Chat, Help, Demo & simulation, Tests, System status
 │       ├── components/
 │       │   ├── farm/        3D digital twin (React Three Fiber)
 │       │   ├── features/    domain components: pond cards, alerts, replay, forecast, species
+│       │   ├── chat/        farmer chatbot workspace
 │       │   ├── charts/      telemetry charts
 │       │   ├── shell/       app layout, refresh
 │       │   └── ui/          design-system primitives
+│       ├── i18n/            English and Telugu dictionaries, language provider
 │       └── lib/             API client, schemas, fleet and status logic, formatting
 ├── mobile-app/              Expo farmer app
 │   └── src/
@@ -249,9 +272,13 @@ Every reading, whether from hardware, the simulator, or an import, goes through 
 │   ├── aquaguard_*.py       feature preparation, inference, and configuration
 │   ├── MODEL_SHA256         pinned hash of the model bundle
 │   └── requirements.txt     pinned Python dependencies
+├── knowledge/               classified source documents for the chatbot (pending expert review)
 ├── aquaguard-vision/        separate proof of concept: mobile fish-activity monitor (see its README)
 ├── docs/
 │   ├── DATASET_AND_MODEL.md dataset inventory, mappings, and model evaluation
+│   ├── CHROMA_SETUP.md      chatbot index and pond memory setup
+│   ├── AI_ADVISOR_TESTING.md advisor test guide
+│   ├── DESIGN_SYSTEM.md     design system
 │   └── UX_PLAN.md           interface plan
 ├── aquaguard_model.pkl      trained model bundle
 ├── package.json             npm workspaces: database, backend, frontend, simulator
@@ -417,6 +444,20 @@ Configuration comes from environment variables. The backend reads `backend/.env`
 | `LLM_API_KEY` | *(none)* | Key for `LLM_ENDPOINT_URL`. Server-side only. |
 | `LLM_MODEL` | `default` | Model name sent to `LLM_ENDPOINT_URL`. |
 | `LLM_TIMEOUT_MS` | `30000` | LLM request timeout. |
+| `CHROMA_ENABLED` | `false` | Enables the Chroma retrieval index. Requires `CHROMA_API_KEY`. |
+| `CHATBOT_ENABLED` | `false` | Enables the farmer chatbot. Requires `CHROMA_ENABLED=true`, `LLM_ENDPOINT_URL`, and `LLM_MODEL`. |
+| `CHROMA_API_KEY` | *(none)* | Chroma Cloud key. Server-side only. |
+| `CHROMA_HOST`, `CHROMA_TENANT`, `CHROMA_DATABASE` | `api.trychroma.com`, see `docs/CHROMA_SETUP.md`, `Demo` | Chroma Cloud target. |
+| `CHROMA_SCOPE_ID` | `single-farmer` | Organization scope for the index. Changing it requires reindexing. It is not authorization. |
+| `CHROMA_COLLECTION_PREFIX` | `aquafix-v1` | Collection name prefix. |
+| `CHROMA_TIMEOUT_MS` | `30000` | Chroma request timeout. |
+| `SARVAM_API_KEY` | *(none)* | Enables translation and text to speech. Also used by voice calls. Server-side only. |
+| `SARVAM_TTS_SPEAKER` | *(none)* | Text-to-speech voice. |
+| `TRANSLATE_RATE_LIMIT_PER_MIN` | `60` | Rate limit for `/api/translate`. |
+| `TTS_RATE_LIMIT_PER_MIN` | `30` | Rate limit for `/api/tts`. |
+| `ALERT_CALLS_ENABLED` | `false` | Phone the farmer on observed `CRITICAL` alerts. Also needs the `SARVAM_*` agent, connection, and number settings and `ALERT_CALL_TO_NUMBER`; see `backend/.env.example`. |
+| `ALERT_CALL_COOLDOWN_MINUTES` | `30` | At most one call per pond in this window. |
+| `ALERT_CALL_TEST_MODE` | `true` | The agent announces a test call instead of a real alert. |
 | `FWI_DATA_DIR` | *(none)* | Folder of `ara2_*.csv` files, used by the import scripts when `--dir` is not given. |
 
 Example threshold override (`AQUAGUARD_THRESHOLDS`):
@@ -575,6 +616,23 @@ The response includes the stored measurement, the risk result for each parameter
 | `GET` | `/alerts` | Query alerts. Filters: `status` (`OPEN` by default, which means `ACTIVE` and `ACKNOWLEDGED`; also `ACTIVE`, `ACKNOWLEDGED`, `RESOLVED`, `ALL`), `origin` (`observed` or `predicted`), `parameter`, `severity` (`WARNING` or `CRITICAL`), `pondId`. |
 | `PATCH` | `/alerts/:id/acknowledge` | Mark an alert as seen. Idempotent. Returns `409` for a resolved alert. |
 
+### Chatbot (only when `CHATBOT_ENABLED=true`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/ponds/:id/chat` | Ask a question about a pond. Returns the full answer with its sources. |
+| `POST` | `/ponds/:id/chat/stream` | Same, as server-sent events: `start` (conversation ID, sources), `delta` (text), then `done` or `error`. |
+| `GET` | `/ponds/:id/chats` | Recent conversations for a pond (`limit`). |
+| `GET` | `/ponds/:id/chat/:conversationId` | One conversation's history. |
+
+### Languages and speech
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/i18n/languages` | Supported languages and whether translation is configured. |
+| `POST` | `/translate` | Translate a batch of prose into a target language. Items that fail come back as `original`. Returns `503` if Sarvam is not configured. |
+| `POST` | `/tts` | Return `audio/mpeg` for text in a supported language. Returns `503` if not configured. |
+
 ### Analytics, what-if and replay
 
 | Method | Endpoint | Description |
@@ -727,13 +785,14 @@ npm run test:e2e                  # end-to-end tests
 ## Security
 
 - **Credentials.** `MONGODB_URI` is read only on the server. It is never sent to the browser, the mobile app, or the ML worker, and error messages redact it.
-- **AI service keys.** `JEV_API_KEY` and `LLM_API_KEY` stay on the server.
+- **AI service keys.** `JEV_API_KEY`, `LLM_API_KEY`, `CHROMA_API_KEY`, and `SARVAM_API_KEY` stay on the server.
 - **What the AI advisor sends.** When the advisor is enabled, alert facts, recent readings, other open alerts, and farmer notes are sent to Jev and, for solution text, to `LLM_ENDPOINT_URL`. Those are external services. Check that this is acceptable for your farm's data before you enable them.
 - **Model integrity.** Pickled models run arbitrary code when loaded, so the worker checks the SHA-256 of the bundle before loading it.
 - **Input limits.** Request bodies are capped at 20 kB, and query ranges are capped at `MAX_QUERY_RANGE_DAYS`. Page sizes have a maximum.
 - **Demo isolation.** Demo endpoints write simulated data into the database. They are disabled by default (`DEMO_ENABLED=false`), so enable them only on a test database.
 - **Browser origins.** `CORS_ORIGINS` restricts which browser origins can call the API.
-- **No authentication.** The API has no login, roles, or rate limiting. It is designed for a trusted local network. Add authentication and rate limiting before exposing it to the internet.
+- **Chatbot and translation data.** Chat questions, pond context, and farmer notes go to Chroma Cloud and the LLM endpoint. Text to translate or speak goes to Sarvam, and the farmer's phone number goes to Sarvam for alert calls.
+- **No authentication.** The API has no login or roles, and only the translate and speech endpoints are rate limited. It is designed for a trusted local network. Add authentication and rate limiting before exposing it to the internet.
 
 ---
 
@@ -762,6 +821,10 @@ npm run test:e2e                  # end-to-end tests
 | [`database/README.md`](database/README.md) | Collection schemas, index rationale, and maintenance scripts |
 | [`aquaguard-vision/README.md`](aquaguard-vision/README.md) | Separate proof of concept: mobile fish-activity monitoring |
 | [`docs/DATASET_AND_MODEL.md`](docs/DATASET_AND_MODEL.md) | Dataset inventory, column mapping, and model evaluation |
+| [`docs/CHROMA_SETUP.md`](docs/CHROMA_SETUP.md) | Chatbot index, pond memory, and migration commands |
+| [`knowledge/README.md`](knowledge/README.md) | Knowledge library structure, frontmatter, and review status |
+| [`docs/AI_ADVISOR_TESTING.md`](docs/AI_ADVISOR_TESTING.md) | Testing the alert advisor |
+| [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) | Design system |
 | [`docs/UX_PLAN.md`](docs/UX_PLAN.md) | Interface plan |
 
 ---

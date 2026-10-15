@@ -78,6 +78,12 @@ export function loadConfig(env = process.env) {
     maxQueryRangeDays: int(env.MAX_QUERY_RANGE_DAYS, 366),
     maxPageSize: 1000,
     ai: aiConfig(env),
+    i18n: {
+      sarvamApiKey: env.SARVAM_API_KEY || '',
+      translateRatePerMin: int(env.TRANSLATE_RATE_LIMIT_PER_MIN, 60),
+      ttsRatePerMin: int(env.TTS_RATE_LIMIT_PER_MIN, 30),
+      ttsSpeaker: env.SARVAM_TTS_SPEAKER || '',
+    },
     chroma: chromaConfig(env),
     ml: {
       enabled: bool(env.ML_ENABLED, true),
