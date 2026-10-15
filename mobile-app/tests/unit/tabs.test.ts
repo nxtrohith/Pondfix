@@ -1,12 +1,12 @@
 import { adjacentTab, navKeyForPath, TOP_LEVEL_TABS } from '@/lib/tabs';
 import type { NavKey } from '@/components/BottomNavigation';
 
-const ORDER: NavKey[] = ['home', 'ponds', 'alerts', 'species', 'profile'];
+const ORDER: NavKey[] = ['home', 'ponds', 'alerts', 'help', 'profile'];
 
 describe('top-level swipe order', () => {
   it('is the bottom-navigation order, using the existing route names', () => {
     expect(TOP_LEVEL_TABS.map((t) => t.key)).toEqual(ORDER);
-    expect(TOP_LEVEL_TABS.map((t) => t.route)).toEqual(['dashboard', 'ponds', 'alerts', 'species', 'profile']);
+    expect(TOP_LEVEL_TABS.map((t) => t.route)).toEqual(['dashboard', 'ponds', 'alerts', 'help', 'profile']);
   });
 
   it('a left swipe moves to the next destination, one step at a time', () => {
@@ -34,7 +34,8 @@ describe('the highlighted destination follows the URL', () => {
     ['/ponds/pond-2', 'ponds'],
     ['/alerts', 'alerts'],
     ['/alerts/alert-1', 'alerts'],
-    ['/species', 'species'],
+    ['/help', 'help'],
+    ['/species', null],
     ['/profile', 'profile'],
   ])('%s highlights %s', (path, key) => {
     expect(navKeyForPath(path)).toBe(key);

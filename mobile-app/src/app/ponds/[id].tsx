@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
 import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts, usePonds } from '@/context/LiveData';
+import { useAppStore } from '@/context/AppStore';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
 import { PondImage } from '@/components/PondImage';
@@ -40,6 +41,9 @@ export default function PondDetailScreen() {
   const pond = ponds.find((p) => p.id === id);
   const hasPond = !!pond;
   useEffect(() => { if (hasPond) ensureHistory(id); }, [hasPond, id, ensureHistory]);
+  // Opening a pond makes it the farmer's current pond, so Home shows it next time.
+  const { selectPond } = useAppStore();
+  useEffect(() => { if (hasPond) selectPond(id); }, [hasPond, id, selectPond]);
   // Knock-on effects follow the newest reading: re-fetched when a newer one arrives. A failed fetch just hides the section.
   const [risks, setRisks] = useState<DownstreamRisk[]>([]);
   const newestReading = (readings[id] ?? []).map((r) => r.latest?.recordedAt ?? '').sort().at(-1) ?? '';
@@ -101,6 +105,8 @@ export default function PondDetailScreen() {
               status={r.status}
               recordedAt={latest?.recordedAt ?? r.reading.lastSeenAt}
               ageMinutes={latest ? ageMinutes(latest.recordedAt, asOf) : null}
+              direction={summary.openAlerts.find((a) => a.parameter === p)?.direction}
+              explain
             />
           );
         })}
@@ -166,6 +172,7 @@ export default function PondDetailScreen() {
         <ToolLink icon="stats-chart-outline" label={t('pondDetail.charts')} onPress={() => router.push(routes.pondCharts(pond.id))} testID="open-charts" />
         <ToolLink icon="trending-up-outline" label={t('pondDetail.forecast')} onPress={() => router.push(routes.pondForecast(pond.id))} testID="open-forecast" />
         <ToolLink icon="hardware-chip-outline" label={t('pondDetail.sensors')} onPress={() => router.push(routes.pondSensors(pond.id))} testID="open-sensors" />
+        <ToolLink icon="chatbubbles-outline" label={t('chat.open')} onPress={() => router.push(routes.chat(pond.id))} testID="open-chat" />
       </View>
     </ScreenContainer>
   );

@@ -1,89 +1,89 @@
 // Single source of colour for the app. Screens and components use these semantic tokens, never raw HEX codes.
 //
-// Direction: a calm sage page, warm ivory surfaces and deep olive for emphasis. Everything stays in one natural family; status colours are
-// muted and earthy, never neon.
+// Direction (shared with the web dashboard, see docs/DESIGN_SYSTEM.md): a warm off-white page, white cards with visible borders, deep teal
+// for brand and primary actions, aquatic green for "healthy". Chosen for outdoor use: dark text on a light page keeps contrast high in
+// bright sun, and status colours are never the only signal (every status also has an icon and a word).
 //
-// Contrast rules the tokens are built around (checked against WCAG AA):
-//   * Text sitting directly on the sage page uses the `textOnBackground*` tokens (dark olive). `textSecondary` / `textMuted` are for ivory
-//     surfaces only; on sage they fall below 4.5:1.
-//   * Status text uses the "*Dark" token on an ivory or tinted surface, never on bare sage.
-//   * Fills, icons and borders need 3:1, which the base palette meets.
+// Contrast rules (checked against WCAG AA, see frontend/tests/design-tokens.test.ts):
+//   * Body text (`textPrimary`, `textSecondary`) is at least 6:1 on the page and on cards.
+//   * Status text uses the "*Dark" token on its tinted surface (at least 5.7:1).
+//   * White text on the teal and critical fills is at least 6.3:1.
 const palette = {
-  sage: '#A8B889',
-  sageLine: '#C3CFA6',
-  oliveSecondary: '#71845A',
-  oliveLight: '#CBD5AE',
-  oliveDark: '#46543A',
+  teal: '#0F6B66',
+  tealText: '#0C5D59',
+  tealSoft: '#6FA59C',
+  tealPale: '#E2F0EC',
+  tealLine: '#CFE5E0',
 
-  ivory: '#F4F4E8',
-  ivoryRaised: '#FAFAF2',
-  ivoryMuted: '#E9EBDB',
-  ivoryInput: '#F9F9F0',
-  hairline: '#D5DAC4',
-  divider: '#E1E5D2',
+  page: '#F6F4EE',
+  white: '#FFFFFF',
+  cardSecondary: '#FAF9F6',
+  muted: '#EEECE5',
+  hairline: '#DEDAD0',
+  lineStrong: '#C5C0B3',
+  divider: '#ECE9E1',
 
-  ink: '#1E241B',
-  inkSecondary: '#66705C',
-  inkMuted: '#5F6954',
-  onBackgroundSecondary: '#36422D',
+  ink: '#17282A',
+  inkSecondary: '#4A5A5C',
+  inkMuted: '#5B6A6C',
 
-  healthy: '#4F7D45',
-  healthyText: '#2F5A2B',
-  healthySurface: '#DFE9D0',
-  warning: '#B9791E',
-  warningText: '#7A4A0C',
-  warningSurface: '#F6E7C6',
-  critical: '#A6443A',
-  criticalText: '#86312A',
-  criticalSurface: '#F2DAD3',
-  criticalOnBackground: '#6E2620',
-  info: '#4E7A86',
-  infoText: '#2F5D69',
-  infoSurface: '#DCE8E8',
-  neutral: '#8A917B',
-  unavailable: '#747B66',
+  healthy: '#2E7D4F',
+  healthyText: '#1F6A3E',
+  healthySurface: '#E5F3EA',
+  warning: '#B86E00',
+  warningText: '#8A4E00',
+  warningSurface: '#FDF1DC',
+  critical: '#C0392B',
+  criticalText: '#A3271B',
+  criticalSurface: '#FCEBE8',
+  info: '#3D6F86',
+  infoText: '#2C5A6E',
+  infoSurface: '#E4EEF2',
+  neutral: '#8E9A9B',
+  unavailable: '#6B7778',
 
-  water: '#4A7B8C',
-  pondField: '#8FA175',
-  pondEmbankment: '#C9C3A1',
+  water: '#2F7F8C',
+  pondField: '#8FB5A8',
+  pondEmbankment: '#D8D1BC',
 } as const;
 
 export const colors = {
   // Page and brand.
-  background: palette.sage,
-  primary: palette.oliveSecondary,
-  primaryDark: palette.oliveDark,
-  primaryLight: palette.oliveLight,
-  topographicLine: palette.sageLine,
-  topographicLineMuted: palette.sageLine,
-  topographicBackground: palette.sage,
+  background: palette.page,
+  primary: palette.teal,
+  primaryDark: palette.teal,
+  primaryLight: palette.tealLine,
+  primaryText: palette.tealText,
+  primarySurface: palette.tealPale,
+  topographicLine: palette.divider,
+  topographicLineMuted: palette.divider,
+  topographicBackground: palette.page,
   water: palette.water,
   pondField: palette.pondField,
   pondEmbankment: palette.pondEmbankment,
 
-  // Surfaces. `card` is the ivory surface; `surfaceElevated` sits one step above it.
-  surface: palette.ivory,
-  surfaceElevated: palette.ivoryRaised,
-  surfaceOverlay: palette.oliveLight,
-  card: palette.ivory,
-  cardSecondary: palette.ivoryRaised,
-  cardMuted: palette.ivoryMuted,
-  inputBackground: palette.ivoryInput,
+  // Surfaces. Cards are white with a visible border on the off-white page.
+  surface: palette.white,
+  surfaceElevated: palette.white,
+  surfaceOverlay: palette.tealLine,
+  card: palette.white,
+  cardSecondary: palette.cardSecondary,
+  cardMuted: palette.muted,
+  inputBackground: palette.white,
   border: palette.hairline,
   divider: palette.divider,
-  /** Hairline for controls that sit on the sage page rather than on an ivory surface. */
-  borderOnBackground: 'rgba(70, 84, 58, 0.55)',
+  /** Border for controls that sit directly on the page. */
+  borderOnBackground: palette.lineStrong,
 
-  // Text on ivory surfaces.
+  // Text. The page and cards are both light, so the same text tokens work on either.
   textPrimary: palette.ink,
   textSecondary: palette.inkSecondary,
   textMuted: palette.inkMuted,
-  // Text on the sage page.
   textOnBackground: palette.ink,
-  textOnBackgroundSecondary: palette.onBackgroundSecondary,
-  textOnBackgroundMuted: palette.onBackgroundSecondary,
-  // Text and icons on deep olive or status fills.
-  textOnDark: palette.ivory,
+  textOnBackgroundSecondary: palette.inkSecondary,
+  textOnBackgroundMuted: palette.inkMuted,
+  // Text and icons on teal or status fills.
+  textOnDark: palette.white,
 
   // Status. Fills and icons use the base colour; text uses the "Dark" variant on the matching surface.
   healthy: palette.healthy,
@@ -96,34 +96,32 @@ export const colors = {
   critical: palette.critical,
   criticalDark: palette.criticalText,
   criticalSurface: palette.criticalSurface,
-  /** Error text that sits directly on the sage page (5:1 there; `criticalDark` is for ivory surfaces). */
-  criticalOnBackground: palette.criticalOnBackground,
+  criticalOnBackground: palette.criticalText,
   info: palette.info,
   infoDark: palette.infoText,
   infoSurface: palette.infoSurface,
   neutral: palette.neutral,
   unavailable: palette.unavailable,
 
-  // Buttons: ivory is the primary action on the sage page; deep olive is the secondary fill.
-  buttonPrimary: palette.ivory,
-  buttonPrimaryText: palette.oliveDark,
-  buttonSecondary: palette.oliveDark,
-  buttonSecondaryText: palette.ivory,
-  buttonOutline: palette.oliveDark,
-  buttonCritical: palette.critical,
+  // Buttons: teal fill is the primary action; pale teal the secondary.
+  buttonPrimary: palette.teal,
+  buttonPrimaryText: palette.white,
+  buttonSecondary: palette.tealPale,
+  buttonSecondaryText: palette.tealText,
+  buttonOutline: palette.teal,
+  buttonCritical: palette.criticalText,
 
-  // Charts sit on ivory cards: deep olive line, faint grid, muted status colours only where data is in that state.
-  chartLine: palette.oliveDark,
-  chartGrid: 'rgba(70, 84, 58, 0.14)',
+  // Charts sit on white cards: teal line, faint grid, status colours only where data is in that state.
+  chartLine: palette.teal,
+  chartGrid: 'rgba(23, 40, 42, 0.10)',
   chartAxis: palette.inkSecondary,
   chartPrediction: palette.info,
   chartThresholdWarning: palette.warning,
   chartThresholdCritical: palette.critical,
 
-  // Dimming behind modal sheets, and the colour shadows are cast in.
-  overlay: 'rgba(30, 36, 27, 0.5)',
-  scrim: 'rgba(30, 36, 27, 0.5)',
-  shadow: '#2F3A27',
+  overlay: 'rgba(23, 40, 42, 0.5)',
+  scrim: 'rgba(23, 40, 42, 0.5)',
+  shadow: palette.ink,
 } as const;
 
 /** Opacity system for overlays, dividers and muted states. */

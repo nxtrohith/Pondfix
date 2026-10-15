@@ -36,17 +36,17 @@ describe('Alerts page in plain language', () => {
   it('shows each problem as a headline, the current value and the level that was crossed', async () => {
     await open();
     const doCard = screen.getByRole('article', { name: 'Dissolved oxygen is low' });
-    expect(doCard).toHaveTextContent('Current problem'); expect(doCard).toHaveTextContent('Current: 2.70 mg/L'); expect(doCard).toHaveTextContent('Warning level: below 3.0 mg/L');
+    expect(doCard).toHaveTextContent('Warning'); expect(doCard).toHaveTextContent('Oxygen is low. Fish may struggle to breathe.'); expect(doCard).toHaveTextContent('Current: 2.70 mg/L'); expect(doCard).toHaveTextContent('Warning level: below 3.0 mg/L');
     const ph = screen.getByRole('article', { name: 'pH is too high' });
     expect(ph).toHaveTextContent('Current: 8.80'); expect(ph).toHaveTextContent('Warning level: above 8.5');
     const t = screen.getByRole('article', { name: 'Water temperature is critically high' });
-    expect(t).toHaveTextContent('Critical level: above 35.0 °C'); expect(t).toHaveTextContent('Current problem: critical');
+    expect(t).toHaveTextContent('Critical level: above 35.0 °C'); expect(t).toHaveTextContent('Urgent');
   });
 
   it('shows a forecast as a possible upcoming problem, never as a measurement', async () => {
     await open();
     const f = screen.getByRole('article', { name: 'Oxygen may become critically low within 1 hour' });
-    expect(f).toHaveTextContent('Possible upcoming problem'); expect(f).toHaveTextContent('Forecast in 1 h:'); expect(f).toHaveTextContent('not a measurement');
+    expect(f).toHaveTextContent('Possible soon'); expect(f).toHaveTextContent('Forecast in 1 h:'); expect(f).toHaveTextContent('not a measurement');
     expect(f).not.toHaveTextContent('Current:');
     expect(screen.getByTestId('alert-breakdown')).toHaveTextContent('4 current problems and 1 possible upcoming problem');
   });
@@ -57,10 +57,10 @@ describe('Alerts page in plain language', () => {
     expect(screen.getByRole('button', { name: 'Open (5)' })).toHaveAttribute('aria-pressed', 'true');
     // A problem marked as seen is still open, so it stays on this tab (and in the bell count) with its state spelled out.
     const seen = screen.getByRole('article', { name: 'Water temperature is too high' });
-    expect(seen).toHaveTextContent('Marked as seen: the condition is still active'); expect(within(seen).queryByRole('button', { name: 'Mark as seen' })).toBeNull();
+    expect(seen).toHaveTextContent('Seen, still open'); expect(seen).toHaveTextContent('Marked as seen: the condition is still active'); expect(within(seen).queryByRole('button', { name: 'Mark as seen' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Resolved' }));
     const done = await screen.findByRole('article', { name: 'pH is too low' });
-    expect(done).toHaveTextContent('Resolved: readings are back to normal'); expect(done).toHaveTextContent('Earlier current problem');
+    expect(done).toHaveTextContent('Resolved: readings are back to normal'); expect(done).toHaveTextContent('Resolved');
   });
 
   it('filters by pond, factor, seriousness and type on the server', async () => {

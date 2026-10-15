@@ -7,7 +7,7 @@ import { Text } from '@/components/Text';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { useAlerts } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -86,7 +86,7 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   bar: { gap: spacing.sm, alignItems: 'flex-start' },
-  item: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border },
+  item: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: layout.borderWidth, borderColor: colors.border },
   itemHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   category: { fontSize: fontSize.metadata, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase' },
   unreadTag: { backgroundColor: colors.infoSurface, borderRadius: radius.badge, paddingHorizontal: 8, paddingVertical: 4 },

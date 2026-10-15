@@ -32,21 +32,21 @@ export function PondCard({ row }: { row: FleetRow }) {
         </div>
       </div>
       {problems.length ? (
-        <ul className="mt-2 space-y-0.5 text-[13px] font-medium text-ink">
+        <ul className="mt-2 space-y-0.5 text-sm font-medium text-ink">
           {problems.slice(0, 3).map((a) => <li key={a.id}>{describeProblem(a.parameter, a.direction, a.severity)}</li>)}
         </ul>
-      ) : row.risk === 'NORMAL' || row.risk === 'ERROR' ? <p className="mt-2 text-[13px] text-ink-soft">{POND_STATUS[row.risk].summary}</p> : null}
-      {upcoming.length ? <p className="mt-1 text-xs text-olive-text">Forecast warning: {upcoming.length === 1 ? 'a problem may develop soon' : `${upcoming.length} problems may develop soon`}</p> : null}
+      ) : row.risk === 'NORMAL' || row.risk === 'ERROR' ? <p className="mt-2 text-sm text-ink-soft">{POND_STATUS[row.risk].summary}</p> : null}
+      {upcoming.length ? <p className="mt-1 text-xs text-brand-text">Forecast warning: {upcoming.length === 1 ? 'a problem may develop soon' : `${upcoming.length} problems may develop soon`}</p> : null}
       <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
         {PARAMS.map((p) => {
           const r = summary?.parameters[p]; const Icon = PARAM_ICON[p];
           const bad = r?.risk === 'WARNING' || r?.risk === 'CRITICAL';
           return (
             <div key={p} className={cx('rounded-lg px-1 py-2', bad ? (r!.risk === 'CRITICAL' ? 'bg-crit-bg' : 'bg-warn-bg') : 'bg-surface')}>
-              <dt className="flex items-center justify-center gap-1 text-[11px] text-ink-soft">{Icon ? <Icon size={12} aria-hidden="true" /> : null}{PARAM_SHORT[p]}</dt>
+              <dt className="flex items-center justify-center gap-1 text-xs text-ink-soft">{Icon ? <Icon size={12} aria-hidden="true" /> : null}{PARAM_SHORT[p]}</dt>
               <dd className={cx('mt-0.5 text-sm font-medium tabular-nums', r?.risk === 'STALE' ? 'text-ink-soft' : 'text-ink')}>
-                {r ? formatValue(r.value, p) : 'n/a'}<span className="ml-0.5 text-[11px] font-normal text-ink-soft">{r ? unitLabel(r.unit) : DEFAULT_UNIT[p]}</span>
-                {bad ? <span className={cx('block text-[11px]', r!.risk === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text')}>{r!.risk === 'CRITICAL' ? 'Critical' : 'Warning'}</span> : null}
+                {r ? formatValue(r.value, p) : 'n/a'}<span className="ml-0.5 text-xs font-normal text-ink-soft">{r ? unitLabel(r.unit) : DEFAULT_UNIT[p]}</span>
+                {bad ? <span className={cx('block text-xs', r!.risk === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text')}>{r!.risk === 'CRITICAL' ? 'Critical' : 'Warning'}</span> : null}
               </dd>
             </div>
           );

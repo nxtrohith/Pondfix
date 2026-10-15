@@ -18,7 +18,8 @@ import PondEditScreen from '@/app/ponds/edit';
 import ComparisonScreen from '@/app/ponds/comparison';
 import AlertsScreen from '@/app/(tabs)/alerts/index';
 import AlertDetailScreen from '@/app/alerts/[id]';
-import SpeciesScreen from '@/app/(tabs)/species';
+import SpeciesScreen from '@/app/species';
+import HelpScreen from '@/app/(tabs)/help';
 import NotificationsScreen from '@/app/notifications';
 import SettingsScreen from '@/app/settings';
 import DiagnosticsScreen from '@/app/diagnostics';
@@ -48,7 +49,8 @@ export const APP_ROUTES = {
   'ponds/comparison': ComparisonScreen,
   '(tabs)/alerts/index': AlertsScreen,
   'alerts/[id]': AlertDetailScreen,
-  '(tabs)/species': SpeciesScreen,
+  'species': SpeciesScreen,
+  '(tabs)/help': HelpScreen,
   notifications: NotificationsScreen,
   settings: SettingsScreen,
   diagnostics: DiagnosticsScreen,

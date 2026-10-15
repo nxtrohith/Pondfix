@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing, shadow } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 import { CHART_RANGES, sliceSeries, trendOf, type RangeKey } from '@/lib/chart';
 import { formatValue, formatDateTime } from '@/lib/format';
 import { PARAMETER_LABEL, PARAMETER_UNIT, classifyValue } from '@/lib/status';
@@ -63,7 +63,7 @@ export function ChartCard({ parameter, series, asOf, range, onRangeChange, showD
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   head: { flexDirection: 'row', alignItems: 'flex-start' },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   summary: { gap: 4 },

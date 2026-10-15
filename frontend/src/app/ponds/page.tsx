@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { ErrorState, Notice } from '@/components/ui/states';
 import { PondsDirectory } from '@/components/features/PondsDirectory';
 
-export const metadata: Metadata = { title: 'Ponds' };
+export const metadata: Metadata = { title: 'My Ponds' };
 export const dynamic = 'force-dynamic';
 
 export default async function PondsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
@@ -14,12 +14,12 @@ export default async function PondsPage({ searchParams }: { searchParams: Promis
   const initialQuery = Array.isArray(q) ? (q[0] ?? '') : (q ?? '');
   let data;
   try { data = await loadFleet(serverApi()); } catch (e) {
-    return (<><PageHeader title="Ponds" description="Pick a pond to see how it is doing." /><Card><ErrorState server error={e} title="Could not load ponds" /></Card></>);
+    return (<><PageHeader title="My Ponds" description="Tap a pond to see its readings, problems and what to do." /><Card><ErrorState server error={e} title="Could not load ponds" /></Card></>);
   }
   const failed = data.rows.filter((r) => r.risk === 'ERROR').length;
   return (
     <>
-      <PageHeader title="Ponds" description="Pick a pond to see how it is doing." />
+      <PageHeader title="My Ponds" description="Tap a pond to see its readings, problems and what to do." />
       <div className="space-y-4">
         {failed ? <Notice tone="warning">Readings for {failed} of {data.rows.length} ponds could not be loaded. Those ponds are shown as unavailable.</Notice> : null}
         {data.truncated ? <Notice tone="warning">The API returned its maximum of 200 ponds, so this list may be incomplete.</Notice> : null}

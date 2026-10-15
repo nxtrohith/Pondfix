@@ -1,0 +1,9 @@
+{
+  "title": "Ask PondFix",
+  "subtitle": "Ask about {{pond}}",
+  "open": "Ask the assistant",
+  "placeholder": "Type your question",
+  "send": "Send",
+  "empty": "Ask anything about this pond: its readings, alerts or what to do next.",
+  "failed": "The assistant could not answer right now. Please try again."
+}

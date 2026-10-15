@@ -10,7 +10,7 @@ export function CardHeader({ title, description, action, id }: { title: string; 
     <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-5 pt-5">
       <div className="min-w-0">
         <h2 id={id} className="text-lg font-semibold leading-snug tracking-tight text-ink">{title}</h2>
-        {description ? <p className="mt-1 text-[13px] leading-snug text-ink-soft">{description}</p> : null}
+        {description ? <p className="mt-1 text-sm leading-snug text-ink-soft">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

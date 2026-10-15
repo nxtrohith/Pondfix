@@ -85,7 +85,7 @@ export function ParameterDemo({ ponds }: { ponds: TrendPond[] }) {
     <Card aria-labelledby="pdemo-title">
       <CardHeader id="pdemo-title" title="Guided demo: dissolved oxygen, pH and temperature" description="Twenty simulated readings you send one at a time. Watch each parameter open, escalate and recover on its own, and several alerts coexist for one pond." />
       <div className="space-y-4 px-5 pb-5 pt-4">
-        {db.loading ? <p className="text-[13px] text-ink-soft">Checking which database the API uses.</p>
+        {db.loading ? <p className="text-sm text-ink-soft">Checking which database the API uses.</p>
           : db.canWrite ? <Notice>The API is connected to a <strong className="font-medium">local test database</strong>. Readings are marked simulated and stay on this machine.</Notice>
           : <Notice tone="warning"><strong className="font-medium">The demo is disabled.</strong> It only runs against a verified local database.</Notice>}
         <div className="flex flex-wrap items-end gap-3">
@@ -124,7 +124,7 @@ export function ParameterDemo({ ponds }: { ponds: TrendPond[] }) {
         </Table>
 
         <div>
-          <h3 className="text-[13px] font-medium text-ink">Unresolved alerts for {pond?.name ?? 'this pond'} (live from the API)</h3>
+          <h3 className="text-sm font-medium text-ink">Unresolved alerts for {pond?.name ?? 'this pond'} (live from the API)</h3>
           {alerts === null ? <p className="mt-2 text-xs text-ink-soft">Shown after the first reading is sent.</p>
             : 'error' in alerts ? <p role="alert" className="mt-2 text-xs text-crit-text">Could not load alerts: {alerts.error}</p>
             : alerts.length === 0 ? <p className="mt-2 text-xs text-ink-soft">No unresolved alerts for this pond.</p>

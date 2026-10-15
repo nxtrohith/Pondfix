@@ -13,7 +13,7 @@ function inline(text: string, onCite?: (citation: string) => void, known?: Set<s
     if (cite && known?.has(cite)) {
       return (
         <button key={i} type="button" onClick={() => onCite?.(cite)} aria-label={`Show source ${cite}`}
-          className="mx-0.5 inline-flex h-[18px] min-w-[22px] -translate-y-px items-center justify-center rounded-full bg-sage-pale px-1.5 align-middle text-[11px] font-semibold text-olive-text transition-colors hover:bg-olive hover:text-white">
+          className="mx-0.5 inline-flex h-[18px] min-w-[22px] -translate-y-px items-center justify-center rounded-full bg-brand-pale px-1.5 align-middle text-xs font-semibold text-brand-text transition-colors hover:bg-brand hover:text-white">
           {cite}
         </button>
       );
@@ -66,15 +66,15 @@ export function Markdown({ text, citations, onCite, className }: { text: string;
         if (b.type === 'hr') return <hr key={i} className="border-line" />;
         if (b.type === 'table') return (
           <div key={i} className="overflow-x-auto rounded-lg border border-line">
-            <table className="w-full min-w-[420px] border-collapse text-left text-[13px]">
+            <table className="w-full min-w-[420px] border-collapse text-left text-sm">
               <thead className="bg-head text-ink"><tr>{b.head.map((h, j) => <th key={j} scope="col" className="px-3 py-2 font-semibold">{inline(h, onCite, known)}</th>)}</tr></thead>
               <tbody>{b.rows.map((r, j) => <tr key={j} className="border-t border-line align-top">{r.map((c, k) => <td key={k} className="px-3 py-2">{inline(c, onCite, known)}</td>)}</tr>)}</tbody>
             </table>
           </div>
         );
         if (b.type === 'h') return <p key={i} className="pt-1 font-semibold text-ink">{inline(b.text, onCite, known)}</p>;
-        if (b.type === 'ul') return <ul key={i} className="list-disc space-y-1 pl-5 marker:text-sage">{b.items.map((it, j) => <li key={j}>{inline(it, onCite, known)}</li>)}</ul>;
-        if (b.type === 'ol') return <ol key={i} className="list-decimal space-y-1 pl-5 marker:font-medium marker:text-olive-text">{b.items.map((it, j) => <li key={j}>{inline(it, onCite, known)}</li>)}</ol>;
+        if (b.type === 'ul') return <ul key={i} className="list-disc space-y-1 pl-5 marker:text-brand-soft">{b.items.map((it, j) => <li key={j}>{inline(it, onCite, known)}</li>)}</ul>;
+        if (b.type === 'ol') return <ol key={i} className="list-decimal space-y-1 pl-5 marker:font-medium marker:text-brand-text">{b.items.map((it, j) => <li key={j}>{inline(it, onCite, known)}</li>)}</ol>;
         return <p key={i}>{inline(b.text, onCite, known)}</p>;
       })}
     </div>

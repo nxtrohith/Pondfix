@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing } from '@/constants/theme';
+import { fontSize, radius, spacing, layout } from '@/constants/theme';
 import { parameterLabel } from '@/lib/status';
 import { leadText } from '@/lib/risks';
 import type { DownstreamRisk } from '@/types';
@@ -32,7 +32,7 @@ export function DownstreamRiskList({ risks, testID }: { risks: DownstreamRisk[];
 
 const styles = StyleSheet.create({
   list: { gap: spacing.xs },
-  item: { gap: 4, backgroundColor: colors.card, borderRadius: radius.chip, borderWidth: 0.5, borderColor: colors.border, padding: spacing.sm },
+  item: { gap: 4, backgroundColor: colors.card, borderRadius: radius.chip, borderWidth: layout.borderWidth, borderColor: colors.border, padding: spacing.sm },
   title: { fontSize: fontSize.body, fontWeight: '600', color: colors.textPrimary },
   lead: { fontSize: fontSize.metadata, color: colors.textSecondary, fontWeight: '600' },
   body: { fontSize: fontSize.metadata + 1, color: colors.textSecondary, lineHeight: 18 },

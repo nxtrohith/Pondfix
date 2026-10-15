@@ -27,13 +27,13 @@ const POLL_MS = 2000; const TIMEOUT_S = 100;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function Row({ state, title, children }: { state: 'todo' | 'running' | 'done' | 'warn' | 'fail' | 'skip'; title: string; children?: React.ReactNode }) {
-  const icon = state === 'done' ? <CheckCircle size={18} weight="fill" className="text-ok-text" /> : state === 'running' ? <CircleNotch size={18} className="animate-spin text-olive-text" />
+  const icon = state === 'done' ? <CheckCircle size={18} weight="fill" className="text-ok-text" /> : state === 'running' ? <CircleNotch size={18} className="animate-spin text-brand-text" />
     : state === 'warn' ? <WarningCircle size={18} weight="fill" className="text-warn-text" /> : state === 'fail' ? <WarningCircle size={18} weight="fill" className="text-crit-text" />
     : state === 'skip' ? <MinusCircle size={18} className="text-ink-soft" /> : <Circle size={18} className="text-ink-soft" />;
   return (
     <li className="flex items-start gap-2.5 py-2">
       <span className="mt-px shrink-0" aria-hidden="true">{icon}</span>
-      <div className="min-w-0"><p className="text-sm font-medium text-ink">{title}</p>{children ? <p className="mt-0.5 text-[13px] text-ink-soft">{children}</p> : null}</div>
+      <div className="min-w-0"><p className="text-sm font-medium text-ink">{title}</p>{children ? <p className="mt-0.5 text-sm text-ink-soft">{children}</p> : null}</div>
     </li>
   );
 }
@@ -93,7 +93,7 @@ export function AdvisorTestLab({ ponds }: { ponds: { id: string; name: string }[
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-dashed border-olive/60 bg-sage-pale px-4 py-3 text-[13px] text-olive-text" role="note">
+      <div className="rounded-xl border border-dashed border-brand/60 bg-brand-pale px-4 py-3 text-sm text-brand-text" role="note">
         <span className="mr-2 rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold tracking-wide">TEST</span>
         These buttons save made-up “Test data” readings to the pond you choose and open a real alert on it. Use a pond you do not mind showing a test alert, and stop the simulator while testing so it does not overwrite the test readings. “Return to normal” closes the test alerts.
       </div>
@@ -121,8 +121,8 @@ export function AdvisorTestLab({ ponds }: { ponds: { id: string; name: string }[
           </div>
           <ul className="grid gap-3 md:grid-cols-3">
             {SCENARIOS.map((s) => (
-              <li key={s.id} className={cx('flex flex-col justify-between gap-3 rounded-lg border bg-card p-3.5', run?.scenario === s.id ? 'border-olive' : 'border-line')}>
-                <div><p className="text-sm font-semibold text-ink">{s.title}</p><p className="mt-1 text-[13px] text-ink-soft">{s.desc}</p></div>
+              <li key={s.id} className={cx('flex flex-col justify-between gap-3 rounded-lg border bg-card p-3.5', run?.scenario === s.id ? 'border-brand' : 'border-line')}>
+                <div><p className="text-sm font-semibold text-ink">{s.title}</p><p className="mt-1 text-sm text-ink-soft">{s.desc}</p></div>
                 <Button variant="primary" size="sm" disabled={busy || !demoOn || !pondId} onClick={() => void start(s.id)}>{busy && run?.scenario === s.id ? 'Running' : 'Run this test'}</Button>
               </li>
             ))}
@@ -158,7 +158,7 @@ export function AdvisorTestLab({ ponds }: { ponds: { id: string; name: string }[
                 <p className="text-sm font-medium text-ink">The alerts, as the rest of the app shows them</p>
                 <AlertCardList alerts={run.alerts} pondNames={{ [pondId]: pondName }} />
                 {adv ? <details className="rounded-lg border border-line bg-surface px-3 py-2 text-xs"><summary className="cursor-pointer font-medium text-ink">Raw assistant result</summary><pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-ink-soft">{JSON.stringify(adv, null, 2)}</pre></details> : null}
-                <p className="text-[13px]"><Link href={`/ponds/${pondId}`} className="text-olive-text underline-offset-2 hover:underline">Open the pond page</Link> · <Link href="/alerts" className="text-olive-text underline-offset-2 hover:underline">Open Alerts</Link></p>
+                <p className="text-sm"><Link href={`/ponds/${pondId}`} className="text-brand-text underline-offset-2 hover:underline">Open the pond page</Link> · <Link href="/alerts" className="text-brand-text underline-offset-2 hover:underline">Open Alerts</Link></p>
               </div>
             ) : null}
           </CardBody>
@@ -184,12 +184,12 @@ function NoteTest({ pondId, pondName }: { pondId: string; pondName: string }) {
     <Card aria-labelledby="t-note">
       <CardHeader id="t-note" title="Try a field note" description={`Saves a note on ${pondName} and shows how Jev sorted it. Notes never raise or close an alert.`} />
       <CardBody className="space-y-3">
-        <label htmlFor="t-note-text" className="text-[13px] font-medium text-ink">Note</label>
-        <textarea id="t-note-text" rows={2} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink focus-visible:border-olive" />
+        <label htmlFor="t-note-text" className="text-sm font-medium text-ink">Note</label>
+        <textarea id="t-note-text" rows={2} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink focus-visible:border-brand" />
         <Button variant="primary" size="sm" disabled={busy || text.trim().length < 3} onClick={() => void send()}>{busy ? 'Saving' : 'Save and sort this note'}</Button>
-        {error ? <p role="alert" className="text-[13px] text-crit-text">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-crit-text">{error}</p> : null}
         {note ? (
-          <dl className="grid gap-x-6 gap-y-1 text-[13px] sm:grid-cols-3" aria-label="How the note was sorted">
+          <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3" aria-label="How the note was sorted">
             <div><dt className="text-ink-soft">Category</dt><dd className="font-medium text-ink">{note.category}{note.categoryConfidence !== undefined ? ` (${Math.round(note.categoryConfidence * 100)}% sure)` : ''}</dd></div>
             <div><dt className="text-ink-soft">Distress chance</dt><dd className="font-medium text-ink">{note.distress !== undefined ? `${Math.round(note.distress * 100)}%` : 'not sorted'}</dd></div>
             <div><dt className="text-ink-soft">Seriousness (0 to 2)</dt><dd className="font-medium text-ink">{note.severityScore !== undefined ? note.severityScore.toFixed(1) : 'not sorted'}</dd></div>

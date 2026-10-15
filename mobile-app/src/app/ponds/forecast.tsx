@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Text } from '@/components/Text';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
-import { spacing, fontSize, radius } from '@/constants/theme';
+import { spacing, fontSize, radius, layout } from '@/constants/theme';
 import { usePonds } from '@/context/LiveData';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { AppHeader } from '@/components/AppHeader';
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   body: { fontSize: fontSize.body, color: colors.textOnBackground, lineHeight: 21 },
   small: { fontSize: fontSize.secondary, color: colors.textSecondary, lineHeight: 18 },
   legend: { fontSize: fontSize.secondary, color: colors.textSecondary },
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: 0.5, borderColor: colors.border },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm, borderWidth: layout.borderWidth, borderColor: colors.border },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', color: colors.textPrimary },
   tableRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: colors.divider },
   selectedRow: { backgroundColor: colors.cardSecondary },

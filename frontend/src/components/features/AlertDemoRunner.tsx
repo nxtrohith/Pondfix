@@ -94,7 +94,7 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
     <Card aria-labelledby="demo-title">
       <CardHeader id="demo-title" title="Guided alert demo" description="Sends four simulated dissolved-oxygen readings, 5 seconds apart, so you can watch an alert open, escalate and resolve." />
       <div className="space-y-4 px-5 pb-5 pt-4">
-        {db.loading ? <p className="text-[13px] text-ink-soft">Checking which database the API uses.</p>
+        {db.loading ? <p className="text-sm text-ink-soft">Checking which database the API uses.</p>
           : db.error ? <Notice tone="warning">Could not check the API&apos;s database. The demo is disabled until the API responds. <button type="button" onClick={db.reload} className="underline">Retry</button></Notice>
           : db.canWrite ? <Notice tone="warning">Demo mode is on. The demo readings are <strong className="font-medium">saved to the Atlas database</strong>, marked as simulated.</Notice>
           : <Notice tone="warning"><strong className="font-medium">The demo is disabled.</strong> {target === 'atlas' ? 'Demo mode is off on the API (DEMO_ENABLED=false), so simulated readings are not accepted.' : 'This API did not report an Atlas database.'}</Notice>}
@@ -106,7 +106,7 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
           {running || run === 'paused' ? <Button onClick={stop}>Stop demo</Button> : null}
         </div>
 
-        <div aria-live="polite" className="min-h-5 text-[13px] text-ink-soft">
+        <div aria-live="polite" className="min-h-5 text-sm text-ink-soft">
           {running ? (countdown !== null ? `Next reading in ${countdown} s.` : 'Sending a reading.') : run === 'paused' ? 'Paused after a failed step. Nothing was skipped; retry the step or stop.' : run === 'finished' ? 'Sequence complete. Every row below is the server\'s actual response.' : run === 'stopped' ? 'Stopped. Readings already sent remain saved as simulated data.' : ''}
         </div>
 
@@ -127,7 +127,7 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
                       : <div><StatusPill tone="critical">Failed</StatusPill>{r.http ? <span className="ml-2 text-xs tabular-nums text-ink-soft">HTTP {r.http}</span> : null}<p role="alert" className="mt-1 max-w-[28ch] text-xs text-crit-text">{r.error}</p></div>}
                   </Td>
                   <Td>{risk ? <div className="flex items-center gap-2"><StatusPill tone={RISK_TONE[risk]}>{RISK_LABEL[risk]}</StatusPill>{risk !== s.expectRisk ? <span className="text-xs text-warn-text">expected {RISK_LABEL[s.expectRisk]}</span> : null}</div> : <span className="text-ink-soft">n/a</span>}</Td>
-                  <Td>{r.status === 'done' ? <div><p>{ACTION_LABEL[r.action ?? 'none'] ?? r.action}</p>{r.alertId ? <p className="mt-0.5 font-mono text-[11px] text-ink-soft">{r.alertId}</p> : null}</div> : <span className="text-ink-soft">n/a</span>}</Td>
+                  <Td>{r.status === 'done' ? <div><p>{ACTION_LABEL[r.action ?? 'none'] ?? r.action}</p>{r.alertId ? <p className="mt-0.5 font-mono text-xs text-ink-soft">{r.alertId}</p> : null}</div> : <span className="text-ink-soft">n/a</span>}</Td>
                 </Tr>
               );
             })}
@@ -136,7 +136,7 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
 
         <div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-[13px] font-medium text-ink">Alerts for {pond?.name ?? 'this pond'} (live from the API)</h3>
+            <h3 className="text-sm font-medium text-ink">Alerts for {pond?.name ?? 'this pond'} (live from the API)</h3>
             <Link href={`/alerts?pond=${pondId}`} target="_blank" className={linkButtonClass('secondary', 'sm')}>Open Alerts in a new tab</Link>
           </div>
           {alerts === null ? <p className="mt-2 text-xs text-ink-soft">Shown after the first reading is sent.</p>
@@ -145,12 +145,12 @@ export function AlertDemoRunner({ ponds, stepDelayMs = 5000 }: { ponds: TrendPon
             : (
               <ul className="mt-2 divide-y divide-line/70 rounded-lg border border-line">
                 {alerts.items.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-[13px]">
+                  <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2.5 text-sm">
                     <StatusPill tone={SEVERITY_TONE[a.severity]}>{a.severity === 'CRITICAL' ? 'Critical' : 'Warning'}</StatusPill>
                     <StatusPill tone={ALERT_STATUS_TONE[a.status]}>{ALERT_STATUS_LABEL[a.status]}</StatusPill>
                     {a.dataSource ? <SourceBadge source={a.dataSource} /> : null}
                     <span className="tabular-nums text-ink-soft">trigger {a.triggerValue.toFixed(2)} mg/L</span>
-                    <span className="font-mono text-[11px] text-ink-soft">{a.id}</span>
+                    <span className="font-mono text-xs text-ink-soft">{a.id}</span>
                     <span className="ml-auto text-xs tabular-nums text-ink-soft">{a.resolvedAt ? `resolved ${formatDateTime(a.resolvedAt)}` : `updated ${formatDateTime(a.lastTriggeredAt)}`}</span>
                   </li>
                 ))}

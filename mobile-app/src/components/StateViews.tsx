@@ -4,7 +4,7 @@ import { Text } from '@/components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing, shadow } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 
 function Frame({ icon, title, children, tone = 'light' }: { icon: keyof typeof Ionicons.glyphMap; title: string; children?: React.ReactNode; tone?: 'light' | 'dark' }) {
   const light = tone === 'light';
@@ -36,7 +36,7 @@ export function LoadingState({ label }: { label?: string }) {
 
 const styles = StyleSheet.create({
   frame: { alignItems: 'center', gap: spacing.xs, padding: spacing.lg, borderRadius: radius.card },
-  lightFrame: { backgroundColor: colors.card, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  lightFrame: { backgroundColor: colors.card, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   darkFrame: { backgroundColor: colors.surface },
   title: { fontSize: fontSize.cardHeading, fontWeight: '700', textAlign: 'center' },
   body: { fontSize: fontSize.body, textAlign: 'center', lineHeight: 20 },

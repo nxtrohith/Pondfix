@@ -50,6 +50,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 export function formatAge(minutes: number): string {
   if (minutes < 1) return t('format.justNow');
   if (minutes < 60) return t('format.minutesAgo', { count: Math.round(minutes) });
+  if (minutes >= 48 * 60) return t('format.daysAgo', { count: Math.round(minutes / 1440) });
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
   return m === 0 ? t('format.hoursAgo', { count: h }) : t('format.hoursMinutesAgo', { hours: h, minutes: m });

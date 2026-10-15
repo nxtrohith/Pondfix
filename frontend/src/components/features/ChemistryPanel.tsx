@@ -20,8 +20,8 @@ export function ChemistryPanel({ readings }: { readings: Record<string, ParamSum
         return (
           <li key={p} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3">
             <div className="min-w-0 flex-1 basis-56">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-ink">{Icon ? <Icon size={15} aria-hidden="true" className="text-ink-soft" /> : null}{PARAM_LABEL[p]}
-                {tag ? <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-normal text-ink-soft">{tag}</span> : null}
+              <p className="flex items-center gap-1.5 text-sm font-medium text-ink">{Icon ? <Icon size={15} aria-hidden="true" className="text-ink-soft" /> : null}{PARAM_LABEL[p]}
+                {tag ? <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-normal text-ink-soft">{tag}</span> : null}
               </p>
               <p className="mt-0.5 text-xs text-ink-soft">{CHEMISTRY_HINT[p]}</p>
             </div>

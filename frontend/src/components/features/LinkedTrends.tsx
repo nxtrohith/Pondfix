@@ -63,15 +63,15 @@ function Panel({ pondId, parameter, latestAt, range, rules, cursor, onCursor }: 
   return (
     <div className="border-t border-line px-5 py-3 first:border-t-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <p className="text-[13px] font-medium text-ink">{PARAM_LABEL[parameter]}{tag ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[11px] font-normal text-ink-soft">{tag}</span> : null}</p>
-        {shown ? <p className={cx('text-[13px] tabular-nums', at ? 'text-ink' : 'text-ink-soft')} aria-live="off">
+        <p className="text-sm font-medium text-ink">{PARAM_LABEL[parameter]}{tag ? <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-xs font-normal text-ink-soft">{tag}</span> : null}</p>
+        {shown ? <p className={cx('text-sm tabular-nums', at ? 'text-ink' : 'text-ink-soft')} aria-live="off">
           {formatValue(shown.v, parameter)}{u ? <span className="ml-1 text-xs text-ink-soft">{u}</span> : null}
           <span className="ml-2 text-xs text-ink-soft">{at ? formatDateTime(new Date(shown.t).toISOString()) : 'latest'}</span>
         </p> : null}
       </div>
       {q.loading && !d ? <ChartSkeleton height={PANEL_HEIGHT} />
         : q.error ? <ErrorState error={q.error} title={`Could not load ${PARAM_LABEL[parameter]?.toLowerCase()}`} onRetry={q.reload} />
-        : !d || (d.line.length === 0 && d.dots.length === 0) ? <p className="py-6 text-[13px] text-ink-soft">No {PARAM_LABEL[parameter]?.toLowerCase()} readings in this period. A missing reading is not shown as zero.</p>
+        : !d || (d.line.length === 0 && d.dots.length === 0) ? <p className="py-6 text-sm text-ink-soft">No {PARAM_LABEL[parameter]?.toLowerCase()} readings in this period. A missing reading is not shown as zero.</p>
         : (
           <TrendChart
             series={[
@@ -102,13 +102,13 @@ export function LinkedTrends({ pondId, latestAt, rules }: { pondId: string; late
       <CardHeader id="linked-title" title="Compare readings" description={latestAt ? `Up to the last reading, ${formatDateTime(latestAt)}. Move over one chart and the others follow.` : 'No readings recorded yet.'}
         action={<Segmented<Range> label="Time range" value={range} onChange={setRange} options={[{ value: '24h', label: '24 hours' }, { value: '7d', label: '7 days' }]} />} />
       <div className="px-5 pt-4">
-        <p id="linked-pick" className="text-[13px] font-medium text-ink">Show up to {LINKED_MAX}</p>
+        <p id="linked-pick" className="text-sm font-medium text-ink">Show up to {LINKED_MAX}</p>
         <div role="group" aria-labelledby="linked-pick" className="mt-2 flex flex-wrap gap-2">
           {LINKED_OPTIONS.map((p) => {
             const on = selected.includes(p); const full = !on && selected.length >= LINKED_MAX;
             return (
               <button key={p} type="button" aria-pressed={on} disabled={full} onClick={() => setSelected((s) => toggleParameter(s, p))}
-                className={cx('h-7 rounded-full border px-3 text-[13px] transition-colors disabled:opacity-40', on ? 'border-olive bg-sage-pale font-medium text-olive-text' : 'border-line bg-card text-ink-soft hover:text-ink')}>
+                className={cx('h-7 rounded-full border px-3 text-sm transition-colors disabled:opacity-40', on ? 'border-brand bg-brand-pale font-medium text-brand-text' : 'border-line bg-card text-ink-soft hover:text-ink')}>
                 {PARAM_LABEL[p]}
               </button>
             );
@@ -117,7 +117,7 @@ export function LinkedTrends({ pondId, latestAt, rules }: { pondId: string; late
       </div>
       <div className="mt-3 pb-3" onMouseLeave={() => setCursor(null)}>
         {latestAt ? ordered.map((p) => <Panel key={p} pondId={pondId} parameter={p} latestAt={latestAt} range={range} rules={rules} cursor={cursor} onCursor={onCursor} />)
-          : <p className="px-5 py-6 text-[13px] text-ink-soft">Readings appear here once this pond has data.</p>}
+          : <p className="px-5 py-6 text-sm text-ink-soft">Readings appear here once this pond has data.</p>}
       </div>
       <p className="px-5 pb-5 text-xs text-ink-soft">Each chart has its own scale. Dashed lines are alert limits (warning, then critical). Gaps mean no reading was recorded; nothing is filled in. Chemistry values are test data or calculated, and have no alert limits.</p>
     </Card>

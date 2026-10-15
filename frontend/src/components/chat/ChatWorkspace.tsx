@@ -28,7 +28,7 @@ const uid = () => `m${Date.now()}-${counter++}`;
 function Dots() {
   return (
     <div role="status" aria-label="PondFix is writing an answer" className="flex items-center gap-1 py-2">
-      {[0, 1, 2].map((i) => <span key={i} className="size-1.5 animate-bounce rounded-full bg-sage motion-reduce:animate-none" style={{ animationDelay: `${i * 140}ms` }} />)}
+      {[0, 1, 2].map((i) => <span key={i} className="size-1.5 animate-bounce rounded-full bg-brand-soft motion-reduce:animate-none" style={{ animationDelay: `${i * 140}ms` }} />)}
     </div>
   );
 }
@@ -37,13 +37,13 @@ function SourceCard({ source, open }: { source: ChatSource; open: boolean }) {
   const title = (source.topic ?? source.source?.split('/').pop()?.replace(/\.md$/, '') ?? (source.kind === 'note' ? 'Your field note' : 'Earlier question')).replace(/[_-]/g, ' ').replace(/\bph\b/i, 'pH').replace(/\bfaq\b/i, 'FAQ');
   const provisional = source.review_status === 'pending_expert_review';
   return (
-    <li id={`src-${source.citation}`} className={cx('rounded-lg border bg-card px-3 py-2 text-[13px] transition-colors', open ? 'border-olive bg-sage-pale/50' : 'border-line')}>
+    <li id={`src-${source.citation}`} className={cx('rounded-lg border bg-card px-3 py-2 text-sm transition-colors', open ? 'border-brand bg-brand-pale/50' : 'border-line')}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="rounded-full bg-sage-pale px-1.5 text-[11px] font-semibold text-olive-text">{source.citation}</span>
+        <span className="rounded-full bg-brand-pale px-1.5 text-xs font-semibold text-brand-text">{source.citation}</span>
         <span className="font-medium text-ink first-letter:uppercase">{title}</span>
         {source.category ? <span className="text-ink-soft">· {source.category.replace(/_/g, ' ')}</span> : null}
-        {provisional ? <span className="rounded-full bg-warn-bg px-2 py-px text-[11px] font-medium text-warn-text">Provisional, not expert-reviewed</span> : null}
-        {source.kind === 'note' || source.kind === 'conversation' ? <span className="rounded-full bg-surface px-2 py-px text-[11px] text-ink-soft">From this pond&apos;s history</span> : null}
+        {provisional ? <span className="rounded-full bg-warn-bg px-2 py-px text-xs font-medium text-warn-text">Provisional, not expert-reviewed</span> : null}
+        {source.kind === 'note' || source.kind === 'conversation' ? <span className="rounded-full bg-surface px-2 py-px text-xs text-ink-soft">From this pond&apos;s history</span> : null}
       </div>
     </li>
   );
@@ -57,10 +57,10 @@ function AssistantMessage({ m, onRetry }: { m: Message; onRetry: (text: string) 
   const cite = (c: string) => { setOpen(c); requestAnimationFrame(() => document.getElementById(`src-${c}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })); };
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-olive text-white" aria-hidden="true"><Sparkle size={16} weight="fill" /></span>
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white" aria-hidden="true"><Sparkle size={16} weight="fill" /></span>
       <div className="min-w-0 flex-1">
         {m.failed ? (
-          <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-[#E8C9C4] bg-crit-bg px-3.5 py-3 text-[13.5px] text-crit-text">
+          <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-crit-line bg-crit-bg px-3.5 py-3 text-sm text-crit-text">
             <WarningCircle size={18} className="mt-px shrink-0" aria-hidden="true" />
             <div className="min-w-0"><p>{m.text}</p>
               {m.retryText ? <Button size="sm" className="mt-2" onClick={() => onRetry(m.retryText!)}><ArrowClockwise size={14} aria-hidden="true" /> Try again</Button> : null}
@@ -69,7 +69,7 @@ function AssistantMessage({ m, onRetry }: { m: Message; onRetry: (text: string) 
         ) : (
           <>
             <Markdown text={m.text} citations={sources.map((s) => s.citation)} onCite={cite} />
-            {m.streaming ? <span aria-hidden="true" className="ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 animate-pulse rounded-full bg-olive motion-reduce:animate-none" /> : null}
+            {m.streaming ? <span aria-hidden="true" className="ml-0.5 inline-block h-4 w-[3px] translate-y-0.5 animate-pulse rounded-full bg-brand motion-reduce:animate-none" /> : null}
             {m.stopped ? <p className="mt-1 text-[12px] italic text-ink-muted">Stopped. This partial answer was not saved.</p> : null}
             {m.streaming ? null : <div className="mt-2 flex flex-wrap items-center gap-2">
               <button type="button" onClick={copy} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-ink-soft hover:bg-surface hover:text-ink">
@@ -152,8 +152,8 @@ function ChatPane({ pond, initialConversation }: { pond: Pond; initialConversati
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <aside aria-label="Conversations" className={cx('min-h-0 flex-col rounded-xl border border-line bg-card lg:flex', showHistory ? 'flex' : 'hidden')}>
         <div className="flex items-center justify-between px-3 pb-2 pt-3">
-          <h2 className="text-[13px] font-semibold text-ink">Conversations</h2>
-          <button type="button" onClick={fresh} className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[12px] font-medium text-olive-text hover:bg-sage-pale"><NotePencil size={14} aria-hidden="true" /> New chat</button>
+          <h2 className="text-sm font-semibold text-ink">Conversations</h2>
+          <button type="button" onClick={fresh} className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[12px] font-medium text-brand-text hover:bg-brand-pale"><NotePencil size={14} aria-hidden="true" /> New chat</button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {conversations.loading && !conversations.data ? <div className="space-y-2 p-1"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
@@ -162,8 +162,8 @@ function ChatPane({ pond, initialConversation }: { pond: Pond; initialConversati
             : <ul className="space-y-0.5">{items.map((c) => (
               <li key={c.conversationId}>
                 <button type="button" onClick={() => void load(c.conversationId)} aria-current={c.conversationId === conversationId ? 'true' : undefined}
-                  className={cx('w-full rounded-lg px-2.5 py-2 text-left transition-colors', c.conversationId === conversationId ? 'bg-sage-pale' : 'hover:bg-surface')}>
-                  <span className="line-clamp-2 text-[13px] font-medium leading-snug text-ink">{c.title}</span>
+                  className={cx('w-full rounded-lg px-2.5 py-2 text-left transition-colors', c.conversationId === conversationId ? 'bg-brand-pale' : 'hover:bg-surface')}>
+                  <span className="line-clamp-2 text-sm font-medium leading-snug text-ink">{c.title}</span>
                   <span className="mt-0.5 block text-[11.5px] text-ink-soft">{formatDateTime(c.updatedAt)} · {c.turns} {c.turns === 1 ? 'question' : 'questions'}</span>
                 </button>
               </li>))}</ul>}
@@ -180,13 +180,13 @@ function ChatPane({ pond, initialConversation }: { pond: Pond; initialConversati
           {loadingHistory ? <div className="space-y-4"><Skeleton className="ml-auto h-10 w-2/3" /><Skeleton className="h-24 w-full" /></div>
             : messages.length === 0 ? (
               <div className="flex min-h-full"><div className="m-auto flex max-w-2xl flex-col items-center py-6 text-center">
-                <span className="flex size-12 items-center justify-center rounded-2xl bg-sage-pale text-olive-text" aria-hidden="true"><Sparkle size={24} weight="fill" /></span>
+                <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-pale text-brand-text" aria-hidden="true"><Sparkle size={24} weight="fill" /></span>
                 <h2 className="mt-4 text-xl font-semibold tracking-tight text-ink">Ask about {pond.name}</h2>
-                <p className="mt-1.5 max-w-[52ch] text-[13.5px] text-ink-soft">Answers use this pond&apos;s latest readings together with the PondFix aquaculture library, and cite their sources. It cannot control equipment or change alerts.</p>
+                <p className="mt-1.5 max-w-[52ch] text-sm text-ink-soft">Answers use this pond&apos;s latest readings together with the PondFix aquaculture library, and cite their sources. It cannot control equipment or change alerts.</p>
                 <div className="mt-6 grid w-full gap-2 sm:grid-cols-2">
                   {SUGGESTIONS.map((s) => (
-                    <button key={s.title} type="button" onClick={() => void send(`${s.title} ${s.body}`)} className="rounded-xl border border-line bg-page px-3.5 py-3 text-left transition-all duration-150 hover:-translate-y-px hover:border-sage hover:bg-hover active:translate-y-0">
-                      <span className="block text-[13.5px] font-medium text-ink">{s.title}</span><span className="mt-0.5 block text-[12.5px] text-ink-soft">{s.body}</span>
+                    <button key={s.title} type="button" onClick={() => void send(`${s.title} ${s.body}`)} className="rounded-xl border border-line bg-page px-3.5 py-3 text-left transition-all duration-150 hover:-translate-y-px hover:border-brand-soft hover:bg-hover active:translate-y-0">
+                      <span className="block text-sm font-medium text-ink">{s.title}</span><span className="mt-0.5 block text-[12.5px] text-ink-soft">{s.body}</span>
                     </button>))}
                 </div>
               </div></div>
@@ -195,10 +195,10 @@ function ChatPane({ pond, initialConversation }: { pond: Pond; initialConversati
                 {messages.map((m) => (
                   <li key={m.id} className="aq-message-in">
                     {m.role === 'user'
-                      ? <div className="flex justify-end"><p className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-olive px-4 py-2.5 text-[14.5px] leading-relaxed text-white">{m.text}</p></div>
+                      ? <div className="flex justify-end"><p className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-brand px-4 py-2.5 text-[14.5px] leading-relaxed text-white">{m.text}</p></div>
                       : <AssistantMessage m={m} onRetry={retry} />}
                   </li>))}
-                {busy && !messages.some((m) => m.streaming) ? <li className="flex gap-3"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-olive text-white" aria-hidden="true"><Sparkle size={16} weight="fill" /></span><Dots /></li> : null}
+                {busy && !messages.some((m) => m.streaming) ? <li className="flex gap-3"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white" aria-hidden="true"><Sparkle size={16} weight="fill" /></span><Dots /></li> : null}
               </ol>)}
           <div ref={bottom} />
         </div>
@@ -220,9 +220,9 @@ export function ChatWorkspace({ ponds, pondId, conversationId }: { ponds: Pond[]
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="chat-pond" className="flex items-center gap-1.5 text-[13px] font-medium text-ink"><Drop size={16} className="text-olive-text" aria-hidden="true" /> Pond</label>
+        <label htmlFor="chat-pond" className="flex items-center gap-1.5 text-sm font-medium text-ink"><Drop size={16} className="text-brand-text" aria-hidden="true" /> Pond</label>
         <select id="chat-pond" value={pond.id} onChange={(e) => router.replace(`/chat?pond=${encodeURIComponent(e.target.value)}`)}
-          className="h-9 min-w-[10rem] rounded-lg border border-line bg-card px-3 text-sm text-ink focus-visible:border-olive">
+          className="h-9 min-w-[10rem] rounded-lg border border-line bg-card px-3 text-sm text-ink focus-visible:border-brand">
           {ponds.map((p) => <option key={p.id} value={p.id}>{p.name}{p.species ? ` · ${p.species}` : ''}</option>)}
         </select>
       </div>

@@ -1,0 +1,185 @@
+{
+  "verdict": {
+    "healthy": {
+      "title": "Pond looks healthy",
+      "body": "All current readings are in the safe range."
+    },
+    "attention": {
+      "title": "Attention needed",
+      "body": "A reading is outside the safe range. Check it today."
+    },
+    "urgent": {
+      "title": "Urgent action required",
+      "body": "Fish may be in danger. Follow the steps below now."
+    },
+    "unknown": {
+      "title": "Unable to verify pond condition",
+      "body": "There is no recent reading, so we cannot tell if the pond is safe."
+    },
+    "loading": {
+      "title": "Checking your ponds",
+      "body": "Getting the latest readings."
+    }
+  },
+  "severity": {
+    "urgent": "Urgent",
+    "warning": "Warning",
+    "resolved": "Resolved",
+    "forecast": "Possible soon"
+  },
+  "measure": {
+    "dissolved_oxygen": {
+      "name": "Oxygen in water",
+      "short": "Oxygen",
+      "term": "Dissolved oxygen (DO)",
+      "why": "Fish breathe the oxygen in the water. Low oxygen can kill fish within hours, most often just before sunrise.",
+      "good": "Enough oxygen for fish.",
+      "low": "Oxygen is low. Fish may struggle to breathe.",
+      "lowCritical": "Oxygen is dangerously low. Fish can die."
+    },
+    "ph": {
+      "name": "pH (acid or alkaline)",
+      "short": "pH",
+      "term": "pH",
+      "why": "pH shows if the water is acidic or alkaline. Extreme or fast-changing pH stresses fish and makes ammonia more harmful.",
+      "good": "pH is in the safe range.",
+      "low": "The water is too acidic.",
+      "lowCritical": "The water is far too acidic.",
+      "high": "The water is too alkaline.",
+      "highCritical": "The water is far too alkaline."
+    },
+    "temperature": {
+      "name": "Water temperature",
+      "short": "Temperature",
+      "term": "Water temperature",
+      "why": "Warm water holds less oxygen, and fish need more oxygen as it warms. Sudden changes stress fish.",
+      "good": "Temperature is comfortable for fish.",
+      "low": "The water is cold. Fish eat and grow less.",
+      "lowCritical": "The water is very cold. Fish are under stress.",
+      "high": "The water is warm. Oxygen can drop quickly.",
+      "highCritical": "The water is very hot. Fish are under stress."
+    },
+    "water_level": {
+      "name": "Water level",
+      "short": "Level",
+      "term": "Water level",
+      "why": "A falling level can mean a leak or an open drain, and less water warms up and loses oxygen faster."
+    },
+    "ammonia": {
+      "name": "Ammonia",
+      "short": "Ammonia",
+      "term": "Ammonia (NH₃/NH₄⁺)",
+      "why": "Ammonia comes from fish waste and uneaten feed. Too much damages gills. It is more harmful when pH and temperature are high."
+    },
+    "nitrite": {
+      "name": "Nitrite",
+      "short": "Nitrite",
+      "term": "Nitrite (NO₂⁻)",
+      "why": "Nitrite stops fish blood from carrying oxygen, so fish can suffocate even when oxygen in the water is fine."
+    },
+    "alkalinity": {
+      "name": "Alkalinity",
+      "short": "Alkalinity",
+      "term": "Alkalinity",
+      "why": "Alkalinity keeps pH steady. When it is low, pH can swing a lot between morning and afternoon."
+    },
+    "noReading": "No reading",
+    "notMeasured": "Not measured by the pond device",
+    "stale": "Old reading. It may not show the pond now.",
+    "noRule": "No safe range is set for this, so it is shown for information only."
+  },
+  "source": {
+    "sensor": "Pond sensor",
+    "test": "Test data",
+    "historical": "Past data",
+    "calculated": "Calculated"
+  },
+  "actions": {
+    "title": "What to do now",
+    "dissolved_oxygen_low": [
+      "Switch on the aerator now. Do not wait.",
+      "Check that the aerator is running and has power or fuel.",
+      "Stop feeding until oxygen recovers.",
+      "Check the oxygen reading again when a fresh reading arrives."
+    ],
+    "ph_low": [
+      "Test the water again with a pH kit to confirm.",
+      "Compare with earlier readings taken at the same time of day.",
+      "Check for heavy rain, run-off or chemicals added to the pond.",
+      "Do not add lime or other chemicals because of one reading. Ask a fisheries expert first."
+    ],
+    "ph_high": [
+      "Test the water again with a pH kit to confirm.",
+      "Compare with this morning's reading. pH rises in the afternoon when algae are thick.",
+      "Keep aerators running and avoid heavy feeding.",
+      "Do not add chemicals because of one reading. Ask a fisheries expert before correcting a big change."
+    ],
+    "temperature_high": [
+      "Check the oxygen reading too: warm water holds less oxygen.",
+      "Keep aerators running.",
+      "Feed less until the water cools.",
+      "Do not add a large amount of new water at once. Sudden change stresses fish."
+    ],
+    "temperature_low": [
+      "Feed less until the water warms.",
+      "Check for cold water flowing into the pond.",
+      "Do not add a large amount of new water at once. Sudden change stresses fish."
+    ],
+    "ammonia_high": [
+      "Reduce feeding for now.",
+      "Keep aerators running.",
+      "Check pH and temperature: high values make ammonia more harmful.",
+      "Do not add lime to fix ammonia. Ask a fisheries expert if it stays high."
+    ],
+    "nitrite_high": [
+      "Reduce feeding for now and keep aerators running.",
+      "Test ammonia and oxygen too.",
+      "Ask a fisheries expert before adding salt or any chemical."
+    ],
+    "stale": [
+      "Look at the fish. If they gasp at the surface, switch on the aerator.",
+      "Check that the pond device has power.",
+      "Check the device's Wi-Fi or mobile signal.",
+      "Readings will update here by themselves when the device sends again."
+    ],
+    "always": "If fish are gasping at the surface or dying, switch on the aerator and call a fisheries expert. Do not wait for a reading.",
+    "verify": "After acting, wait for a fresh reading to check the pond is recovering.",
+    "general": "General advice only. Adapt it to your fish and your pond."
+  },
+  "connection": {
+    "connected": {
+      "title": "Connected",
+      "body": "Receiving current readings."
+    },
+    "connecting": {
+      "title": "Connecting",
+      "body": "Checking for current readings."
+    },
+    "reconnecting": {
+      "title": "Reconnecting",
+      "body": "Trying to restore the live connection. Showing the last readings."
+    },
+    "noInternet": {
+      "title": "No internet",
+      "body": "This phone or computer is offline. The readings shown are from before."
+    },
+    "serviceDown": {
+      "title": "Can't reach PondFix",
+      "body": "The PondFix service did not answer. Your internet may still be working. The readings shown are from before."
+    },
+    "deviceOffline": {
+      "title": "Pond device not reporting",
+      "body": "No reading from the pond device for {{age}}. Check its power and Wi-Fi."
+    },
+    "delayed": {
+      "title": "Data delayed",
+      "body": "The latest reading is {{age}} old. It may not show the pond now."
+    },
+    "unknown": {
+      "title": "Status unknown",
+      "body": "We cannot check the connection right now."
+    },
+    "lastUpdate": "Last update {{age}}",
+    "help": "How to fix this"
+  }
+}

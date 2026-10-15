@@ -27,13 +27,13 @@ export function ForecastOutlook({ predictions, readings, columns = 3 }: { predic
   const olderBase = startedAt !== null && Object.values(readings).some((r) => !aligned(r));
   return (
     <div className="space-y-4">
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-soft">
-        <span className="inline-flex items-center gap-1 rounded-full bg-sage-pale px-2.5 py-0.5 text-xs font-medium text-olive-text"><Binoculars size={14} aria-hidden="true" />Forecast</span>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-soft">
+        <span className="inline-flex items-center gap-1 rounded-full bg-brand-pale px-2.5 py-0.5 text-xs font-medium text-brand-text"><Binoculars size={14} aria-hidden="true" />Forecast</span>
         These are calculated estimates, not measurements. Calculated {formatDateTime(generatedAt)}.
       </p>
-      {olderBase && startedAt !== null ? <p className="rounded-lg bg-surface px-3 py-2 text-[13px] text-ink-soft">This forecast was calculated from the reading at {formatDateTime(new Date(startedAt).toISOString())}, which is not the latest reading, so it is not compared with the values now.</p> : null}
-      {simulated ? <p className="rounded-lg bg-warn-bg px-3 py-2 text-[13px] text-warn-text">This forecast started from a test reading ({SOURCE_LABEL.simulated.toLowerCase()}), so it does not describe the real pond.</p> : null}
-      {historical && !simulated ? <p className="rounded-lg bg-surface px-3 py-2 text-[13px] text-ink-soft">This forecast started from {SOURCE_LABEL.historical.toLowerCase()}, not from a live sensor.</p> : null}
+      {olderBase && startedAt !== null ? <p className="rounded-lg bg-surface px-3 py-2 text-sm text-ink-soft">This forecast was calculated from the reading at {formatDateTime(new Date(startedAt).toISOString())}, which is not the latest reading, so it is not compared with the values now.</p> : null}
+      {simulated ? <p className="rounded-lg bg-warn-bg px-3 py-2 text-sm text-warn-text">This forecast started from a test reading ({SOURCE_LABEL.simulated.toLowerCase()}), so it does not describe the real pond.</p> : null}
+      {historical && !simulated ? <p className="rounded-lg bg-surface px-3 py-2 text-sm text-ink-soft">This forecast started from {SOURCE_LABEL.historical.toLowerCase()}, not from a live sensor.</p> : null}
       <div className={cx('grid grid-cols-1 gap-4', columns === 3 && 'lg:grid-cols-3')}>
         {ALERT_PARAMETERS.map((p) => {
           const preds = predictions.filter((x) => x.parameter === p);
@@ -46,7 +46,7 @@ export function ForecastOutlook({ predictions, readings, columns = 3 }: { predic
           const ref = bySlot(60) ?? last;
           return (
             <section key={p} aria-label={`${PARAM_LABEL[p]} forecast`} className="rounded-xl border border-line bg-card p-4">
-              <h3 className="flex items-center gap-1.5 text-[13px] font-medium text-ink-soft">{Icon ? <Icon size={16} aria-hidden="true" /> : null}{PARAM_LABEL[p]}</h3>
+              <h3 className="flex items-center gap-1.5 text-sm font-medium text-ink-soft">{Icon ? <Icon size={16} aria-hidden="true" /> : null}{PARAM_LABEL[p]}</h3>
               {last && now ? <p className="mt-1 text-[15px] font-medium text-ink">{trendSentence(p, trendOf(now.value, last.predictedValue, last.typicalAbsError))}</p> : <p className="mt-1 text-[15px] text-ink-soft">{preds.length ? 'No matching current reading to compare with.' : 'No forecast for this factor.'}</p>}
               <ol className="mt-3 grid grid-cols-4 gap-2 text-center text-xs" aria-label={`${PARAM_LABEL[p]} now and forecast`}>
                 <li className="rounded-lg bg-surface px-1 py-2"><p className="font-medium text-ink-soft">NOW</p><p className="mt-1 text-sm font-medium tabular-nums text-ink">{now ? formatValue(now.value, p) : 'n/a'}</p></li>
@@ -54,23 +54,23 @@ export function ForecastOutlook({ predictions, readings, columns = 3 }: { predic
                   <li key={s.minutes} className={cx('rounded-lg border border-dashed px-1 py-2', bad ? 'border-warn-text/60 bg-warn-bg' : 'border-line')}>
                     <p className="font-medium text-ink-soft">{s.label.toUpperCase()}</p>
                     <p className="mt-1 text-sm font-medium tabular-nums text-ink">{x ? formatValue(x.predictedValue, p) : 'n/a'}</p>
-                    {bad ? <p className={cx('mt-0.5 text-[11px] font-medium', x!.risk === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text')}>{x!.risk === 'CRITICAL' ? 'Critical' : 'Warning'}</p> : null}
+                    {bad ? <p className={cx('mt-0.5 text-xs font-medium', x!.risk === 'CRITICAL' ? 'text-crit-text' : 'text-warn-text')}>{x!.risk === 'CRITICAL' ? 'Critical' : 'Warning'}</p> : null}
                   </li>
                 ); })}
               </ol>
-              <p className="mt-1.5 text-[11px] text-ink-soft">{unit ? `Values in ${unit}. ` : ''}Dashed boxes are forecasts.</p>
+              <p className="mt-1.5 text-xs text-ink-soft">{unit ? `Values in ${unit}. ` : ''}Dashed boxes are forecasts.</p>
               {firstBad ? (() => {
                 const sev = firstBad.risk === 'CRITICAL' ? 'CRITICAL' : 'WARNING';
                 const nowRisk = now?.risk === 'CRITICAL' ? 'CRITICAL' : now?.risk === 'WARNING' ? 'WARNING' : 'NORMAL';
                 const already = RANK[nowRisk] >= RANK[sev];   // it is a problem now, so the forecast is "continues", not "may become"
                 return (
-                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warn-bg px-3 py-2 text-[13px] text-warn-text"><Binoculars size={16} className="mt-px shrink-0" aria-hidden="true" />
+                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warn-bg px-3 py-2 text-sm text-warn-text"><Binoculars size={16} className="mt-px shrink-0" aria-hidden="true" />
                     {already ? <span><span className="font-medium">Expected to continue:</span> {describeProblem(p, firstBad.direction, sev)} now, and the forecast says it will still be a problem within {horizonWords(last?.horizon?.value)}.</span>
                       : <span><span className="font-medium">Possible upcoming problem:</span> {describeForecastProblem(p, firstBad.direction, sev, firstBad.horizon?.value)}.</span>}
                   </p>
                 );
-              })() : preds.length ? <p className="mt-2 text-[13px] text-ink-soft">No problem is forecast for this factor.</p> : null}
-              {ref?.typicalAbsError !== undefined ? <p className="mt-2 text-[11px] text-ink-soft">Forecasts like this are usually off by about ±{formatValue(ref.typicalAbsError, p)}{unit ? ` ${unit}` : ''}.</p> : null}
+              })() : preds.length ? <p className="mt-2 text-sm text-ink-soft">No problem is forecast for this factor.</p> : null}
+              {ref?.typicalAbsError !== undefined ? <p className="mt-2 text-xs text-ink-soft">Forecasts like this are usually off by about ±{formatValue(ref.typicalAbsError, p)}{unit ? ` ${unit}` : ''}.</p> : null}
             </section>
           );
         })}

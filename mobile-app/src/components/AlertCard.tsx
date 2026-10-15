@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { t } from '@/i18n';
 import { colors } from '@/constants/colors';
-import { fontSize, radius, spacing, shadow } from '@/constants/theme';
+import { fontSize, radius, spacing, shadow, layout } from '@/constants/theme';
 import { formatDateTime, formatValue } from '@/lib/format';
 import { parameterLabel, parameterUnit } from '@/lib/status';
 import { localizeSpeciesLabel } from '@/data/mockSpecies';
@@ -52,7 +52,7 @@ export function AlertCard({ alert, pondName, onPress }: { alert: AlertItem; pond
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: 0.5, borderColor: colors.border, ...shadow.card },
+  card: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, gap: 4, borderWidth: layout.borderWidth, borderColor: colors.border, ...shadow.card },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
   sev: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.badge },
   sevText: { fontSize: fontSize.secondary, fontWeight: '700' },

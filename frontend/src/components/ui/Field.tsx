@@ -3,16 +3,16 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 import { CaretDown } from '@phosphor-icons/react/dist/ssr';
 import { cx } from './cx';
 
-const CONTROL = 'h-9 w-full rounded-lg border border-line bg-card px-3 text-sm text-ink placeholder:text-ink-soft focus-visible:border-olive disabled:opacity-60';
+const CONTROL = 'h-11 w-full rounded-lg border border-line-strong bg-card px-3 text-base text-ink placeholder:text-ink-soft focus-visible:border-brand disabled:opacity-60';
 
 export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: (id: string, describedBy?: string) => ReactNode }) {
   const id = useId();
   const hintId = hint || error ? `${id}-hint` : undefined;
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={id} className="text-[13px] font-medium text-ink">{label}</label>
+      <label htmlFor={id} className="text-sm font-medium text-ink">{label}</label>
       {children(id, hintId)}
-      {error ? <p id={hintId} className="text-xs text-crit-text">{error}</p> : hint ? <p id={hintId} className="text-xs text-ink-soft">{hint}</p> : null}
+      {error ? <p id={hintId} role="alert" className="text-sm font-medium text-crit-text">{error}</p> : hint ? <p id={hintId} className="text-xs text-ink-soft">{hint}</p> : null}
     </div>
   );
 }
@@ -39,8 +39,8 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
           disabled={o.disabled}
           onClick={() => onChange(o.value)}
           className={cx(
-            'h-7 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors duration-150 disabled:opacity-50',
-            o.value === value ? 'bg-card text-olive-text shadow-[0_0_0_1px_var(--color-line)]' : 'text-ink-soft hover:text-ink',
+            'h-9 whitespace-nowrap rounded-md px-3 text-sm pointer-coarse:h-10 font-medium transition-colors duration-150 disabled:opacity-50',
+            o.value === value ? 'bg-card text-brand-text shadow-[0_0_0_1px_var(--color-line)]' : 'text-ink-soft hover:text-ink',
           )}
         >
           {o.label}

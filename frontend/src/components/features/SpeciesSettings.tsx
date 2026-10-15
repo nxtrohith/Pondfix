@@ -66,7 +66,7 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
       <CardHeader id="species-title" title="Species and alert limits"
         description="The species raised in this pond decides which reference ranges PondFix shows with its alerts."
         action={!editing ? <Button size="sm" onClick={startEdit} disabled={catalogue.loading && !catalogue.data}><PencilSimple size={14} aria-hidden="true" />{configured ? 'Change species' : 'Select species'}</Button> : null} />
-      <div className="space-y-4 px-5 pb-5 pt-4 text-[13px]">
+      <div className="space-y-4 px-5 pb-5 pt-4 text-sm">
         <div aria-live="polite">{success ? <p role="status" className="flex items-start gap-2 rounded-lg bg-ok-bg px-3 py-2 text-ok-text"><CheckCircle size={16} weight="fill" className="mt-px shrink-0" aria-hidden="true" />{success}</p> : null}</div>
 
         {!editing ? (
@@ -107,11 +107,11 @@ export function SpeciesSettings({ pondId, pondName, initial }: { pondId: string;
               </div>
             ) : (
               <fieldset>
-                <legend className="mb-2 text-[13px] font-medium text-ink">Species in this pond</legend>
+                <legend className="mb-2 text-sm font-medium text-ink">Species in this pond</legend>
                 <ul className="space-y-2">
                   {entries.filter((e) => !e.requiresCustomName).map((e) => { const row = draft.poly[e.id] ?? { checked: false, percent: '' }; return (
                     <li key={e.id} className="flex flex-wrap items-center justify-between gap-3">
-                      <label className="flex cursor-pointer items-center gap-2 text-ink"><input type="checkbox" className="size-4 accent-[#637957]" checked={row.checked} onChange={(ev) => setDraft((s) => ({ ...s, poly: { ...s.poly, [e.id]: { ...row, checked: ev.target.checked } } }))} />{e.displayName} <span className="text-xs text-ink-soft">({e.cultureLabel.toLowerCase()})</span></label>
+                      <label className="flex cursor-pointer items-center gap-2 text-ink"><input type="checkbox" className="size-4 accent-brand" checked={row.checked} onChange={(ev) => setDraft((s) => ({ ...s, poly: { ...s.poly, [e.id]: { ...row, checked: ev.target.checked } } }))} />{e.displayName} <span className="text-xs text-ink-soft">({e.cultureLabel.toLowerCase()})</span></label>
                       <label className="flex items-center gap-1.5 text-xs text-ink-soft">Share<Input aria-label={`${e.displayName} share in percent`} inputMode="decimal" className="h-8 w-20" disabled={!row.checked} value={row.percent} placeholder="optional" onChange={(ev) => setDraft((s) => ({ ...s, poly: { ...s.poly, [e.id]: { ...row, percent: ev.target.value } } }))} />%</label>
                     </li>
                   ); })}

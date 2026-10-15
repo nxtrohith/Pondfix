@@ -119,7 +119,7 @@ describe('alert action guide', () => {
   it('shows pictograms beside guidance the app already gives, and the written advice is still there', () => {
     render(<AlertCard alert={alert()} showGuidance />);
     expect(screen.getByTestId('action-guide')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.getByText(/What to check: Check that aerators are running/)).toBeInTheDocument();
+    expect(screen.getByText('Check that the aerator is running and has power or fuel.')).toBeInTheDocument();
   });
   it('shows no visual when there is no guidance (forecast, resolved, or guidance not requested)', () => {
     const { rerender } = render(<AlertCard alert={alert({ origin: 'predicted' })} showGuidance />);
@@ -131,7 +131,7 @@ describe('alert action guide', () => {
   });
   it('critical alerts keep their written severity (not colour alone)', () => {
     render(<AlertCard alert={alert()} showGuidance />);
-    expect(screen.getByText(/Current problem: critical/)).toBeInTheDocument();
+    expect(screen.getAllByText('Urgent').length).toBeGreaterThan(0);
   });
 });
 

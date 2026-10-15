@@ -38,7 +38,7 @@ describe('status badge and pond card', () => {
   const pond = { id: 'p1', name: 'ara2_x', status: 'active' };
   it('every status has words and an icon, so colour is never the only signal', () => {
     const { container } = render(<><StatusBadge status="NORMAL" scope="pond" /><StatusBadge status="WARNING" scope="pond" /><StatusBadge status="CRITICAL" scope="pond" /><StatusBadge status="STALE" scope="pond" /><StatusBadge status="NO_DATA" /><StatusBadge status="UNKNOWN" /></>);
-    for (const t of ['Healthy', 'Attention needed', 'Critical', 'No recent reading', 'No recent data', 'Not monitored']) expect(screen.getByText(t)).toBeInTheDocument();
+    for (const t of ['Healthy', 'Attention needed', 'Urgent', 'No recent reading', 'No recent data', 'Not monitored']) expect(screen.getByText(t)).toBeInTheDocument();
     expect(container.querySelectorAll('svg[aria-hidden="true"]').length).toBe(6);
   });
   it('shows n/a for factors without data and never a made-up value; old data is not called healthy', () => {

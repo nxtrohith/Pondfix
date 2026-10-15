@@ -11,7 +11,7 @@ type Severity = 'WARNING' | 'CRITICAL';
 export const POND_STATUS: Record<RiskStatus | 'ERROR', { label: string; summary: string; tone: Tone }> = {
   NORMAL: { label: 'Healthy', summary: 'All monitored conditions are within the acceptable range.', tone: 'healthy' },
   WARNING: { label: 'Attention needed', summary: 'One or more conditions are outside the acceptable range.', tone: 'warning' },
-  CRITICAL: { label: 'Critical', summary: 'A serious condition needs immediate attention.', tone: 'critical' },
+  CRITICAL: { label: 'Urgent', summary: 'A serious condition needs immediate attention.', tone: 'critical' },
   STALE: { label: 'No recent reading', summary: 'The last reading is not recent, so the current condition is not known.', tone: 'muted' },
   NO_DATA: { label: 'No data yet', summary: 'No readings have been recorded for this pond.', tone: 'muted' },
   UNKNOWN: { label: 'Not monitored', summary: 'No alert rule applies to the readings available.', tone: 'muted' },

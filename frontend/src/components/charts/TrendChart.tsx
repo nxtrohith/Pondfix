@@ -7,8 +7,8 @@ import { axisTicks, chartDomain, summarize, type Point } from '@/lib/chart';
 export interface Series { key: string; label: string; points: Point[]; color: string; dashed?: boolean; dotsOnly?: boolean; hideLegend?: boolean }
 export interface Threshold { y: number; label: string; tone: 'warn' | 'crit' }
 
-const TONE = { warn: '#A66D25', crit: '#B64D43' } as const;
-export const SERIES_COLOR = { observed: '#637957', secondary: '#7D9274', forecast: '#A66D25', muted: '#9a9c92' } as const;
+const TONE = { warn: '#B86E00', crit: '#C0392B' } as const;
+export const SERIES_COLOR = { observed: '#0F6B66', secondary: '#6FA59C', forecast: '#B86E00', muted: '#8E9A9B' } as const;
 
 interface Props { /** Vertical marker (e.g. the replay position), ms since epoch. */ cursorAt?: number; series: Series[]; parameter: string; unit?: string; thresholds?: Threshold[]; height?: number; domain?: [number, number]; summaryLabel: string;
   /** Called with the hovered time (ms) while the pointer is over the chart, and null when it leaves. Lets stacked charts share one cursor. */
@@ -32,14 +32,14 @@ export function TrendChart({ cursorAt, onCursor, compact = false, series, parame
       <div style={{ height }} className="w-full">
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 800, height }}>
           <ComposedChart margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke="#E5E3D9" strokeDasharray="0" vertical={false} />
-            <XAxis type="number" dataKey="t" domain={[t0, t1]} scale="time" ticks={axisTicks(t0, t1, 5)} tickFormatter={(v: number) => formatAxisTime(v, span)} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={{ stroke: '#E5E3D9' }} tickLine={false} allowDuplicatedCategory={false} padding={{ left: 16, right: 16 }} />
-            <YAxis type="number" domain={['auto', 'auto']} width={compact ? 58 : 44} tick={{ fill: '#6A6C62', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatValue(v, parameter)} />
-            {cursorAt !== undefined && cursorAt >= t0 && cursorAt <= t1 ? <ReferenceLine x={cursorAt} stroke="#34372F" strokeWidth={1.25} ifOverflow="visible" /> : null}
+            <CartesianGrid stroke="#DEDAD0" strokeDasharray="0" vertical={false} />
+            <XAxis type="number" dataKey="t" domain={[t0, t1]} scale="time" ticks={axisTicks(t0, t1, 5)} tickFormatter={(v: number) => formatAxisTime(v, span)} tick={{ fill: '#4A5A5C', fontSize: 12 }} axisLine={{ stroke: '#DEDAD0' }} tickLine={false} allowDuplicatedCategory={false} padding={{ left: 16, right: 16 }} />
+            <YAxis type="number" domain={['auto', 'auto']} width={compact ? 58 : 44} tick={{ fill: '#4A5A5C', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatValue(v, parameter)} />
+            {cursorAt !== undefined && cursorAt >= t0 && cursorAt <= t1 ? <ReferenceLine x={cursorAt} stroke="#17282A" strokeWidth={1.25} ifOverflow="visible" /> : null}
             {thresholds.map((th) => (
               <ReferenceLine key={th.label} y={th.y} stroke={TONE[th.tone]} strokeDasharray="4 4" strokeWidth={1} ifOverflow="extendDomain" />
             ))}
-            <Tooltip cursor={{ stroke: '#B8B6AA', strokeWidth: 1 }} content={<ChartTooltip parameter={parameter} unit={unit} onCursor={onCursor} />} isAnimationActive={false} />
+            <Tooltip cursor={{ stroke: '#C5C0B3', strokeWidth: 1 }} content={<ChartTooltip parameter={parameter} unit={unit} onCursor={onCursor} />} isAnimationActive={false} />
             {series.map((s) => (
               <Line
                 key={s.key}

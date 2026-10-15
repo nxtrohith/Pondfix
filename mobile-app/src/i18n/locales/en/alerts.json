@@ -27,7 +27,7 @@
   "unknownPond": "Unknown pond",
   "severity": {
     "resolved": "Resolved",
-    "critical": "Critical",
+    "critical": "Urgent",
     "warning": "Warning"
   },
   "raisedAt": "Raised {{time}}",

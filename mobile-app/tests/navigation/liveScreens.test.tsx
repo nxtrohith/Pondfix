@@ -50,8 +50,9 @@ describe('the real data on the real screens', () => {
     expect(screen.getByTestId('tile-total')).toHaveTextContent(new RegExp(`${REAL_PONDS.length}$`));
     expect(screen.getByTestId('tile-healthy')).toHaveTextContent(/0$/);
     expect(screen.getByTestId('readings-available')).toHaveTextContent(`0 of ${REAL_PONDS.length} ponds have a current reading.`);
-    expect(screen.getByTestId('recent-alerts')).toBeOnTheScreen();
-    expect(screen.getByText(/Pond 5 · Dissolved oxygen/)).toBeOnTheScreen();
+    // Old readings are never "healthy": the one measured problem leads, with its steps.
+    expect(screen.getByTestId('pond-verdict')).not.toHaveTextContent('Pond looks healthy');
+    expect(screen.getByTestId('top-problem')).toHaveTextContent(/Most urgent: Pond 5/);
   });
 
   it('Alerts list shows the real alert with the right pond; opening it reaches the details and the real pond', async () => {
@@ -92,7 +93,7 @@ describe('the real data on the real screens', () => {
     renderLiveApp('/ponds');
     await settle();
     await act(async () => { rt.onStatus('connected'); });
-    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Live monitoring/);
+    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Connected/);
     fireEvent.press(screen.getByTestId('connection-banner'));
     await settle();
     expect(screen.getByTestId('diagnostics-screen')).toBeOnTheScreen();
@@ -121,7 +122,7 @@ describe('the real data on the real screens', () => {
     await settle();
     await act(async () => { rt.onStatus('connected'); });
     expect(screen.getByText('Unable to load ponds')).toBeOnTheScreen();
-    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Unable to connect/);
+    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Can't reach PondFix/);
     expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Unable to reach the server\./);
   });
 });
