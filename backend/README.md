@@ -141,6 +141,7 @@ See [Chroma setup and migration](../docs/CHROMA_SETUP.md) for configuration, opt
 ### Chat endpoints (when `CHATBOT_ENABLED=true`)
 
 - `POST /api/ponds/:id/chat` `{ message, conversationId? }` returns the answer, `conversationId` and cited `sources`.
+- `POST /api/ponds/:id/chat/stream` takes the same body and streams server-sent events: `start` (conversationId, sources), `delta` (text), then `done` (final record) or `error`. Closing the connection cancels generation and nothing is stored.
 - `GET /api/ponds/:id/chats` lists the pond's recent conversations (`conversationId`, `title`, `updatedAt`, `turns`).
 - `GET /api/ponds/:id/chat/:conversationId` returns the turns, including each answer's sources.
 
