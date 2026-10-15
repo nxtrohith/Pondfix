@@ -181,9 +181,10 @@ test('pond summary reports the worst fresh parameter and the open alert paramete
   assert.deepEqual(s.openAlerts, { WARNING: 1 });
 });
 
-test('GET /api/risk-rules reports all three active rules and their provenance', async () => {
+test('GET /api/risk-rules reports all active rules and their provenance', async () => {
   const r = (await env.get('/api/risk-rules')).body;
-  assert.deepEqual(Object.keys(r.parameters), ['dissolved_oxygen', 'ph', 'temperature']);
+  assert.deepEqual(Object.keys(r.parameters), ['dissolved_oxygen', 'ph', 'temperature', 'water_level']);
+  assert.deepEqual(r.parameters.water_level, { label: 'Water level', unit: 'm', enabled: true, source: 'provisional_demo', acceptableRange: { min: 0.05, max: null }, lowWarning: 0.05, lowCritical: 0.01 });
   assert.deepEqual(r.parameters.temperature, { label: 'Water temperature', unit: 'C', enabled: true, source: 'provisional_demo', acceptableRange: { min: 20, max: 32 }, lowWarning: 20, lowCritical: 15, highWarning: 32, highCritical: 35 });
   assert.equal(r.parameters.dissolved_oxygen.source, 'project_default'); assert.deepEqual(r.dissolvedOxygen, { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 });
   assert.match(r.note, /PROVISIONAL DEMO/);

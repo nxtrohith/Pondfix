@@ -13,26 +13,28 @@
 // None of these are validated species-specific safety limits. Validate them before any real farm deployment, and change them
 // with the optional AQUAGUARD_THRESHOLDS JSON file (e.g. {"ph":{"low_warn":6.8,"low_crit":6.3,"high_warn":8.2,"high_crit":8.8}},
 // keys do|ph|temp), never by editing numbers elsewhere. Invalid configuration stops startup; it never silently disables alerts.
+//   water level (m)         : critical < 0.01 (a reading of 0 = pond/sensor dry), warning < 0.05 -- PROVISIONAL DEMO values, low side only
 // A rule can be switched off explicitly with RISK_RULES_DISABLED=ph,temperature (a disabled parameter classifies as UNKNOWN).
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const UNITS = Object.freeze({ dissolved_oxygen: 'mg/L', ph: 'pH', temperature: 'C' });
+export const UNITS = Object.freeze({ dissolved_oxygen: 'mg/L', ph: 'pH', temperature: 'C', water_level: 'm' });
 export const RULE_PARAMETERS = Object.freeze(Object.keys(UNITS));
-export const PARAMETER_LABEL = Object.freeze({ dissolved_oxygen: 'Dissolved oxygen', ph: 'pH', temperature: 'Water temperature' });
-const DECIMALS = { dissolved_oxygen: 2, ph: 2, temperature: 1 };
-const FILE_KEYS = { do: 'dissolved_oxygen', ph: 'ph', temp: 'temperature' };
+export const PARAMETER_LABEL = Object.freeze({ dissolved_oxygen: 'Dissolved oxygen', ph: 'pH', temperature: 'Water temperature', water_level: 'Water level' });
+const DECIMALS = { dissolved_oxygen: 2, ph: 2, temperature: 1, water_level: 2 };
+const FILE_KEYS = { do: 'dissolved_oxygen', ph: 'ph', temp: 'temperature', level: 'water_level' };
 const LIMIT_KEYS = ['low_warn', 'low_crit', 'high_warn', 'high_crit'];
 // Physically possible values (same as the measurement validator); limits outside them could never fire.
-const PHYSICAL = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60] };
+const PHYSICAL = { dissolved_oxygen: [0, 50], ph: [0, 14], temperature: [-5, 60], water_level: [0, 50] };
 
 export const RULES_VERSION = 'demo-defaults-2026-10';
 export const DEFAULT_LIMITS = Object.freeze({
   dissolved_oxygen: Object.freeze({ low_warn: 3.0, low_crit: 2.0 }),
   ph: Object.freeze({ low_warn: 6.5, low_crit: 6.0, high_warn: 8.5, high_crit: 9.0 }),
   temperature: Object.freeze({ low_warn: 20, low_crit: 15, high_warn: 32, high_crit: 35 }),
+  water_level: Object.freeze({ low_warn: 0.05, low_crit: 0.01 }),
 });
-const DEFAULT_SOURCE = { dissolved_oxygen: 'project_default', ph: 'provisional_demo', temperature: 'provisional_demo' };
+const DEFAULT_SOURCE = { dissolved_oxygen: 'project_default', ph: 'provisional_demo', temperature: 'provisional_demo', water_level: 'provisional_demo' };
 
 export class RuleConfigError extends Error {
   constructor(problems) { super(`invalid risk-rule configuration: ${problems.join('; ')}`); this.name = 'RuleConfigError'; this.problems = problems; }
@@ -80,7 +82,7 @@ export function loadRiskRules(env = process.env) {
       if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) problems.push('AQUAGUARD_THRESHOLDS must hold {parameter: {limit: number}}');
       else for (const [k, v] of Object.entries(loaded)) {
         const p = FILE_KEYS[k];
-        if (!p) { problems.push(`AQUAGUARD_THRESHOLDS: unsupported parameter ${JSON.stringify(k)} (use do, ph or temp)`); continue; }
+        if (!p) { problems.push(`AQUAGUARD_THRESHOLDS: unsupported parameter ${JSON.stringify(k)} (use do, ph, temp or level)`); continue; }
         limits[p] = v; source[p] = 'configured';
       }
       version = `file:${path.basename(file)}`; mode = 'configured';

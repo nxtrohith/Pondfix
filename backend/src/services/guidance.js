@@ -7,6 +7,7 @@ const WHY = {
   'ph.high': 'High pH can stress stock, and it makes ammonia more toxic.',
   'temperature.low': 'Cold water slows feeding and growth and can stress stock.',
   'temperature.high': 'Warm water holds less oxygen and raises stock oxygen demand.',
+  'water_level.low': 'A very low water level concentrates waste, swings temperature and oxygen quickly, and can strand stock. A reading of zero can also mean the level sensor is out of the water or has failed.',
 };
 const ACTION = {
   'dissolved_oxygen.low': 'Verify the sensor reading, inspect stock behaviour, check aeration, and follow your farm’s operating procedure.',
@@ -15,6 +16,7 @@ const ACTION = {
   'ph.high': 'Re-test the water with a second meter or test kit, and review recent liming, fertiliser and algae growth.',
   'temperature.low': 'Verify the sensor reading, check for cold inflow or weather, and adjust feeding to your farm’s procedure.',
   'temperature.high': 'Verify the sensor reading, check shade and water flow, and adjust feeding to your farm’s procedure.',
+  'water_level.low': 'Check the level on site (and that the sensor is submerged and wired), then check inflow, leaks and outlets, and refill per your farm’s procedure.',
 };
 
 export function describeAlert(a) {

@@ -43,11 +43,11 @@ export function buildRouter(deps) {
     res.json({
       dissolvedOxygen: { unit: o.unit, criticalBelow: o.low_crit, warningBelow: o.low_warn }, // kept for existing clients
       parameters, mode, version,
-      unclassifiedParameters: ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'],
+      unclassifiedParameters: ['ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia'],
       staleAfterMinutes: config.staleAfterMinutes,
       boundaries: 'A value inside or exactly on the acceptable range is normal. WARNING is strictly beyond a warning limit, CRITICAL strictly beyond a critical limit.',
       note: mode === 'configured' ? 'Limits come from the configured rules file. Validate them for your species before relying on them.'
-        : 'Dissolved oxygen is the project default. pH and temperature are PROVISIONAL DEMO limits for software testing, not validated species-specific aquaculture limits.',
+        : 'Dissolved oxygen is the project default. pH, temperature and water level are PROVISIONAL DEMO limits for software testing, not validated species-specific aquaculture limits.',
     });
   });
 

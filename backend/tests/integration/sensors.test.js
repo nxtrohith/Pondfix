@@ -66,6 +66,34 @@ test('Sensor receiver endpoints', async (t) => {
     assert.ok(dryRunLog, 'Server log must contain [SENSOR DRY-RUN]');
   });
 
+  await t.test('POST /api/sensors/data routes to the pond most recently switched to Sensor and never to a simulator pond', async () => {
+    const sim = await env.makePond('Sim pond', { dataSource: 'simulator', dataSourceChangedAt: new Date('2026-03-01T11:00:00Z') });
+    const older = await env.makePond('Older sensor pond', { dataSource: 'sensor', dataSourceChangedAt: new Date('2026-03-01T10:00:00Z') });
+    const newer = await env.makePond('Newest sensor pond', { dataSource: 'sensor', dataSourceChangedAt: new Date('2026-03-01T11:30:00Z') });
+    const res = await env.post('/api/sensors/data', { deviceId: 'ESP32_ROUTE', temperature: 27, ph: 7.2, water_level: 1.1 });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.pondId, String(newer._id));
+    assert.notEqual(res.body.pondId, String(sim._id));
+    assert.notEqual(res.body.pondId, String(older._id));
+    // an explicit pondId still wins
+    const explicit = await env.post('/api/sensors/data', { deviceId: 'ESP32_ROUTE', pondId: String(older._id), temperature: 27 });
+    assert.equal(explicit.body.pondId, String(older._id));
+  });
+
+  await t.test('a water level of 0 from the sensor opens a CRITICAL alert, and a recovered level resolves it', async () => {
+    const pond = await env.makePond('Level pond', { dataSource: 'sensor', dataSourceChangedAt: new Date('2026-03-01T11:59:00Z') });
+    const dry = await env.post('/api/sensors/data', { deviceId: 'ESP32_LEVEL', pondId: String(pond._id), temperature: 27, ph: 7.2, water_level: 0 });
+    assert.equal(dry.status, 201);
+    assert.equal(dry.body.riskSummary.water_level, 'CRITICAL');
+    const open = await env.db.collection('alerts').findOne({ pondId: pond._id, parameter: 'water_level', status: 'ACTIVE' });
+    assert.ok(open, 'a water_level alert must be open');
+    assert.equal(open.severity, 'CRITICAL'); assert.equal(open.dataSource, 'live');
+    env.state.now = new Date(+env.state.now + 60000);
+    const ok = await env.post('/api/sensors/data', { deviceId: 'ESP32_LEVEL', pondId: String(pond._id), water_level: 1.2 });
+    assert.equal(ok.body.riskSummary.water_level, 'NORMAL');
+    assert.equal(await env.db.collection('alerts').countDocuments({ pondId: pond._id, parameter: 'water_level', status: { $in: ['ACTIVE', 'ACKNOWLEDGED'] } }), 0);
+  });
+
   await t.test('POST /api/sensors/data rejects invalid readings', async () => {
     const res = await env.post('/api/sensors/data', {
       deviceId: 'ESP32_BAD',

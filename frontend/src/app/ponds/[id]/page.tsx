@@ -58,6 +58,9 @@ export default async function PondDetailPage({ params, searchParams }: { params:
   const summary = summaryR.status === 'fulfilled' ? summaryR.value : null;
   const rules = rulesR.status === 'fulfilled' ? rulesR.value : null;
   const row = toRow(pond, summary);
+  // A water-level card appears (between pH and temperature) only while the pond is receiving live readings from its level sensor.
+  const hasLiveLevel = summary?.parameters.water_level?.source === 'live';
+  const cardParameters: string[] = hasLiveLevel ? ['dissolved_oxygen', 'ph', 'water_level', 'temperature'] : [...ALERT_PARAMETERS];
   const problems = openR.status === 'fulfilled' ? openR.value.items : null;
   const past = pastR.status === 'fulfilled' ? pastR.value.items : [];
   const preds = predsR.status === 'fulfilled' ? predsR.value.items : null;
@@ -91,8 +94,8 @@ export default async function PondDetailPage({ params, searchParams }: { params:
 
         {summary ? (
           <Section id="now" title="Current water quality" hint="The latest reading of each factor.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {ALERT_PARAMETERS.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} />)}
+            <div className={hasLiveLevel ? 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4' : 'grid grid-cols-1 gap-4 md:grid-cols-3'}>
+              {cardParameters.map((p) => <WaterQualityCard key={p} parameter={p} reading={summary.parameters[p]} rule={rules?.parameters?.[p]} />)}
             </div>
           </Section>
         ) : null}

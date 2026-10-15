@@ -1,5 +1,5 @@
 // Presentation helpers for alerts. Wording about limits comes from the backend's alert message; nothing here repeats a threshold.
-import { Drop, Flask, Thermometer } from '@phosphor-icons/react/dist/ssr';
+import { Drop, Flask, Thermometer, Waves } from '@phosphor-icons/react/dist/ssr';
 import type { Alert, Rule } from './api/schemas';
 import { DEFAULT_UNIT, PARAM_LABEL, formatValue, horizonLabel, unitLabel } from './format';
 
@@ -18,7 +18,7 @@ export const CHEMISTRY_HINT: Record<string, string> = {
   salinity: 'Falls with rain, rises as water evaporates.',
   turbidity: 'Cloudiness from algae, silt or rain.',
 };
-export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer, ammonia: Flask, nitrate: Flask, turbidity: Drop, un_ionized_ammonia: Flask, nitrite: Flask, alkalinity: Flask, salinity: Drop };
+export const PARAM_ICON: Record<string, typeof Drop> = { dissolved_oxygen: Drop, ph: Flask, temperature: Thermometer, water_level: Waves, ammonia: Flask, nitrate: Flask, turbidity: Drop, un_ionized_ammonia: Flask, nitrite: Flask, alkalinity: Flask, salinity: Drop };
 
 export const directionLabel = (d?: 'low' | 'high') => (d === 'low' ? 'Low' : d === 'high' ? 'High' : '');
 

@@ -21,7 +21,9 @@ test('DO boundaries at two-decimal precision (1.99 / 2.00 / 2.99 / 3.00) and the
 });
 
 test('parameters without a rule, and missing or non-finite values, are UNKNOWN, never healthy', () => {
-  assert.equal(classify('water_level', 1.2).status, 'UNKNOWN');
+  assert.equal(classify('water_level', 1.2).status, 'NORMAL');
+  assert.equal(classify('water_level', 0.03).status, 'WARNING');
+  assert.equal(classify('water_level', 0).status, 'CRITICAL');
   for (const p of ['ph', 'temperature']) for (const bad of [NaN, Infinity, -Infinity, undefined, null, '7']) assert.equal(classify(p, bad).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', NaN).status, 'UNKNOWN');
   assert.equal(classify('dissolved_oxygen', undefined).status, 'UNKNOWN');

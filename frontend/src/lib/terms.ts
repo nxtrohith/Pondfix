@@ -23,7 +23,7 @@ export function describeProblem(parameter: string, direction: Dir, severity: Sev
   const crit = severity === 'CRITICAL';
   const side = direction === 'high' ? 'high' : 'low';
   if (parameter === 'dissolved_oxygen') return crit ? 'Dissolved oxygen is critically low' : 'Dissolved oxygen is low';
-  const subject = parameter === 'ph' ? 'pH' : parameter === 'temperature' ? 'Water temperature' : parameter;
+  const subject = parameter === 'ph' ? 'pH' : parameter === 'temperature' ? 'Water temperature' : parameter === 'water_level' ? 'Water level' : parameter;
   return crit ? `${subject} is critically ${side}` : `${subject} is too ${side}`;
 }
 
@@ -34,7 +34,7 @@ export const horizonWords = HORIZON_WORDS;
 export function describeForecastProblem(parameter: string, direction: Dir, severity: Severity, horizonMinutes?: number): string {
   const crit = severity === 'CRITICAL';
   const side = direction === 'high' ? 'high' : 'low';
-  const subject = parameter === 'dissolved_oxygen' ? 'Oxygen' : parameter === 'ph' ? 'pH' : parameter === 'temperature' ? 'Water temperature' : parameter;
+  const subject = parameter === 'dissolved_oxygen' ? 'Oxygen' : parameter === 'ph' ? 'pH' : parameter === 'temperature' ? 'Water temperature' : parameter === 'water_level' ? 'Water level' : parameter;
   const state = parameter === 'dissolved_oxygen' ? (crit ? 'critically low' : 'low') : crit ? `critically ${side}` : `too ${side}`;
   return `${subject} may become ${state} within ${HORIZON_WORDS(horizonMinutes)}`;
 }

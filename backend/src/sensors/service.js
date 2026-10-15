@@ -52,17 +52,24 @@ export function normalizeEspPayload(raw, targetPondId) {
 }
 
 /**
- * Resolves target pond for the device. If pondId is explicitly supplied and valid, verifies it.
- * Otherwise, falls back to the first active pond in the database.
+ * Resolves the target pond for the device, in this order:
+ *  1. `pondId` in the payload (if valid and found)
+ *  2. SENSOR_POND_ID from the environment
+ *  3. the active pond most recently switched to "Sensor" in the dashboard (dataSourceChangedAt), so flipping a pond's data-source
+ *     toggle is what routes the hardware to it
+ *  4. any active pond that is not set to the simulator, then any pond at all
+ * Ponds set to the simulator are never chosen by default (ingestion would refuse them with 409 DATA_SOURCE_MISMATCH).
  */
 export async function resolvePond(db, requestedPondId) {
-  if (requestedPondId && ObjectId.isValid(requestedPondId)) {
-    const pond = await db.collection('ponds').findOne({ _id: new ObjectId(requestedPondId) });
-    if (pond) return pond;
-  }
+  const byId = async (id) => (id && ObjectId.isValid(id) ? db.collection('ponds').findOne({ _id: new ObjectId(id) }) : null);
+  const explicit = await byId(requestedPondId) ?? await byId(process.env.SENSOR_POND_ID);
+  if (explicit) return explicit;
 
-  // Fallback to active pond
-  const activePond = await db.collection('ponds').findOne({ status: 'active' });
+  const switched = await db.collection('ponds').find({ status: 'active', dataSource: 'sensor', dataSourceChangedAt: { $exists: true } }).sort({ dataSourceChangedAt: -1, _id: 1 }).limit(1).next();
+  if (switched) return switched;
+
+  // Fallback to an active pond that is not driven by the simulator
+  const activePond = await db.collection('ponds').findOne({ status: 'active', dataSource: { $ne: 'simulator' } });
   if (activePond) return activePond;
 
   // Fallback to any pond

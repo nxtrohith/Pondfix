@@ -69,6 +69,7 @@ test('resolvePond falls back to active pond when pondId is missing', async () =>
   const samplePond = { _id: new ObjectId(), name: 'Main Farm Pond', status: 'active' };
   const fakeDb = {
     collection: (name) => ({
+      find: () => ({ sort: () => ({ limit: () => ({ next: async () => null }) }) }), // no pond has been switched to Sensor yet
       findOne: async (query) => {
         if (query.status === 'active') return samplePond;
         return null;

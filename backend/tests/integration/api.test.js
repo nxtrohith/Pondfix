@@ -171,7 +171,7 @@ test('summary: no data / stale / fresh are distinct and never "healthy" by defau
   assert.equal((await env.get(`/api/ponds/${pond._id}/summary`)).body.riskStatus, 'STALE');
   await env.post('/api/measurements', doReading(pond._id, 6, { recordedAt: '2026-03-01T11:55:00Z' }));
   const s = await env.get(`/api/ponds/${pond._id}/summary`);
-  assert.equal(s.body.riskStatus, 'NORMAL'); assert.deepEqual(s.body.riskBasis, ['dissolved_oxygen', 'ph', 'temperature']);
+  assert.equal(s.body.riskStatus, 'NORMAL'); assert.deepEqual(s.body.riskBasis, ['dissolved_oxygen', 'ph', 'temperature', 'water_level']);
   const onlyPh = await env.makePond('TEST pH only');
   await env.post('/api/measurements', { pondId: String(onlyPh._id), source: 'live', values: [{ parameter: 'ph', value: 7.5 }] });
   assert.equal((await env.get(`/api/ponds/${onlyPh._id}/summary`)).body.riskStatus, 'NORMAL', 'a fresh, in-range pH is the only ruled reading');
@@ -219,7 +219,7 @@ test('risk-rules exposes the backend thresholds', async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.dissolvedOxygen, { unit: 'mg/L', criticalBelow: 2, warningBelow: 3 });
   assert.equal(r.body.staleAfterMinutes, 60);
-  assert.deepEqual(r.body.unclassifiedParameters, ['water_level', 'ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia']);
+  assert.deepEqual(r.body.unclassifiedParameters, ['ammonia', 'nitrate', 'turbidity', 'nitrite', 'alkalinity', 'salinity', 'un_ionized_ammonia']);
   assert.equal(r.body.mode, 'provisional_demo');
   assert.deepEqual(r.body.parameters.ph, { label: 'pH', unit: 'pH', enabled: true, source: 'provisional_demo', acceptableRange: { min: 6.5, max: 8.5 }, lowWarning: 6.5, lowCritical: 6, highWarning: 8.5, highCritical: 9 });
 });
