@@ -1,4 +1,4 @@
-import { SquaresFour, Drop, Bell, ChartBar, Flask, TestTube } from '@phosphor-icons/react/dist/ssr';
+import { SquaresFour, Drop, Bell, ChartBar, Flask, TestTube, ChatCircleText } from '@phosphor-icons/react/dist/ssr';
 import type { Icon } from '@phosphor-icons/react';
 
 export interface NavItem { href: string; label: string; icon: Icon }
@@ -8,6 +8,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     { href: '/', label: 'Overview', icon: SquaresFour },
     { href: '/ponds', label: 'Ponds', icon: Drop },
     { href: '/alerts', label: 'Alerts', icon: Bell },
+    { href: '/chat', label: 'Ask PondFix', icon: ChatCircleText },
   ] },
   { label: 'More', items: [
     { href: '/analytics', label: 'Compare ponds', icon: ChartBar },

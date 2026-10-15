@@ -263,7 +263,7 @@ export const healthResponse = z.object({
   // demo: whether the API accepts simulated readings (DEMO_ENABLED). Off by default; simulated readings are written to Atlas.
   demo: z.object({ enabled: z.boolean() }).optional(),
   /** advisor: Jev analysis is configured; llm: a custom LLM endpoint is configured. Optional so an older API still parses. */
-  ai: z.object({ advisor: z.boolean(), llm: z.boolean(), call: z.boolean().optional(), callMissing: z.array(z.string()).optional() }).optional(),
+  ai: z.object({ advisor: z.boolean(), llm: z.boolean(), chatbot: z.boolean().optional(), call: z.boolean().optional(), callMissing: z.array(z.string()).optional() }).optional(),
   ml: z.object({ status: z.string() }),
 });
 export type HealthResponse = z.infer<typeof healthResponse>;
@@ -353,3 +353,22 @@ export const noteSchema = z.object({
 });
 export type FarmerNote = z.infer<typeof noteSchema>;
 export const notesResponse = z.object({ items: z.array(noteSchema), count: z.number() });
+
+// ---- Pond chat (RAG assistant) ----
+export const chatSourceSchema = z.object({
+  citation: z.string(), id: z.string().optional(), score: z.number().optional(),
+  kind: z.string().optional(), topic: z.string().optional(), category: z.string().optional(), source: z.string().optional(),
+  review_status: z.string().optional(), species: z.string().optional(),
+}).passthrough();
+export type ChatSource = z.infer<typeof chatSourceSchema>;
+export const chatReplySchema = z.object({ answer: z.string(), conversationId: z.string(), model: z.string().optional(), memoryIndexed: z.boolean().optional(), sources: z.array(chatSourceSchema) });
+export type ChatReply = z.infer<typeof chatReplySchema>;
+export const chatHistorySchema = z.object({
+  conversationId: z.string(),
+  items: z.array(z.object({ id: z.string(), question: z.string(), answer: z.string(), createdAt: iso, sources: z.array(chatSourceSchema).optional() })),
+});
+export type ChatHistory = z.infer<typeof chatHistorySchema>;
+export const chatConversationsSchema = z.object({
+  items: z.array(z.object({ conversationId: z.string(), title: z.string(), startedAt: iso, updatedAt: iso, turns: z.number() })),
+});
+export type ChatConversation = z.infer<typeof chatConversationsSchema>['items'][number];

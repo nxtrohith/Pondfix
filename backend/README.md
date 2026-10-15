@@ -132,3 +132,17 @@ For an **observed CRITICAL** alert the Jev analysis is then fed to the custom LL
 **Farmer notes**: `POST /api/ponds/:id/notes {text}` (3–500 chars) and `GET /api/ponds/:id/notes`. Jev classifies the text (category, distress probability, severity); notes feed the advisor as untrusted data and never create alerts.
 
 Operations: run `npm run db:init -w database && npm run db:indexes -w database` once (adds `alerts.advisory`, `alerts.incidentId`, the `farmerNotes` collection). Pin `JEV_MODEL` to a tested version before production and evaluate the thresholds in `policy.js` on labelled ponds; they are starting values. pH/temperature limits remain provisional demo values, so the LLM is told never to call them validated. Tests: `tests/unit/ai-policy.test.js`, `tests/integration/ai-advisor.test.js` (fake Jev/LLM, no network).
+
+## Chroma knowledge and pond chat
+
+See [Chroma setup and migration](../docs/CHROMA_SETUP.md) for configuration, opt-in dry-run/write migration, privacy and billing boundaries, and the chat API. Chat defaults off (`CHATBOT_ENABLED=true` to enable). There is no authentication: it is intended for a private local deployment only. The classified starter corpus lives in [`../knowledge`](../knowledge/README.md).
+
+
+### Chat endpoints (when `CHATBOT_ENABLED=true`)
+
+- `POST /api/ponds/:id/chat` `{ message, conversationId? }` returns the answer, `conversationId` and cited `sources`.
+- `POST /api/ponds/:id/chat/stream` takes the same body and streams server-sent events: `start` (conversationId, sources), `delta` (text), then `done` (final record) or `error`. Closing the connection cancels generation and nothing is stored.
+- `GET /api/ponds/:id/chats` lists the pond's recent conversations (`conversationId`, `title`, `updatedAt`, `turns`).
+- `GET /api/ponds/:id/chat/:conversationId` returns the turns, including each answer's sources.
+
+The web UI is the **Ask PondFix** page (`/chat`) in `frontend/`.

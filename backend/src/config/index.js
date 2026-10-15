@@ -33,6 +33,24 @@ function callConfig(env) {
   };
 }
 
+function chromaConfig(env) {
+  const enabled = bool(env.CHROMA_ENABLED, false);
+  const chatbotEnabled = bool(env.CHATBOT_ENABLED, false);
+
+  if (chatbotEnabled && !enabled) throw new Error('CHATBOT_ENABLED requires CHROMA_ENABLED=true');
+  if (enabled && !env.CHROMA_API_KEY) throw new Error('CHROMA_ENABLED requires CHROMA_API_KEY in backend/.env');
+  if (chatbotEnabled && (!env.LLM_ENDPOINT_URL || !env.LLM_MODEL)) throw new Error('CHATBOT_ENABLED requires LLM_ENDPOINT_URL and a configured LLM model');
+  const host = env.CHROMA_HOST || 'api.trychroma.com';
+  if (!/^[a-z0-9.-]+$/i.test(host)) throw new Error('CHROMA_HOST must be a hostname without a URL scheme or path');
+  const prefix = env.CHROMA_COLLECTION_PREFIX || 'aquafix-v1';
+  if (!/^[a-z][a-z0-9-]{2,39}$/.test(prefix)) throw new Error('CHROMA_COLLECTION_PREFIX must be 3–40 lowercase letters, digits or hyphens, starting with a letter');
+  const timeoutMs = int(env.CHROMA_TIMEOUT_MS, 30000);
+  if (timeoutMs <= 0) throw new Error('CHROMA_TIMEOUT_MS must be positive');
+  return { enabled, chatbotEnabled, apiKey: env.CHROMA_API_KEY || '', host,
+    tenant: env.CHROMA_TENANT || 'd6707940-1a08-4abe-ae4d-e7a468c5325a',
+    database: env.CHROMA_DATABASE || 'Demo', scopeId: env.CHROMA_SCOPE_ID || 'single-farmer', prefix, timeoutMs };
+}
+
 export function loadConfig(env = process.env) {
   const production = env.NODE_ENV === 'production';
   // Throws RuleConfigError for an invalid rule configuration, so a bad file stops startup instead of silently disabling alerts.
@@ -60,6 +78,7 @@ export function loadConfig(env = process.env) {
     maxQueryRangeDays: int(env.MAX_QUERY_RANGE_DAYS, 366),
     maxPageSize: 1000,
     ai: aiConfig(env),
+    chroma: chromaConfig(env),
     ml: {
       enabled: bool(env.ML_ENABLED, true),
       python: env.PYTHON_BIN || 'python3',

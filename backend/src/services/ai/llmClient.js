@@ -29,5 +29,36 @@ export function createLlmClient(cfg, fetchImpl = globalThis.fetch) {
     if (typeof text !== 'string' || !text.trim()) throw new AiError('LLM_BAD_RESPONSE', 'LLM reply has no content');
     return { text, model: body.model ?? cfg.model };
   }
-  return { complete, model: cfg.model };
+  // Streams the reply as text deltas (OpenAI-style server-sent events). Reasoning tokens are never forwarded.
+  async function* stream({ system, user, maxTokens = 2500, signal }) {
+    let res;
+    try {
+      res = await fetchImpl(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(cfg.apiKey ? { authorization: `Bearer ${cfg.apiKey}` } : {}) },
+        body: JSON.stringify({ model: cfg.model, temperature: 0.2, max_tokens: maxTokens, stream: true, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(cfg.timeoutMs)]) : AbortSignal.timeout(cfg.timeoutMs),
+      });
+    } catch (e) { throw new AiError(e?.name === 'TimeoutError' ? 'LLM_TIMEOUT' : 'LLM_UNREACHABLE', 'LLM request failed'); }
+    if (!res.ok || !res.body) throw new AiError(`LLM_HTTP_${res.status}`, `LLM returned HTTP ${res.status}`);
+    const decoder = new TextDecoder();
+    let buffer = ''; let any = false;
+    try {
+      for await (const chunk of res.body) {
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split('\n'); buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          const data = line.startsWith('data:') ? line.slice(5).trim() : '';
+          if (!data || data === '[DONE]') continue;
+          let delta; try { delta = JSON.parse(data)?.choices?.[0]?.delta?.content; } catch { continue; }
+          if (typeof delta === 'string' && delta) { any = true; yield delta; }
+        }
+      }
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      throw new AiError(e?.name === 'TimeoutError' ? 'LLM_TIMEOUT' : 'LLM_UNREACHABLE', 'LLM stream failed');
+    }
+    if (!any) throw new AiError('LLM_BAD_RESPONSE', 'LLM reply has no content');
+  }
+  return { complete, stream, model: cfg.model };
 }
