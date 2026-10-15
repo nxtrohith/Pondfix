@@ -1,9 +1,10 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowClockwise, BookOpenText, Check, ClockCounterClockwise, Copy, Drop, NotePencil, Sparkle, WarningCircle } from '@phosphor-icons/react/dist/ssr';
+import { ArrowClockwise, BookOpenText, Check, ClockCounterClockwise, Copy, Drop, NotePencil, SpeakerHigh, Sparkle, Stop, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { ApiError, browserApi } from '@/lib/api/client';
 import type { ChatSource, Pond } from '@/lib/api/schemas';
+import { PUBLIC_API_BASE_URL } from '@/lib/env';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { formatDateTime } from '@/lib/format';
 import { Button } from '../ui/Button';
@@ -49,10 +50,53 @@ function SourceCard({ source, open }: { source: ChatSource; open: boolean }) {
   );
 }
 
+/** Strips markdown and [n] citation markers, then splits into chunks the translate and speech endpoints accept (<= 1400 chars). */
+function speakableChunks(md: string): string[] {
+  const plain = md.replace(/```[\s\S]*?```/g, ' ').replace(/\[\d+\]/g, '').replace(/[*_`#>]+/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^\s*[-•]\s+/gm, '').replace(/\s+/g, ' ').trim();
+  const chunks: string[] = []; let cur = '';
+  for (const sentence of plain.match(/[^.!?]+[.!?]*\s*/g) ?? [plain]) {
+    if (cur && (cur + sentence).length > 1400) { chunks.push(cur.trim()); cur = ''; }
+    cur += sentence;
+  }
+  if (cur.trim()) chunks.push(cur.trim());
+  return chunks.slice(0, 4);
+}
+
+async function postJson(path: string, body: unknown, signal: AbortSignal) {
+  const res = await fetch(`${PUBLIC_API_BASE_URL}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal });
+  if (!res.ok) throw new Error(`${path} ${res.status}`);
+  return res;
+}
+
+/** Translates an answer to Telugu (Sarvam) and reads it aloud (Sarvam TTS). */
+function useTeluguVoice(text: string) {
+  const [state, setState] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
+  const ctrl = useRef<AbortController | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const stop = useCallback(() => { ctrl.current?.abort(); audio.current?.pause(); audio.current = null; setState('idle'); }, []);
+  useEffect(() => stop, [stop]);
+  const start = useCallback(async () => {
+    const c = new AbortController(); ctrl.current = c; setState('loading');
+    try {
+      const chunks = speakableChunks(text);
+      const tr = await (await postJson('/translate', { targetLanguage: 'te', items: chunks }, c.signal)).json() as { items: { translated: string; status: string }[] };
+      for (const [i, item] of tr.items.entries()) {
+        const blob = await (await postJson('/tts', { text: item.translated, language: 'te' }, c.signal)).blob();
+        const url = URL.createObjectURL(blob); const a = new Audio(url); audio.current = a;
+        await new Promise<void>((resolve, reject) => { a.onended = () => resolve(); a.onerror = () => reject(new Error('playback')); void a.play().then(() => { if (i === 0) setState('playing'); }, reject); });
+        URL.revokeObjectURL(url);
+      }
+      setState('idle');
+    } catch (e) { if (!c.signal.aborted) setState('error'); }
+  }, [text]);
+  return { state, start, stop };
+}
+
 function AssistantMessage({ m, onRetry }: { m: Message; onRetry: (text: string) => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const sources = m.sources ?? [];
+  const voice = useTeluguVoice(m.text);
   const copy = () => { void navigator.clipboard?.writeText(m.text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }).catch(() => {}); };
   const cite = (c: string) => { setOpen(c); requestAnimationFrame(() => document.getElementById(`src-${c}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })); };
   return (
@@ -74,6 +118,10 @@ function AssistantMessage({ m, onRetry }: { m: Message; onRetry: (text: string) 
             {m.streaming ? null : <div className="mt-2 flex flex-wrap items-center gap-2">
               <button type="button" onClick={copy} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-ink-soft hover:bg-surface hover:text-ink">
                 {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}{copied ? 'Copied' : 'Copy'}
+              </button>
+              <button type="button" onClick={voice.state === 'idle' || voice.state === 'error' ? () => void voice.start() : voice.stop} aria-label={voice.state === 'playing' || voice.state === 'loading' ? 'Stop Telugu voice' : 'Listen in Telugu'} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-ink-soft hover:bg-surface hover:text-ink">
+                {voice.state === 'playing' || voice.state === 'loading' ? <Stop size={14} aria-hidden="true" /> : <SpeakerHigh size={14} aria-hidden="true" />}
+                {voice.state === 'loading' ? 'Translating…' : voice.state === 'playing' ? 'Stop' : voice.state === 'error' ? 'Voice unavailable, retry' : 'తెలుగులో వినండి'}
               </button>
               {sources.length ? (
                 <button type="button" aria-expanded={open !== null} onClick={() => setOpen(open === null ? (sources[0]?.citation ?? null) : null)} className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-ink-soft hover:bg-surface hover:text-ink">

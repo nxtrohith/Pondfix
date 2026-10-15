@@ -9,11 +9,15 @@ import { createJevClient } from './services/ai/jevClient.js';
 import { createLlmClient } from './services/ai/llmClient.js';
 import { createSarvamCaller } from './services/ai/sarvamCall.js';
 import { createChromaSearch } from './services/ai/chroma.js';
+import { buildI18nRouter } from './routes/i18n.js';
+import { createSarvamClient } from './services/i18n/sarvamClient.js';
+import { createTranslationService } from './services/i18n/translation.js';
+import { createSpeechService } from './services/i18n/speech.js';
 import { createChatbot } from './services/ai/chatbot.js';
 import { requestLogger, notFoundHandler, errorHandler } from './middleware/index.js';
 
 /** deps: { db, config, ml?, events?, now?, log?, ai? }. `ai` = { jev, llm? } overrides the clients built from config.ai (tests inject fakes). `events` is the alert bus that the realtime transport (realtime.js) listens to. Everything is injected so tests can use isolated databases and fake workers. */
-export function createApp({ db, config, ml = null, events = createAlertBus(), now = () => new Date(), log = console.log, dbTarget = 'unknown', ai = null }) {
+export function createApp({ db, config, ml = null, events = createAlertBus(), now = () => new Date(), log = console.log, dbTarget = 'unknown', ai = null, i18n = undefined }) {
   if (config.risk) setActiveRules(config.risk);
   setSpeciesPolicies(config.speciesPolicies);
   // Jev + LLM advisor: listens to the alert bus, so alert creation itself is untouched by it.
@@ -24,11 +28,13 @@ export function createApp({ db, config, ml = null, events = createAlertBus(), no
   }) : null;
   const advisor = clients?.jev ? createAdvisor({ db, events, now, log, jev: clients.jev, llm: clients.llm ?? null, caller: clients.caller ?? null }) : null;
   if (advisor) events.on('alert', (e) => advisor.handle(e));
+  const i18nServices = i18n !== undefined ? i18n : (config.i18n?.sarvamApiKey ? (() => { const client = createSarvamClient({ apiKey: config.i18n.sarvamApiKey, ttsSpeaker: config.i18n.ttsSpeaker, log }); return { translation: createTranslationService({ client, log }), speech: createSpeechService({ client, log }) }; })() : null);
   const app = express();
   app.disable('x-powered-by');
   app.use(requestLogger(log));
   app.use(cors({ origin: config.corsOrigins, methods: ['GET', 'POST', 'PATCH'] }));
   app.use(express.json({ limit: config.bodyLimit }));
+  app.use('/api', buildI18nRouter({ config, i18n: i18nServices, log }));
   app.use('/api', buildRouter({ db, config, ml, events, now, dbTarget, log, jev: clients?.jev ?? null, advisor, chatbot }));
   app.use(notFoundHandler);
   app.use(errorHandler({ production: config.production, log }));
